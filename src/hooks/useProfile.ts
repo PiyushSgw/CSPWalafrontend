@@ -1,4 +1,13 @@
-import { changePassword, clearError, loadDashboard, loadProfile, updateProfile, uploadKYC, uploadPhoto } from "@/redux/slices/profileSlice";
+import {
+  changePassword,
+  clearError,
+  loadDashboard,
+  loadProfile,
+  updateProfile,
+  updateBankDetails,
+  uploadKYC,
+  uploadPhoto,
+} from "@/redux/slices/profileSlice";
 import { useAppDispatch } from "./useRedux";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -16,42 +25,51 @@ export const useProfile = () => {
     loadProfile: () => dispatch(loadProfile()),
     loadDashboard: () => dispatch(loadDashboard()),
 
-    updateProfile: (data: { name?: string; location?: string }) =>
-      dispatch(updateProfile(data)),
+    updatePersonalInfo: (data: {
+      name?: string;
+      mobile?: string;
+      location?: string;
+    }) => dispatch(updateProfile(data)).unwrap(),
 
-    // ✅ FIXED PHOTO UPLOAD
+    onUpdateBank: (data: {
+      outletName?: string;
+      cspCode?: string;
+      primaryBank?: string;
+      branch?: string;
+      ifsc?: string;
+      agentCode?: string;
+      address?: string;
+    }) =>
+      dispatch(
+        updateBankDetails({
+          outlet_name: data.outletName,
+          bank_name: data.primaryBank,
+          branch_name: data.branch,
+          ifsc: data.ifsc,
+          agent_code: data.agentCode,
+          location: data.address,
+        })
+      ).unwrap(),
+
     uploadPhoto: async (file: File) => {
       const formData = new FormData();
       formData.append("photo", file);
 
-      try {
-        const res = await dispatch(uploadPhoto(formData)).unwrap();
-        console.log("Photo uploaded:", res);
-        return res;
-      } catch (err) {
-        console.error("Photo upload failed:", err);
-        throw err;
-      }
+      const res = await dispatch(uploadPhoto(formData)).unwrap();
+      return res;
     },
 
-    // ✅ FIXED KYC UPLOAD - Matches component + backend perfectly
     uploadKYC: async (files: { outlet_photo?: File; bank_letter?: File }) => {
       const formData = new FormData();
-      if (files.outlet_photo) formData.append("kyc_doc", files.outlet_photo);     // Backend expects "kyc_doc"
-      if (files.bank_letter) formData.append("kyc_doc2", files.bank_letter);      // Backend expects "kyc_doc2"
+      if (files.outlet_photo) formData.append("kyc_doc", files.outlet_photo);
+      if (files.bank_letter) formData.append("kyc_doc2", files.bank_letter);
 
-      try {
-        const res = await dispatch(uploadKYC(formData)).unwrap();
-        await dispatch(loadProfile());  // Refresh profile with new URLs
-        console.log("KYC uploaded:", res);
-        return res;
-      } catch (err) {
-        console.error("KYC upload failed:", err);
-        throw err;
-      }
+      const res = await dispatch(uploadKYC(formData)).unwrap();
+      await dispatch(loadProfile());
+      return res;
     },
 
-    changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    change_Password: (data: { current_Password: string; new_Password: string;}) =>
       dispatch(changePassword(data)),
 
     clearError: () => dispatch(clearError()),

@@ -1,415 +1,424 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import api from '@/utils/axios'
 
-interface Transaction {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface Customer {
+  id: number
+  name: string
+  account_number: string
+  account_type?: string
+  ifsc?: string
+  ifsc_code?: string
+  bank_id?: number
+  bank_name?: string
+  branch_name?: string
+  branch?: string
+  mobile?: string
+  mobile_number?: string
+  opening_balance?: number
+  customer_photo?: string
+  csp_code?: string
+}
+
+export interface Transaction {
+  id?: number
+  customer_id?: number
   txn_date: string
   description: string
   debit: number
   credit: number
-  balance?: number
+  balance: number
+  print_job_id?: number | null
+  created_at?: string
 }
 
-interface Customer {
-  id: number
-  name: string
-  account_number: string
-  account_type: string
-  ifsc: string
-  bank_id: number
-  bank_name: string
-  branch_name?: string
-  mobile?: string
-  opening_balance: number
+export interface PreviewState {
+  html: string
+  pdf_url?: string
+  print_charge?: number
+  transaction_count?: number
+}
+
+interface TransactionMeta {
+  total: number
+  page: number
+  totalPages: number
 }
 
 interface PassbookState {
-  wizardStep: number
+  customers: Customer[]
   selectedCustomer: Customer | null
   transactions: Transaction[]
-  preview: any | null
-  printResult: any | null
-  history: any[]
-  historyTotal: number
+  preview: PreviewState | null
+  wizardStep: number
   loading: boolean
-  printLoading: boolean
+  creatingCustomer: boolean
+  fetchingCustomer: boolean
+  printing: boolean
+  previewLoading: boolean
   error: string | null
+  printError: string | null
+  printResult: any | null
+  transactionMeta: TransactionMeta
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ASYNC THUNKS
-// ═══════════════════════════════════════════════════════════════════════════
+// ─── Thunk Payload Types ──────────────────────────────────────────────────────
 
-/**
- * Search customers by name or account number
- */
-export const searchCustomers = createAsyncThunk(
-  'passbook/searchCustomers',
-  async (query: string, { rejectWithValue }) => {
+interface TransactionInput {
+  sr_no?: number
+  txn_date: string
+  description: string
+  debit: number
+  credit: number
+  balance: number
+}
+
+interface PreviewPayload {
+  customer_id: number
+  account_number?: string
+  transactions: TransactionInput[]
+}
+
+interface PrintPayload {
+  customer_id: number
+  account_number?: string
+  print_cost?: number
+  transactions: TransactionInput[]
+}
+
+interface FetchTransactionsResponse {
+  transactions: Transaction[]
+  total: number
+  page: number
+  totalPages: number
+}
+
+// ─── Initial State ────────────────────────────────────────────────────────────
+
+const initialState: PassbookState = {
+  customers: [],
+  selectedCustomer: null,
+  transactions: [],
+  preview: null,
+  wizardStep: 1,
+  loading: false,
+  creatingCustomer: false,
+  fetchingCustomer: false,
+  printing: false,
+  previewLoading: false,
+  error: null,
+  printError: null,
+  printResult: null,
+  transactionMeta: {
+    total: 0,
+    page: 1,
+    totalPages: 1,
+  },
+}
+
+// ─── Async Thunks ─────────────────────────────────────────────────────────────
+
+export const searchCustomers = createAsyncThunk<
+  Customer[],
+  string,
+  { rejectValue: string }
+>('passbook/searchCustomers', async (query, { rejectWithValue }) => {
+  try {
+    const res = await api.get('/api/csp/customers', { params: { search: query } })
+    console.log('Search Customers Response:', res.data)
+    return res.data?.data || []
+  } catch (err: any) {
+    return rejectWithValue(
+      err?.response?.data?.message || 'Failed to search customers'
+    )
+  }
+})
+
+export const fetchCustomer = createAsyncThunk<
+  Customer,
+  number,
+  { rejectValue: string }
+>('passbook/fetchCustomer', async (customerId, { rejectWithValue }) => {
+  try {
+    const res = await api.get(`/api/csp/customers/${customerId}`)
+    return res.data?.data
+  } catch (err: any) {
+    return rejectWithValue(
+      err?.response?.data?.message || 'Failed to fetch customer'
+    )
+  }
+})
+
+export const createCustomer = createAsyncThunk<
+  Customer,
+  any,
+  { rejectValue: string }
+>('passbook/createCustomer', async (payload, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/api/csp/customers', payload)
+    return res.data?.data
+  } catch (err: any) {
+    return rejectWithValue(
+      err?.response?.data?.message || 'Failed to create customer'
+    )
+  }
+})
+
+export const fetchCustomerTransactions = createAsyncThunk<
+  FetchTransactionsResponse,
+  number,
+  { rejectValue: string }
+>(
+  'passbook/fetchCustomerTransactions',
+  async (customerId, { rejectWithValue }) => {
     try {
-      debugger
-      const res = await api.get('api/csp/customers', {
-        params: {
-          search: query,
-          page: 1,
-          limit: 20,
-        },
-      })
-      return res.data.data || []
-    } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Search failed')
+      const res = await api.get(`/api/csp/passbook/transactions/${customerId}`)
+
+      const raw: any[] =
+        res.data?.data?.transactions ||
+        (Array.isArray(res.data?.data) ? res.data.data : [])
+
+      const transactions: Transaction[] = raw.map((txn: any) => ({
+        id: txn.id,
+        customer_id: txn.customer_id,
+        txn_date: txn.txn_date ? String(txn.txn_date).slice(0, 10) : '',
+        description: txn.description || '',
+        debit: Number(txn.debit || 0),
+        credit: Number(txn.credit || 0),
+        balance: Number(txn.balance || 0),
+        print_job_id: txn.print_job_id ?? null,
+        created_at: txn.created_at,
+      }))
+
+      return {
+        transactions,
+        total: res.data?.data?.total ?? transactions.length,
+        page: res.data?.data?.page ?? 1,
+        totalPages: res.data?.data?.totalPages ?? 1,
+      }
+    } catch (err: any) {
+      return rejectWithValue(
+        err?.response?.data?.message || 'Failed to fetch transactions'
+      )
     }
   }
 )
 
-/**
- * Create a new customer
- */
-export const createCustomer = createAsyncThunk(
-  'passbook/createCustomer',
-  async (
-    data: {
-      name: string
-      account_number: string
-      account_type: string
-      ifsc: string
-      bank_id: number
-      mobile?: string
-      opening_balance: number
-    },
-    { rejectWithValue }
-  ) => {
-    try {
-      const res = await api.post('/api/csp/customers/create', data)
-      return res.data.data
-    } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Failed to create customer')
-    }
+export const generatePassbookPreview = createAsyncThunk<
+  any,
+  PreviewPayload,
+  { rejectValue: string }
+>('passbook/generatePassbookPreview', async (payload, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/api/csp/passbook/preview', payload)
+    return res.data
+  } catch (err: any) {
+    return rejectWithValue(
+      err?.response?.data?.message || 'Failed to generate preview'
+    )
   }
-)
+})
 
-/**
- * Fetch customer details by ID
- */
-export const fetchCustomer = createAsyncThunk(
-  'passbook/fetchCustomer',
-  async (customerId: number, { rejectWithValue }) => {
-    try {
-      const res = await api.get(`/api/csp/customers/${customerId}`)
-      return res.data.data
-    } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Failed to fetch customer')
-    }
+export const printPassbook = createAsyncThunk<
+  any,
+  PrintPayload,
+  { rejectValue: string }
+>('passbook/printPassbook', async (payload, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/api/csp/passbook/print', payload)
+    return res.data
+  } catch (err: any) {
+    return rejectWithValue(
+      err?.response?.data?.message || 'Failed to print passbook'
+    )
   }
-)
+})
 
-/**
- * Preview passbook (Step 3)
- */
-export const previewPassbook = createAsyncThunk(
-  'passbook/preview',
-  async (
-    data: { customer_id: number; transactions: Transaction[] },
-    { rejectWithValue }
-  ) => {
-    try {
-      const res = await api.post('/api/csp/passbook/preview', data)
-      return res.data.data
-    } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Preview failed')
-    }
-  }
-)
-
-/**
- * Print passbook and generate PDF (Step 4)
- */
-export const printPassbook = createAsyncThunk(
-  'passbook/print',
-  async (
-    data: { customer_id: number; transactions: Transaction[] },
-    { rejectWithValue }
-  ) => {
-    try {
-      const res = await api.post('/api/csp/passbook/print', data)
-      return res.data.data
-    } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Print failed')
-    }
-  }
-)
-
-/**
- * Fetch print history
- */
-export const fetchPrintHistory = createAsyncThunk(
-  'passbook/fetchHistory',
-  async (params: any = {}, { rejectWithValue }) => {
-    try {
-      const res = await api.get('/api/csp/passbook/history', { params })
-      return res.data.data
-    } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Failed to fetch history')
-    }
-  }
-)
-
-/**
- * Reprint a passbook
- */
-export const reprintPassbook = createAsyncThunk(
-  'passbook/reprint',
-  async (jobId: number, { rejectWithValue }) => {
-    try {
-      const res = await api.post(`/api/csp/passbook/reprint/${jobId}`)
-      return res.data.data
-    } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Reprint failed')
-    }
-  }
-)
-
-/**
- * Fetch customer transactions
- */
-export const fetchCustomerTransactions = createAsyncThunk(
-  'passbook/fetchTransactions',
-  async (params: { customerId: number; page?: number; limit?: number }, { rejectWithValue }) => {
-    try {
-      const res = await api.get(`/api/csp/passbook/transactions/${params.customerId}`, {
-        params: { page: params.page || 1, limit: params.limit || 50 },
-      })
-      return res.data.data
-    } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Failed to fetch transactions')
-    }
-  }
-)
-
-// ═══════════════════════════════════════════════════════════════════════════
-// SLICE
-// ═══════════════════════════════════════════════════════════════════════════
+// ─── Slice ────────────────────────────────────────────────────────────────────
 
 const passbookSlice = createSlice({
   name: 'passbook',
-  initialState: {
-    wizardStep: 1,
-    selectedCustomer: null,
-    transactions: [],
-    preview: null,
-    printResult: null,
-    history: [],
-    historyTotal: 0,
-    loading: false,
-    printLoading: false,
-    error: null,
-  } as PassbookState,
-
+  initialState,
   reducers: {
-    // ── Navigation ────────────────────────────────────────────────────
-    setWizardStep: (state, action: PayloadAction<number>) => {
-      state.wizardStep = action.payload
-    },
-
-    // ── Customer ──────────────────────────────────────────────────────
-    setSelectedCustomer: (state, action: PayloadAction<Customer | null>) => {
+    setSelectedCustomer(state, action: PayloadAction<Customer | null>) {
       state.selectedCustomer = action.payload
     },
 
-    // ── Transactions ──────────────────────────────────────────────────
-    setTransactions: (state, action: PayloadAction<Transaction[]>) => {
-      state.transactions = action.payload
+    setTransactions(state, action: PayloadAction<Transaction[]>) {
+      state.transactions = action.payload || []
     },
 
-    addTransaction: (state, action: PayloadAction<Transaction>) => {
+    addTransaction(state, action: PayloadAction<Transaction>) {
       state.transactions.push(action.payload)
     },
 
-    removeTransaction: (state, action: PayloadAction<number>) => {
-      state.transactions.splice(action.payload, 1)
-    },
-
-    updateTransaction: (
+    updateTransaction(
       state,
-      action: PayloadAction<{ index: number; data: Transaction }>
-    ) => {
-      state.transactions[action.payload.index] = action.payload.data
+      action: PayloadAction<{ index: number; data: Partial<Transaction> }>
+    ) {
+      const { index, data } = action.payload
+      if (state.transactions[index]) {
+        state.transactions[index] = {
+          ...state.transactions[index],
+          ...data,
+        }
+      }
     },
 
-    // ── Preview & Print ───────────────────────────────────────────────
-    setPreview: (state, action: PayloadAction<any | null>) => {
-      state.preview = action.payload
+    deleteTransaction(state, action: PayloadAction<number>) {
+      state.transactions = state.transactions.filter((_, i) => i !== action.payload)
     },
 
-    setPrintResult: (state, action: PayloadAction<any | null>) => {
-      state.printResult = action.payload
-    },
-
-    // ── Error ─────────────────────────────────────────────────────────
-    clearError: (state) => {
-      state.error = null
-    },
-
-    // ── Reset wizard ──────────────────────────────────────────────────
-    resetWizard: (state) => {
-      state.wizardStep = 1
-      state.selectedCustomer = null
+    clearTransactions(state) {
       state.transactions = []
-      state.preview = null
-      state.printResult = null
-      state.error = null
+      state.transactionMeta = { total: 0, page: 1, totalPages: 1 }
     },
+
+    clearPreview(state) {
+      state.preview = null
+    },
+
+    setWizardStep(state, action: PayloadAction<number>) {
+      state.wizardStep = action.payload
+    },
+
+    clearPrintState(state) {
+      state.printing = false
+      state.printError = null
+      state.printResult = null
+    },
+
+    resetPassbookState: () => initialState,
   },
 
   extraReducers: (builder) => {
-    // ════════════════════════════════════════════════════════════════
-    // SEARCH CUSTOMERS
-    // ════════════════════════════════════════════════════════════════
     builder
       .addCase(searchCustomers.pending, (state) => {
         state.loading = true
         state.error = null
       })
-      .addCase(searchCustomers.fulfilled, (state) => {
+      .addCase(searchCustomers.fulfilled, (state, action) => {
         state.loading = false
+        state.customers = action.payload
       })
       .addCase(searchCustomers.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload as string
+        state.error = action.payload ?? 'Search failed'
       })
 
-    // ════════════════════════════════════════════════════════════════
-    // CREATE CUSTOMER
-    // ════════════════════════════════════════════════════════════════
-    builder
-      .addCase(createCustomer.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(createCustomer.fulfilled, (state, action) => {
-        state.loading = false
-        state.selectedCustomer = action.payload
-      })
-      .addCase(createCustomer.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
-      })
-
-    // ════════════════════════════════════════════════════════════════
-    // FETCH CUSTOMER
-    // ════════════════════════════════════════════════════════════════
-    builder
       .addCase(fetchCustomer.pending, (state) => {
-        state.loading = true
+        state.fetchingCustomer = true
         state.error = null
       })
       .addCase(fetchCustomer.fulfilled, (state, action) => {
-        state.loading = false
+        state.fetchingCustomer = false
         state.selectedCustomer = action.payload
       })
       .addCase(fetchCustomer.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
+        state.fetchingCustomer = false
+        state.error = action.payload ?? 'Fetch customer failed'
       })
 
-    // ════════════════════════════════════════════════════════════════
-    // PREVIEW PASSBOOK
-    // ════════════════════════════════════════════════════════════════
-    builder
-      .addCase(previewPassbook.pending, (state) => {
-        state.loading = true
+      .addCase(createCustomer.pending, (state) => {
+        state.creatingCustomer = true
         state.error = null
       })
-      .addCase(previewPassbook.fulfilled, (state, action) => {
-        state.loading = false
-        state.preview = action.payload
-        state.wizardStep = 3
+      .addCase(createCustomer.fulfilled, (state, action) => {
+        state.creatingCustomer = false
+        state.selectedCustomer = action.payload
       })
-      .addCase(previewPassbook.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
-      })
-
-    // ════════════════════════════════════════════════════════════════
-    // PRINT PASSBOOK
-    // ════════════════════════════════════════════════════════════════
-    builder
-      .addCase(printPassbook.pending, (state) => {
-        state.printLoading = true
-        state.error = null
-      })
-      .addCase(printPassbook.fulfilled, (state, action) => {
-        state.printLoading = false
-        state.printResult = action.payload
-        state.wizardStep = 4
-      })
-      .addCase(printPassbook.rejected, (state, action) => {
-        state.printLoading = false
-        state.error = action.payload as string
+      .addCase(createCustomer.rejected, (state, action) => {
+        state.creatingCustomer = false
+        state.error = action.payload ?? 'Create customer failed'
       })
 
-    // ════════════════════════════════════════════════════════════════
-    // FETCH PRINT HISTORY
-    // ════════════════════════════════════════════════════════════════
-    builder
-      .addCase(fetchPrintHistory.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(fetchPrintHistory.fulfilled, (state, action) => {
-        state.loading = false
-        state.history = action.payload?.jobs || []
-        state.historyTotal = action.payload?.total || 0
-      })
-      .addCase(fetchPrintHistory.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload as string
-      })
-
-    // ════════════════════════════════════════════════════════════════
-    // REPRINT PASSBOOK
-    // ════════════════════════════════════════════════════════════════
-    builder
-      .addCase(reprintPassbook.pending, (state) => {
-        state.printLoading = true
-        state.error = null
-      })
-      .addCase(reprintPassbook.fulfilled, (state) => {
-        state.printLoading = false
-      })
-      .addCase(reprintPassbook.rejected, (state, action) => {
-        state.printLoading = false
-        state.error = action.payload as string
-      })
-
-    // ════════════════════════════════════════════════════════════════
-    // FETCH CUSTOMER TRANSACTIONS
-    // ════════════════════════════════════════════════════════════════
-    builder
       .addCase(fetchCustomerTransactions.pending, (state) => {
         state.loading = true
         state.error = null
       })
-      .addCase(fetchCustomerTransactions.fulfilled, (state) => {
+      .addCase(fetchCustomerTransactions.fulfilled, (state, action) => {
         state.loading = false
+        state.transactions = action.payload.transactions
+        state.transactionMeta = {
+          total: action.payload.total,
+          page: action.payload.page,
+          totalPages: action.payload.totalPages,
+        }
       })
       .addCase(fetchCustomerTransactions.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload as string
+        state.error = action.payload ?? 'Fetch transactions failed'
+        state.transactions = []
+        state.transactionMeta = { total: 0, page: 1, totalPages: 1 }
+      })
+
+      .addCase(generatePassbookPreview.pending, (state) => {
+        state.previewLoading = true
+        state.error = null
+      })
+      .addCase(generatePassbookPreview.fulfilled, (state, action) => {
+        state.previewLoading = false
+        const d = action.payload?.data ?? action.payload
+        state.preview = {
+          html: d?.html || '',
+          pdf_url: d?.pdf_url || '',
+          print_charge: d?.print_charge ?? 10,
+          transaction_count: d?.transaction_count ?? 0,
+        }
+      })
+      .addCase(generatePassbookPreview.rejected, (state, action) => {
+        state.previewLoading = false
+        state.error = action.payload ?? 'Preview generation failed'
+      })
+
+      .addCase(printPassbook.pending, (state) => {
+        state.printing = true
+        state.printError = null
+      })
+      .addCase(printPassbook.fulfilled, (state, action) => {
+        state.printing = false
+        state.printResult = action.payload
+
+        const d = action.payload?.data ?? action.payload
+
+        state.preview = {
+          html: state.preview?.html || '',
+          pdf_url:
+            d?.pdf_signed_url ||
+            d?.pdf_url ||
+            d?.file_url ||
+            '',
+          print_charge:
+            d?.charge ??
+            state.preview?.print_charge ??
+            10,
+          transaction_count:
+            d?.transaction_count ??
+            state.preview?.transaction_count ??
+            state.transactions.length,
+        }
+      })
+      .addCase(printPassbook.rejected, (state, action) => {
+        state.printing = false
+        state.printError = action.payload ?? 'Print failed'
       })
   },
 })
 
+// ─── Exports ──────────────────────────────────────────────────────────────────
+
 export const {
-  setWizardStep,
   setSelectedCustomer,
   setTransactions,
   addTransaction,
-  removeTransaction,
   updateTransaction,
-  setPreview,
-  setPrintResult,
-  clearError,
-  resetWizard,
+  deleteTransaction,
+  clearTransactions,
+  clearPreview,
+  setWizardStep,
+  clearPrintState,
+  resetPassbookState,
 } = passbookSlice.actions
 
 export default passbookSlice.reducer

@@ -10,30 +10,23 @@ type ProfileForm = {
 
 interface PersonalInfoTabSectionProps {
   profile: any | null;
+  dashboard?: any | null;
   loading: boolean;
   error: string | null;
   onClearError: () => void;
-  form?: ProfileForm;
-  setForm?: React.Dispatch<React.SetStateAction<ProfileForm>>;
+  form: ProfileForm;
+  setForm: React.Dispatch<React.SetStateAction<ProfileForm>>;
 }
-
-const defaultForm: ProfileForm = {
-  firstName: "",
-  lastName: "",
-  mobile: "",
-  email: "",
-  address: "",
-};
 
 export const PersonalInfoTabSection: React.FC<PersonalInfoTabSectionProps> = ({
   profile,
+  dashboard,
   error,
   onClearError,
-  form = defaultForm,
+  form,
   setForm,
 }) => {
   const updateForm = (key: keyof ProfileForm, value: string) => {
-    if (!setForm) return;
     setForm((prev) => ({
       ...prev,
       [key]: value,
@@ -130,17 +123,23 @@ export const PersonalInfoTabSection: React.FC<PersonalInfoTabSectionProps> = ({
 
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "var(--ink3)" }}>Total Prints</span>
-                  <span style={{ fontWeight: 700 }}>{profile?.total_prints || "1,847"}</span>
+                  <span style={{ fontWeight: 700 }}>
+                    {profile?.total_prints || dashboard?.total_prints || "1,847"}
+                  </span>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "var(--ink3)" }}>Total Spend</span>
-                  <span style={{ fontWeight: 700 }}>{profile?.total_spend || "₹12,430"}</span>
+                  <span style={{ fontWeight: 700 }}>
+                    {profile?.total_spend || dashboard?.total_balance || "₹12,430"}
+                  </span>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "var(--ink3)" }}>Customers Added</span>
-                  <span style={{ fontWeight: 700 }}>{profile?.customers_added || "63"}</span>
+                  <span style={{ fontWeight: 700 }}>
+                    {profile?.customers_added || dashboard?.total_customers || "63"}
+                  </span>
                 </div>
               </div>
             </div>

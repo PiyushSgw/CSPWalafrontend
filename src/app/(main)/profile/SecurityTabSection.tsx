@@ -5,56 +5,59 @@ interface LoginActivity {
   location: string;
   device: string;
   time: string;
-  status: 'success' | 'failed';
+  status: "success" | "failed";
 }
 
 interface Props {
   loading: boolean;
-  onChangePassword: (data: {
-  currentPassword: string;
-  newPassword: string;
-}) => Promise<any>;
+  onChange_Password: (data: {
+    current_Password: string;
+    new_Password: string;
+  }) => Promise<any>;
   onClearError: () => void;
   loginActivity: LoginActivity[];
 }
 
 export const SecurityTabSection: React.FC<Props> = ({
   loading,
-  onChangePassword,
+  onChange_Password,
   onClearError,
   loginActivity = [],
 }) => {
+  // ✅ FIXED STATE (snake_case everywhere)
   const [form, setForm] = useState({
-  currentPassword: "",
-  newPassword: "",
-  confirmPassword: "",
-});
+    current_Password: "",
+    new_Password: "",
+    confirm_Password: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     onClearError();
 
-    if (form.newPassword !== form.confirmPassword) {
+    if (form.new_Password !== form.confirm_Password) {
       alert("Passwords do not match");
       return;
     }
 
-    if (form.newPassword.length < 8) {
+    if (form.new_Password.length < 8) {
       alert("Password must be at least 8 characters");
       return;
     }
 
     try {
-      await onChangePassword({
-        currentPassword: form.currentPassword,
-        newPassword: form.newPassword,
+      await onChange_Password({
+        current_Password: form.current_Password,
+        new_Password: form.new_Password,
       });
 
+      // ✅ reset form
       setForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
+        current_Password: "",
+        new_Password: "",
+        confirm_Password: "",
       });
+
       alert("Password changed successfully!");
     } catch (error) {
       console.error("Password change failed:", error);
@@ -69,6 +72,7 @@ export const SecurityTabSection: React.FC<Props> = ({
           <div className="card-header">
             <div className="card-title">Change Password</div>
           </div>
+
           <div className="card-body">
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -76,11 +80,11 @@ export const SecurityTabSection: React.FC<Props> = ({
                 <input
                   type="password"
                   className="form-input"
-                  value={form.currentPassword}
+                  value={form.current_Password}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      currentPassword: e.target.value,
+                      current_Password: e.target.value,
                     }))
                   }
                   required
@@ -92,11 +96,11 @@ export const SecurityTabSection: React.FC<Props> = ({
                 <input
                   type="password"
                   className="form-input"
-                  value={form.newPassword}
+                  value={form.new_Password}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      newPassword: e.target.value,
+                      new_Password: e.target.value,
                     }))
                   }
                   minLength={8}
@@ -109,11 +113,11 @@ export const SecurityTabSection: React.FC<Props> = ({
                 <input
                   type="password"
                   className="form-input"
-                  value={form.confirmPassword}
+                  value={form.confirm_Password}
                   onChange={(e) =>
                     setForm((prev) => ({
                       ...prev,
-                      confirmPassword: e.target.value,
+                      confirm_Password: e.target.value,
                     }))
                   }
                   required
@@ -125,7 +129,7 @@ export const SecurityTabSection: React.FC<Props> = ({
                 className="btn btn-teal btn-sm"
                 disabled={loading}
               >
-                {loading ? "Changing..." : "Change Password"}
+                {loading ? "Changing..." : "Change_Password"}
               </button>
             </form>
           </div>
@@ -136,6 +140,7 @@ export const SecurityTabSection: React.FC<Props> = ({
           <div className="card-header">
             <div className="card-title">Recent Login Activity</div>
           </div>
+
           <div className="card-body">
             {loginActivity.length === 0 ? (
               <div className="empty-state">

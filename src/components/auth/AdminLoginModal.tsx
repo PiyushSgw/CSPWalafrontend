@@ -15,8 +15,8 @@ interface AdminLoginModalProps {
 export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
   const router = useRouter();
   const [form, setForm] = useState({
-    email: 'piyush@example.com',
-    password: 'Secure@123'
+       email: 'ram@example.com',
+    password: 'Ram@54321'
   });
     const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);

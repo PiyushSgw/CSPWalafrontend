@@ -8,6 +8,7 @@ import { persistStore, persistReducer } from 'redux-persist';
 import authSlice from './slices/authslice';
 import printHistoryReducer from "./slices/printHistorySlice";
 import profileReducer from './slices/profileSlice'
+import accountOpeningReducer from './slices/accountOpeningSlice';
 
 
 import storage from 'redux-persist/lib/storage'; // localStorage
@@ -28,8 +29,10 @@ export const store = configureStore({
     wallet: walletReducer,
     customers: customersReducer,
     passbook: passbookReducer,
-     printHistory: printHistoryReducer,
-      profile: profileReducer,
+    printHistory: printHistoryReducer,
+    profile: profileReducer,
+     accountOpening: accountOpeningReducer,
+
   },
   middleware: (getDefault) => getDefault({ serializableCheck: false }),
 })

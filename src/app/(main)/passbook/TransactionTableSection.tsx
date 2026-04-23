@@ -1,273 +1,251 @@
 'use client'
 
-import { useMemo } from 'react'
-import { ArrowLeft, ArrowRight, Plus, Trash2 } from 'lucide-react'
+import { useEffect } from 'react'
+import {
+  Loader2,
+  ArrowLeft,
+  ArrowRight,
+  AlertCircle,
+  ClipboardList,
+} from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import {
-  addTransaction,
-  removeTransaction,
-  updateTransaction,
   setWizardStep,
-  previewPassbook,
+  fetchCustomerTransactions,
+  generatePassbookPreview,
+  clearTransactions,
 } from '@/redux/slices/passbookSlice'
+import toast from 'react-hot-toast'
 
-interface Transaction {
-  txn_date: string
-  description: string
-  debit: number
-  credit: number
-  balance?: number
-}
+const fmt = (n: number) =>
+  Number(n || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 
 export const TransactionTableSection = () => {
   const dispatch = useAppDispatch()
-  const { selectedCustomer, transactions, loading } = useAppSelector((s) => s.passbook)
+  const { selectedCustomer, transactions, previewLoading, error, loading } = useAppSelector(
+    (s) => s.passbook
+  )
 
-  // Calculate running balances
-  const rows = useMemo(() => {
-    const openingBalance = parseFloat(selectedCustomer?.opening_balance.toString() || "")
-    return transactions.map((tx, i) => {
-      let runningBal = openingBalance
-      for (let j = 0; j <= i; j++) {
-        runningBal =
-          runningBal - (transactions[j].debit || 0) + (transactions[j].credit || 0)
-      }
-      return { ...tx, computedBalance: parseFloat(runningBal.toFixed(2)) }
-    })
-  }, [transactions, selectedCustomer])
+  const txns = Array.isArray(transactions) ? transactions : []
 
-  // Update a transaction field
-  const updateField = (
-    index: number,
-    field: keyof Transaction,
-    value: string
-  ) => {
-    const tx = { ...transactions[index] }
-    if (field === 'debit' || field === 'credit') {
-      (tx as any)[field] = parseFloat(value) || 0
+  useEffect(() => {
+    if (selectedCustomer?.id) {
+      dispatch(fetchCustomerTransactions(selectedCustomer.id))
     } else {
-      (tx as any)[field] = value
+      dispatch(clearTransactions())
     }
-    dispatch(updateTransaction({ index, data: tx }))
+  }, [dispatch, selectedCustomer?.id])
+
+  const handlePreview = async () => {
+    if (!selectedCustomer?.id) {
+      toast.error('Please select a customer first')
+      return
+    }
+
+    if (txns.length === 0) {
+      toast.error('No transactions found for this customer')
+      return
+    }
+
+    const payload = {
+      customer_id: selectedCustomer.id,
+      account_number: selectedCustomer.account_number,
+      transactions: txns.map((t, i) => ({
+        sr_no: i + 1,
+        txn_date: t.txn_date,
+        description: t.description,
+        debit: Number(t.debit || 0),
+        credit: Number(t.credit || 0),
+        balance: Number(t.balance || 0),
+      })),
+    }
+
+    const result = await dispatch(generatePassbookPreview(payload))
+
+    if (generatePassbookPreview.fulfilled.match(result)) {
+      dispatch(setWizardStep(3))
+    } else {
+      toast.error((result.payload as string) || 'Preview generation failed')
+    }
   }
 
-  // Check if we can proceed
-  const canProceed =
-    transactions.length > 0 &&
-    transactions.every((t) => t.txn_date && t.description)
-
-  // Handle next button (preview)
-  const handleNext = () => {
-    if (!selectedCustomer?.id || transactions.length === 0) return
-
-    dispatch(
-      previewPassbook({
-        customer_id: selectedCustomer.id,
-        transactions: transactions.map((t) => ({
-          txn_date: t.txn_date,
-          description: t.description,
-          debit: t.debit || 0,
-          credit: t.credit || 0,
-        })),
-      })
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+        <div className="flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-[#0d8f72]" />
+          <p className="text-[13px] text-slate-500">Fetching transactions...</p>
+        </div>
+      </div>
     )
   }
-
-  const handlePrev = () => {
-    dispatch(setWizardStep(1))
-  }
-
-  const handleAddRow = () => {
-    dispatch(
-      addTransaction({
-        txn_date: new Date().toISOString().split('T')[0],
-        description: '',
-        debit: 0,
-        credit: 0,
-      })
-    )
-  }
-
-  const handleRemoveRow = (index: number) => {
-    dispatch(removeTransaction(index))
-  }
-
-  const openingBalance = parseFloat(selectedCustomer?.opening_balance.toString() || "")
-  const closingBalance =
-    rows.length > 0
-      ? rows[rows.length - 1].computedBalance
-      : openingBalance
 
   return (
-    <div className="space-y-3">
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <div>
-            <span className="font-semibold text-slate-700 text-sm">
-              Transaction Entries
-            </span>
-            {selectedCustomer && (
-              <span className="text-xs text-slate-400 ml-2">
-                · {selectedCustomer.name} · Opening: ₹
-                {Number(selectedCustomer.opening_balance).toFixed(2)}
-              </span>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleAddRow}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
-          >
-            <Plus size={12} />
-            Add Row
-          </button>
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+        <div className="flex items-center gap-2">
+          <span className="text-[15px] leading-none">📊</span>
+          <span className="text-[14px] font-semibold text-slate-900">
+            Transaction Entries
+          </span>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <button
+          type="button"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+        >
+          + Add Row
+        </button>
+      </div>
+
+      {selectedCustomer && (
+        <div className="flex items-center gap-2 border-b border-slate-200 bg-[#f9fafb] px-5 py-3">
+          <span className="text-[13px]">👤</span>
+          <div>
+            <span className="text-[13px] font-semibold text-slate-900">
+              {selectedCustomer.name}
+            </span>
+            <span className="ml-2 font-mono text-[12px] text-slate-500">
+              · {selectedCustomer.account_number}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="mx-5 mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-[12px] text-red-700">
+          <AlertCircle size={14} className="mt-[1px] flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {txns.length === 0 ? (
+        <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
+            <ClipboardList size={22} className="text-slate-400" />
+          </div>
+          <p className="mb-1 text-sm font-semibold text-slate-700">No transactions found</p>
+          <p className="max-w-xs text-xs text-slate-400">
+            {selectedCustomer?.id
+              ? `No transactions available for ${selectedCustomer.name}`
+              : 'Select a customer to load their transactions'}
+          </p>
+        </div>
+      ) : (
+        <div className="w-full overflow-x-auto no-scrollbar">
+          <table className="w-full min-w-[640px] border-collapse">
+            <colgroup>
+              <col style={{ width: '23%' }} />
+              <col style={{ width: '27%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '2%' }} />
+            </colgroup>
+
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-36">
+              <tr className="border-b border-slate-200 bg-[#f3f4f6]">
+                <th className="px-3 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                   Date
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                   Description
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-28">
+                <th className="px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                   Debit (₹)
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-28">
+                <th className="px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                   Credit (₹)
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider w-32">
+                <th className="px-3 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                   Balance (₹)
                 </th>
-                <th className="px-4 py-3 w-12" />
+                <th className="px-2 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
-              {transactions.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-400">
-                    No transactions yet — click <strong>Add Row</strong> to start
+
+            <tbody className="divide-y divide-slate-200">
+              {txns.map((txn, i) => (
+                <tr key={txn.id ?? i} className="bg-white transition-colors hover:bg-slate-50">
+                  <td className="px-3 py-3 align-middle">
+                    <div className="relative flex h-[36px] items-center rounded-[9px] border border-slate-300 bg-white pl-3 pr-8 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap">
+                      {txn.txn_date}
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-500">
+                        📅
+                      </span>
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-3 align-middle">
+                    <div className="flex h-[36px] items-center overflow-hidden rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap text-ellipsis">
+                      {txn.description}
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-3 align-middle">
+                    <div className="flex h-[36px] items-center justify-end rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap">
+                      {Number(txn.debit) > 0 ? fmt(txn.debit) : '0.00'}
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-3 align-middle">
+                    <div className="flex h-[36px] items-center justify-end rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap">
+                      {Number(txn.credit) > 0 ? fmt(txn.credit) : '0.00'}
+                    </div>
+                  </td>
+
+                  <td className="px-3 py-3 align-middle">
+                    <div className="flex h-[36px] items-center justify-end rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] font-medium text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap">
+                      {fmt(txn.balance)}
+                    </div>
+                  </td>
+
+                  <td className="px-2 py-3 align-middle">
+                    <button
+                      type="button"
+                      className="mx-auto flex h-7 w-7 items-center justify-center rounded-md text-[18px] leading-none text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                      aria-label="Delete row"
+                    >
+                      ×
+                    </button>
                   </td>
                 </tr>
-              ) : (
-                rows.map((tx, i) => (
-                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                    {/* Date */}
-                    <td className="px-3 py-2">
-                      <input
-                        type="date"
-                        value={tx.txn_date}
-                        onChange={(e) =>
-                          updateField(i, 'txn_date', e.target.value)
-                        }
-                        className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
-                      />
-                    </td>
-
-                    {/* Description */}
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={tx.description}
-                        onChange={(e) =>
-                          updateField(i, 'description', e.target.value)
-                        }
-                        placeholder="e.g. ATM Withdrawal"
-                        className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
-                      />
-                    </td>
-
-                    {/* Debit */}
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={tx.debit || ''}
-                        onChange={(e) =>
-                          updateField(i, 'debit', e.target.value)
-                        }
-                        placeholder="0.00"
-                        className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-right font-mono text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all"
-                      />
-                    </td>
-
-                    {/* Credit */}
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={tx.credit || ''}
-                        onChange={(e) =>
-                          updateField(i, 'credit', e.target.value)
-                        }
-                        placeholder="0.00"
-                        className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-right font-mono text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
-                      />
-                    </td>
-
-                    {/* Balance */}
-                    <td className="px-3 py-2">
-                      <div className="w-full px-2 py-1.5 rounded-lg bg-slate-50 text-xs text-right font-mono font-bold text-slate-700">
-                        ₹{tx.computedBalance.toFixed(2)}
-                      </div>
-                    </td>
-
-                    {/* Delete Button */}
-                    <td className="px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRow(i)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
+      )}
 
-        {/* Footer */}
-        {rows.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-3 bg-slate-50 border-t border-slate-100 text-xs">
-            <span className="text-slate-500">
-              {rows.length} transaction{rows.length !== 1 ? 's' : ''} · Opening: ₹
-              {openingBalance.toFixed(2)}
-            </span>
-            <span className="font-bold text-slate-700 font-mono">
-              Closing Balance: ₹{closingBalance.toFixed(2)}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-t border-slate-200 px-5 py-4">
         <button
           type="button"
-          onClick={handlePrev}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 shadow-sm transition-colors"
+          onClick={() => dispatch(setWizardStep(1))}
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
         >
           <ArrowLeft size={14} />
           Back
         </button>
+
         <button
           type="button"
-          onClick={handleNext}
-          disabled={!canProceed || loading}
-          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+          onClick={handlePreview}
+          disabled={previewLoading || txns.length === 0 || !selectedCustomer}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#0d8f72] px-5 py-2 text-[13px] font-bold text-white transition-colors hover:bg-[#0b7a62] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Preview Passbook
-          <ArrowRight size={14} />
+          {previewLoading ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              Preview Passbook
+              <ArrowRight size={14} />
+            </>
+          )}
         </button>
       </div>
     </div>

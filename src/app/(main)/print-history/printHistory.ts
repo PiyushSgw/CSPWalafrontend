@@ -1,5 +1,8 @@
+import { ReactNode } from "react";
+
 // ── Raw API shape ──────────────────────────────────────────
 export interface PrintJob {
+  account_number: ReactNode;
   id: number;
   customer_id: number;
   customer_name: string;
@@ -19,6 +22,7 @@ export type JobTypeLabel = "Passbook" | "Form" | "Combo" | "Acct Form" | "Jan Dh
 export type StatusLabel  = "Printed" | "Failed" | "Pending";
 
 export interface MappedPrintJob {
+  createdAtRaw: string;
   id: string;
   dateTime: string;
   customer: string;

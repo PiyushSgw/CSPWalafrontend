@@ -1,228 +1,196 @@
 'use client'
 
-import { useAppDispatch, useAppSelector } from '@/redux/hooks'
-import { printPassbook, resetWizard, setWizardStep } from '@/redux/slices/passbookSlice'
-import { fetchWalletBalance } from '@/redux/slices/walletSlice'
-import {
-  ArrowLeft,
-  Printer,
-  Loader2,
-  CheckCircle,
-  Download,
-  RefreshCw,
-  AlertTriangle,
-} from 'lucide-react'
+import { Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useAppDispatch, useAppSelector } from '@/redux/hooks'
+import { printPassbook, setWizardStep } from '@/redux/slices/passbookSlice'
+
+const fmt = (n: number | string) =>
+  `₹${Number(n || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+
+const maskAccount = (value?: string) => {
+  if (!value) return '—'
+  const last4 = String(value).slice(-4)
+  return `XXXX${last4}`
+}
+
+// TODO: TESTING ONLY – remove after wallet integration
+const BYPASS_WALLET_FOR_TESTING = true
 
 export const PrintConfirmSection = () => {
   const dispatch = useAppDispatch()
-  const { selectedCustomer, transactions, printResult, printLoading, error } =
-    useAppSelector((s) => s.passbook)
+
+  const {
+    selectedCustomer,
+    transactions,
+    printing,
+    printResult,
+    printError,
+    preview,
+  } = useAppSelector((s) => s.passbook)
+
   const { balance } = useAppSelector((s) => s.wallet)
 
-  const printCharge = 10
-  const currentWallet = Number(balance) || 0
-  const balanceAfterPrint = currentWallet - printCharge
-  const canPrint = currentWallet >= printCharge
+  const txns = Array.isArray(transactions) ? transactions : []
+  const printCost = Number(preview?.print_charge || 5)
+  const walletBalance = Number(balance || 0)
+  const afterPrint = walletBalance - printCost
 
-  // Handle confirm print
-  const handleConfirmPrint = async () => {
-    if (!canPrint) {
+  const isDisabled =
+    printing || !selectedCustomer?.id || txns.length === 0
+
+  const customerName = selectedCustomer?.name || 'Customer'
+  const accountNumber = selectedCustomer?.account_number || ''
+  const bankName = selectedCustomer?.bank_name || 'SBI'
+
+  const handleFinalPrint = async () => {
+    if (!selectedCustomer?.id) {
+      toast.error('Customer not selected')
+      return
+    }
+
+    if (!txns.length) {
+      toast.error('No transactions available')
+      return
+    }
+
+    // TODO: enable this again after wallet integration
+    if (!BYPASS_WALLET_FOR_TESTING && walletBalance < printCost) {
       toast.error('Insufficient wallet balance')
       return
     }
 
-    if (!selectedCustomer?.id || transactions.length === 0) {
-      toast.error('Invalid transaction data')
-      return
+    const payload = {
+      customer_id: selectedCustomer.id,
+      account_number: accountNumber,
+      // TODO: change back to printCost after wallet integration
+      print_cost: BYPASS_WALLET_FOR_TESTING ? 0 : printCost,
+      transactions: txns.map((t, i) => ({
+        sr_no: i + 1,
+        txn_date: t.txn_date,
+        description: t.description,
+        debit: Number(t.debit || 0),
+        credit: Number(t.credit || 0),
+        balance: Number(t.balance || 0),
+      })),
     }
 
-    const result = await dispatch(
-      printPassbook({
-        customer_id: selectedCustomer.id,
-        transactions: transactions.map((t) => ({
-          txn_date: t.txn_date,
-          description: t.description,
-          debit: t.debit || 0,
-          credit: t.credit || 0,
-        })),
-      })
-    )
+    const result = await dispatch(printPassbook(payload))
 
     if (printPassbook.fulfilled.match(result)) {
       toast.success('Passbook printed successfully!')
-      dispatch(fetchWalletBalance())
+
+      const data = result.payload as any
+      const rawPdfUrl =
+        data?.data?.pdf_signed_url ||
+        data?.data?.pdf_url ||
+        data?.data?.file_url ||
+        data?.pdf_signed_url ||
+        data?.pdf_url ||
+        data?.file_url ||
+        ''
+
+      if (rawPdfUrl) {
+        try {
+          const parsed = new URL(rawPdfUrl)
+          parsed.pathname = decodeURIComponent(parsed.pathname)
+          window.open(parsed.toString(), '_blank')
+        } catch {
+          window.open(rawPdfUrl, '_blank')
+        }
+      }
     } else {
-      // toast.error(result.payload || 'Print failed')
+      toast.error((result.payload as string) || 'Print failed')
     }
   }
 
-  // SUCCESS STATE
-  if (printResult) {
+  if (!selectedCustomer) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 text-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto">
-          <CheckCircle size={32} className="text-green-600" />
-        </div>
-
-        <div>
-          <h2
-            className="text-xl font-bold text-slate-900 mb-1"
-            style={{ fontFamily: 'Syne, sans-serif' }}
-          >
-            Passbook Printed!
-          </h2>
-          <p className="text-sm text-slate-500">
-            Successfully printed for{' '}
-            <span className="font-semibold text-slate-700">
-              {selectedCustomer?.name}
-            </span>
-          </p>
-        </div>
-
-        <div className="inline-flex flex-col items-center gap-1 px-5 py-3 rounded-xl bg-slate-50 border border-slate-100 text-sm">
-          <span className="text-slate-500">
-            Job #{printResult.job_id} · Charged ₹{printResult.charge}
-          </span>
-          <span className="font-mono font-bold text-slate-700">
-            Remaining balance: ₹
-            {Number(printResult.wallet_balance_after).toFixed(2)}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
-          {printResult.pdf_signed_url && (
-            <a
-              href={printResult.pdf_signed_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-all shadow-sm"
-            >
-              <Download size={15} />
-              Download PDF
-            </a>
-          )}
-          <button
-            onClick={() => dispatch(resetWizard())}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 shadow-sm transition-colors"
-          >
-            <RefreshCw size={14} />
-            New Print Job
-          </button>
-        </div>
+      <div className="rounded-[10px] border border-red-200 bg-red-50 p-4 text-[13px] text-red-600">
+        Customer not selected. Please go back and select a customer.
       </div>
     )
   }
 
-  // CONFIRM STATE
   return (
-    <div className="space-y-3">
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <Printer size={15} className="text-green-600" />
-          <span className="font-semibold text-slate-700 text-sm">
-            Ready to Print
-          </span>
-        </div>
-
-        {/* Body */}
-        <div className="p-8 text-center space-y-5">
-          {/* Icon */}
-          <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto">
-            <Printer size={28} className="text-green-600" />
+    <div className="grid grid-cols-1 justify-center">
+      <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm overflow-hidden max-w-[720px] w-full mx-auto">
+        <div className="p-6 flex flex-col items-center text-center gap-4">
+          <div className="flex items-center justify-center pt-1">
+            <div className="text-[52px] leading-none">🖨️</div>
           </div>
 
-          {/* Title */}
-          <div>
-            <h3
-              className="font-bold text-slate-800 text-lg"
-              style={{ fontFamily: 'Syne, sans-serif' }}
-            >
-              Confirm Passbook Print
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">
+          <div className="space-y-1">
+            <h2 className="text-[18px] md:text-[20px] font-bold text-[#111827] leading-tight">
+              Ready to Print Passbook
+            </h2>
+
+            <p className="text-[13px] text-[#6b7280] leading-[1.5]">
               Passbook for{' '}
-              <span className="font-semibold text-slate-700">
-                {selectedCustomer?.name}
-              </span>
-              {' · '}A/C ending {selectedCustomer?.account_number?.slice(-4)}
+              <span className="font-medium text-[#4b5563]">{customerName}</span>
               {' · '}
-              {transactions.length} transactions
+              {bankName} A/C {maskAccount(accountNumber)}
+              {' · '}
+              {txns.length} transactions
             </p>
           </div>
 
-          {/* Charge breakdown */}
-          <div className="inline-block w-full max-w-xs">
-            <div className="bg-slate-50 rounded-xl border border-slate-100 divide-y divide-slate-100 text-sm text-left">
-              <div className="flex justify-between px-4 py-2.5">
-                <span className="text-slate-500">Print charge</span>
-                <span className="font-bold text-slate-800 font-mono">
-                  ₹{printCharge}.00
-                </span>
-              </div>
-              <div className="flex justify-between px-4 py-2.5">
-                <span className="text-slate-500">Current wallet</span>
-                <span className="font-bold font-mono text-slate-800">
-                  ₹{currentWallet.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between px-4 py-2.5 rounded-b-xl bg-green-50">
-                <span className="text-slate-500">After print</span>
-                <span
-                  className={`font-bold font-mono ${
-                    balanceAfterPrint >= 0 ? 'text-green-700' : 'text-red-600'
-                  }`}
-                >
-                  ₹{balanceAfterPrint.toFixed(2)}
-                </span>
-              </div>
-            </div>
+          <div className="flex flex-col items-center gap-1 pt-1">
+            <span className="text-[38px] md:text-[40px] font-bold text-[#111827] leading-none">
+              {fmt(printCost)}
+            </span>
+            <span className="text-[13px] text-[#6b7280]">
+              Wallet balance: {fmt(walletBalance)} →{' '}
+              {fmt(Math.max(0, afterPrint))} after print
+            </span>
           </div>
 
-          {/* Insufficient balance warning */}
-          {!canPrint && (
-            <div className="flex items-center gap-2 justify-center px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm max-w-xs mx-auto">
-              <AlertTriangle size={15} />
-              Insufficient balance. Please recharge your wallet.
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
+            <button
+              type="button"
+              onClick={() => dispatch(setWizardStep(3))}
+              className="inline-flex items-center gap-2 px-4 py-[9px] border border-[#d1d5db] rounded-[9px] bg-white text-[#374151] text-[13px] font-semibold hover:bg-[#f9fafb] transition-colors"
+            >
+              <ArrowLeft size={14} />
+              Go Back
+            </button>
+
+            <button
+              type="button"
+              onClick={handleFinalPrint}
+              disabled={isDisabled}
+              className="inline-flex items-center gap-2 px-6 py-[9px] bg-[#0d8f72] hover:bg-[#0b7a62] text-white text-[13px] font-bold rounded-[9px] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              {printing ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Printing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={14} />
+                  Confirm &amp; Print PDF
+                </>
+              )}
+            </button>
+          </div>
+
+          {printError && (
+            <div className="w-full rounded-[8px] border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-600">
+              {printError}
             </div>
           )}
 
-          {/* API error */}
-          {error && (
-            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm max-w-xs mx-auto">
-              {error}
+          {printResult && !printError && (
+            <div className="w-full rounded-[8px] border border-green-200 bg-green-50 px-4 py-3 text-[12px] text-green-700 flex items-center gap-2">
+              <CheckCircle size={13} className="flex-shrink-0" />
+              Print request completed successfully.
             </div>
           )}
         </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => dispatch(setWizardStep(3))}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 shadow-sm transition-colors"
-        >
-          <ArrowLeft size={14} />
-          Go Back
-        </button>
-        <button
-          onClick={handleConfirmPrint}
-          disabled={printLoading || !canPrint}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-        >
-          {printLoading ? (
-            <>
-              <Loader2 size={14} className="animate-spin" />
-              Generating PDF...
-            </>
-          ) : (
-            <>
-              <Printer size={14} />
-              Confirm &amp; Print (₹{printCharge})
-            </>
-          )}
-        </button>
       </div>
     </div>
   )

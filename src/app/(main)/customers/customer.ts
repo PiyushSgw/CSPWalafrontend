@@ -14,6 +14,7 @@ export interface Customer {
 }
 
 export interface MappedCustomer {
+  account_number: any;
   id: number;
   name: string;
   mobile: string;

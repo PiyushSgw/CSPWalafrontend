@@ -142,14 +142,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Row - 100% ORIGINAL */}
-      {/* <div className="grid grid-cols-2 gap-4">
-        <RecentPrintJobs jobs={stats?.recentJobs ?? []} loading={loading} />
-        <WalletWidget
-          balance={stats?.walletBalance ?? 0}
-          isLow={(stats?.walletBalance ?? 0) < 50}
-          loading={loading}
-        />
-      </div> */}
+      <div className="grid grid-cols-2 gap-4">
+       <RecentPrintJobs />
+<WalletWidget
+  balance={stats?.walletBalance ?? 0}
+  isLow={(stats?.walletBalance ?? 0) < 50}
+  loading={loading}
+/>
+      </div>
     </>
   )
 }

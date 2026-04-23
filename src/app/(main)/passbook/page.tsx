@@ -4,7 +4,7 @@ import React, { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import {
   setWizardStep,
-  resetWizard,
+  resetPassbookState,
 } from '@/redux/slices/passbookSlice'
 import { fetchWalletBalance } from '@/redux/slices/walletSlice'
 
@@ -18,17 +18,14 @@ import { RightSidebarSection } from './RightSidebarSection'
 
 export default function PassbookPage() {
   const dispatch = useAppDispatch()
-
   const { wizardStep } = useAppSelector((s) => s.passbook)
 
-  // Reset wizard and load wallet on mount
   useEffect(() => {
-    dispatch(resetWizard())
+    dispatch(resetPassbookState())
     dispatch(fetchWalletBalance())
   }, [dispatch])
 
   const handleStepClick = (step: number) => {
-    // Only allow going back to completed steps
     if (step < wizardStep) {
       dispatch(setWizardStep(step))
     }
@@ -36,31 +33,23 @@ export default function PassbookPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <PageHeaderSection onReset={() => dispatch(resetWizard())} />
+      <PageHeaderSection onReset={() => dispatch(resetPassbookState())} />
 
-      {/* Step Indicators */}
       <StepIndicatorsSection
         activeStep={wizardStep}
         onStepClick={handleStepClick}
       />
 
-      {/* Main content */}
-      <div className="flex gap-5 items-start">
-        {/* Left: Step content */}
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-col xl:flex-row gap-5 items-start">
+        <div className="flex-1 min-w-0 w-full">
           {wizardStep === 1 && <CustomerDetailsSection />}
-
           {wizardStep === 2 && <TransactionTableSection />}
-
           {wizardStep === 3 && <PassbookPreviewSection />}
-
           {wizardStep === 4 && <PrintConfirmSection />}
         </div>
 
-        {/* Right Sidebar — hidden on step 4 */}
-        {wizardStep !== 4 && (
-          <div className="w-[500px] flex-shrink-0">
+        {wizardStep !== 5 && (
+          <div className="w-full xl:w-[450px] flex-shrink-0">
             <RightSidebarSection />
           </div>
         )}

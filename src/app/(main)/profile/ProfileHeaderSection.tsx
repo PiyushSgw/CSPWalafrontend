@@ -41,7 +41,7 @@ export const ProfileHeaderSection: React.FC<ProfileHeaderSectionProps> = ({
     : "—";
 
   const handlePhotoClick = () => {
-    fileInputRef.current?.click();
+    fileInputRef.current?.click(); // ✅ open file picker
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,7 +66,8 @@ export const ProfileHeaderSection: React.FC<ProfileHeaderSectionProps> = ({
             <div className="avatar-letter">{firstLetter}</div>
           )}
         </div>
-       
+
+        {/* ✅ HIDDEN INPUT */}
         <input
           ref={fileInputRef}
           type="file"
@@ -74,6 +75,14 @@ export const ProfileHeaderSection: React.FC<ProfileHeaderSectionProps> = ({
           style={{ display: "none" }}
           onChange={handlePhotoChange}
         />
+
+        {/* ✅ EDIT PHOTO BUTTON */}
+        <button
+          className="edit-photo-btn"
+          onClick={handlePhotoClick}
+        >
+          Edit Photo
+        </button>
       </div>
 
       <div className="profile-info">
@@ -93,15 +102,6 @@ export const ProfileHeaderSection: React.FC<ProfileHeaderSectionProps> = ({
             📍 {location}
           </span>
         </div>
-      </div>
-      <div>
-         <button
-          className="edit-photo-btn"
-          onClick={handlePhotoClick}
-          title="Edit profile photo"
-        >
-          ✏️
-        </button>
       </div>
     </div>
   );

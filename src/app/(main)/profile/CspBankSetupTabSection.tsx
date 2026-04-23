@@ -1,47 +1,35 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 
-export const CspBankSetupTabSection: React.FC<{
+type BankForm = {
+  outletName: string;
+  cspCode: string;
+  primaryBank: string;
+  branch: string;
+  ifsc: string;
+  agentCode: string;
+  address: string;
+};
+
+interface Props {
   profile: any | null;
   dashboard: any | null;
   loading: boolean;
-  onUpdateBank: (data: any) => Promise<any>;
-}> = ({ profile, dashboard, loading, onUpdateBank }) => {
-  const [form, setForm] = useState({
-    outletName: '',
-    cspCode: '',
-    primaryBank: '',
-    branch: '',
-    ifsc: '',
-    agentCode: '',
-    address: ''
-  });
-  const [saving, setSaving] = useState(false);
+  form: BankForm;
+  setForm: React.Dispatch<React.SetStateAction<BankForm>>;
+}
 
-  useEffect(() => {
-    if (profile) {
-      setForm({
-        outletName: profile.outlet_name || '',
-        cspCode: profile.csp_code || '',
-        primaryBank: profile.bank_name || '',
-        branch: profile.branch_name || '',
-        ifsc: profile.ifsc || '',
-        agentCode: profile.agent_code || '',
-        address: profile.location || ''
-      });
-    }
-  }, [profile]);
-
-  const handleSubmit = async () => {
-    setSaving(true);
-    try {
-      await onUpdateBank(form);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading && !profile) {
-    return <div className="card"><div className="skeleton">Loading CSP setup...</div></div>;
+export const CspBankSetupTabSection: React.FC<Props> = ({
+  dashboard,
+  loading,
+  form,
+  setForm,
+}) => {
+  if (loading && !form.cspCode) {
+    return (
+      <div className="card">
+        <div className="skeleton">Loading CSP setup...</div>
+      </div>
+    );
   }
 
   return (
@@ -51,90 +39,100 @@ export const CspBankSetupTabSection: React.FC<{
           <div className="card-title">CSP & Bank Configuration</div>
           <span className="badge amber">Admin must approve changes</span>
         </div>
+
         <div className="card-body">
-          <div className="form-row">
+          <div className="form-row cols-2">
             <div className="form-group">
-              <label>Outlet Name</label>
+              <label className="form-label">CSP Outlet Name</label>
               <input
                 className="form-input"
                 value={form.outletName}
-                onChange={(e) => setForm({ ...form, outletName: e.target.value })}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, outletName: e.target.value }))
+                }
               />
             </div>
+
             <div className="form-group">
-              <label>CSP Code</label>
-              <input
-                className="form-input"
-                value={form.cspCode}
-                readOnly
-              />
+              <label className="form-label">
+                CSP Code <span style={{ color: "red" }}>*</span>
+              </label>
+              <input className="form-input" value={form.cspCode} readOnly />
+              <div className="form-hint">🔒 Cannot be changed after verification</div>
             </div>
           </div>
 
-          <div className="form-row">
+          <div className="form-row cols-2">
             <div className="form-group">
-              <label>Primary Bank</label>
+              <label className="form-label">Primary Bank</label>
               <input
                 className="form-input"
                 value={form.primaryBank}
-                onChange={(e) => setForm({ ...form, primaryBank: e.target.value })}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, primaryBank: e.target.value }))
+                }
               />
             </div>
+
             <div className="form-group">
-              <label>Branch</label>
+              <label className="form-label">Bank Branch</label>
               <input
                 className="form-input"
                 value={form.branch}
-                onChange={(e) => setForm({ ...form, branch: e.target.value })}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, branch: e.target.value }))
+                }
               />
             </div>
           </div>
 
-          <div className="form-row">
+          <div className="form-row cols-2">
             <div className="form-group">
-              <label>IFSC Code</label>
+              <label className="form-label">IFSC Code</label>
               <input
                 className="form-input"
                 value={form.ifsc}
-                onChange={(e) => setForm({ ...form, ifsc: e.target.value.toUpperCase() })}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, ifsc: e.target.value.toUpperCase() }))
+                }
               />
             </div>
+
             <div className="form-group">
-              <label>Agent Code</label>
+              <label className="form-label">BC / Agent Code</label>
               <input
                 className="form-input"
                 value={form.agentCode}
-                onChange={(e) => setForm({ ...form, agentCode: e.target.value })}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, agentCode: e.target.value }))
+                }
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label>Business Address</label>
+            <label className="form-label">CSP Physical Address</label>
             <textarea
-              className="form-input"
-              rows={3}
+              className="form-textarea"
+              rows={4}
               value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              placeholder="Enter complete business address"
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, address: e.target.value }))
+              }
             />
           </div>
 
+          <div className="alert-box warning" style={{ marginTop: 16 }}>
+            <div className="alert-body">
+              ⚠️ Changes to bank/branch details require re-verification by admin. Existing print jobs are not affected.
+            </div>
+          </div>
+
           {dashboard && (
-            <div className="form-hint">
-              💰 Current Wallet: ₹{dashboard.wallet_balance?.toLocaleString() || '0'}
+            <div className="form-hint" style={{ marginTop: 12 }}>
+              💰 Current Wallet: ₹{dashboard.wallet_balance?.toLocaleString() || "0"}
             </div>
           )}
-
-          <div className="form-actions">
-            <button
-              className="btn btn-teal"
-              onClick={handleSubmit}
-              disabled={saving || loading}
-            >
-              {saving ? "Saving..." : "Save Bank Details"}
-            </button>
-          </div>
         </div>
       </div>
     </div>
