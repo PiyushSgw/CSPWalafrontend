@@ -10,7 +10,7 @@ import PrintOptions from './PrintOption';
 import LiveFormPreview from './LiveFormPreview';
 import ConfirmPrint from './ConfirmPrint';
 import FormHistory from './FormHistory';
-import AccountOpeningPdfTemplate from './AccountOpeningPdfTemplate';
+// import AccountOpeningPdfTemplate from './AccountOpeningPdfTemplate';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import {
   createApplication,
@@ -258,11 +258,11 @@ export default function AccountFormPage() {
                 </div>
               </div>
 
-              <AccountOpeningPdfTemplate
+              {/* <AccountOpeningPdfTemplate
                 selectedBank={selectedBank}
                 selectedType={selectedType}
                 formData={formData}
-              />
+              /> */}
             </div>
           )}
 

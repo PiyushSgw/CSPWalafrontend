@@ -72,6 +72,7 @@ interface CustomersState {
   error: string | null;
   creating: boolean;
   createError: string | null;
+  fetchedAt: string;
 }
 
 const initialState: CustomersState = {
@@ -83,6 +84,7 @@ const initialState: CustomersState = {
   error: null,
   creating: false,
   createError: null,
+  fetchedAt: ""
 };
 
 const getAuthToken = () => {

@@ -70,8 +70,8 @@ const mapJob = (j: PrintJob): MappedPrintJob => ({
   rawCharge: Number(j.charge ?? 0),
   status: mapStatus(j.status),
   isFree: Boolean(j.is_free),
+  createdAtRaw: j.created_at,   // 🟩 yeh line add karo
 });
-
 const calcStats = (list: PrintJob[]): PrintStats => ({
   totalJobs: list.length,
   totalPages: list.reduce((sum, j) => sum + (Number(j.pages) || 0), 0),

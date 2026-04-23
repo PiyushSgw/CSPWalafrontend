@@ -144,11 +144,11 @@ export default function DashboardPage() {
       {/* Bottom Row - 100% ORIGINAL */}
       <div className="grid grid-cols-2 gap-4">
        <RecentPrintJobs />
-<WalletWidget
+{/* <WalletWidget
   balance={stats?.walletBalance ?? 0}
   isLow={(stats?.walletBalance ?? 0) < 50}
   loading={loading}
-/>
+/> */}
       </div>
     </>
   )
