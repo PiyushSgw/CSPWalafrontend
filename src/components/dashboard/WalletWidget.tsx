@@ -9,7 +9,7 @@ export default function WalletWidget() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/api/csp/wallet/ledger')
+    api.get('/csp/wallet/ledger')
       .then(res => setData(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));

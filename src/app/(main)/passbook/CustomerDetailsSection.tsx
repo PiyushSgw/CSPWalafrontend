@@ -89,7 +89,7 @@ export const CustomerDetailsSection = () => {
 
   useEffect(() => {
     api
-      .get('/api/public/banks')
+      .get('/public/banks')
       .then((r) => setBanks(r.data.data || []))
       .catch(() => toast.error('Failed to load banks'))
   }, [])
@@ -127,7 +127,7 @@ export const CustomerDetailsSection = () => {
   const handleIFSCBlur = async () => {
     if (!form.ifsc.trim()) return
     try {
-      const res = await api.get(`/api/csp/customers/${form.ifsc}`)
+      const res = await api.get(`/csp/customers/${form.ifsc}`)
       const data = res.data.data
       setForm((prev) => ({
         ...prev,
