@@ -41,8 +41,8 @@ export const RightSidebarSection = () => {
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-bold text-blue-600">
-                  {selectedCustomer.name?.charAt(0)?.toUpperCase()}
+                <div className='text-lg'>
+                   👩
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -50,7 +50,7 @@ export const RightSidebarSection = () => {
                     {selectedCustomer.name}
                   </p>
                   <p className="truncate font-mono text-xs text-slate-400">
-                    {selectedCustomer.account_number}
+                   A/C:{selectedCustomer.account_number}
                   </p>
                 </div>
 

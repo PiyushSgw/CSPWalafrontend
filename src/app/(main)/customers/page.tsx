@@ -36,6 +36,7 @@ export default function CustomersPage() {
     id: cust.id,
     name: cust.name,
     mobile: cust.mobile,
+    account_number: cust.account_number,
     accountShort: cust.account_number
       ? `XXXX ${cust.account_number.slice(-4)}`
       : "XXXX",

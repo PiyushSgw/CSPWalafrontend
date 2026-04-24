@@ -4,7 +4,7 @@ import {
   PayloadAction,
 } from "@reduxjs/toolkit";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'
 
 export interface Customer {
   id: number;
@@ -72,7 +72,6 @@ interface CustomersState {
   error: string | null;
   creating: boolean;
   createError: string | null;
-  fetchedAt: string;
 }
 
 const initialState: CustomersState = {
@@ -84,7 +83,6 @@ const initialState: CustomersState = {
   error: null,
   creating: false,
   createError: null,
-  fetchedAt: ""
 };
 
 const getAuthToken = () => {

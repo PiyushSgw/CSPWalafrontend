@@ -53,6 +53,10 @@ const mapStatus = (s?: string): MappedPrintJob["status"] => {
 
 const mapJob = (j: PrintJob): MappedPrintJob => ({
   id: `#${String(j.id ?? 0).padStart(6, "0")}`,
+
+  // ✅ FIX: add required raw date field
+  createdAtRaw: j.created_at ?? "",
+
   dateTime: j.created_at
     ? new Date(j.created_at).toLocaleString("en-IN", {
         day: "2-digit",
@@ -62,6 +66,7 @@ const mapJob = (j: PrintJob): MappedPrintJob => ({
         minute: "2-digit",
       })
     : "—",
+
   customer: j.customer_name || "—",
   bank: j.bank_code || j.bank_name || "—",
   type: mapJobType(j.job_type),
@@ -70,8 +75,8 @@ const mapJob = (j: PrintJob): MappedPrintJob => ({
   rawCharge: Number(j.charge ?? 0),
   status: mapStatus(j.status),
   isFree: Boolean(j.is_free),
-  createdAtRaw: j.created_at,   // 🟩 yeh line add karo
 });
+
 const calcStats = (list: PrintJob[]): PrintStats => ({
   totalJobs: list.length,
   totalPages: list.reduce((sum, j) => sum + (Number(j.pages) || 0), 0),
@@ -131,7 +136,7 @@ export const fetchPrintHistory = createAsyncThunk<
       return rejectWithValue("No auth token. Redirecting...");
     }
 
-    const url = new URL("/csp/passbook/history", API_BASE);
+    const url = new URL("/api/csp/passbook/history", API_BASE);
 
     if (params.customer_id) {
       url.searchParams.set("customer_id", String(params.customer_id));

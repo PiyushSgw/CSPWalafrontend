@@ -14,7 +14,7 @@ export interface Customer {
 }
 
 export interface MappedCustomer {
-  account_number?: any;
+  account_number: any;
   id: number;
   name: string;
   mobile: string;
@@ -22,7 +22,7 @@ export interface MappedCustomer {
   bank: string;
   type: "Savings" | "Current" | "Jan Dhan";
   lastPrint: string;
-  fetchedAt?: string; // ISO date saved during fetch
+  fetchedAt: string; // ISO date saved during fetch
 }
 
 export interface ApiMeta {

@@ -89,7 +89,7 @@ export const CustomerDetailsSection = () => {
 
   useEffect(() => {
     api
-      .get('/public/banks')
+      .get('/api/public/banks')
       .then((r) => setBanks(r.data.data || []))
       .catch(() => toast.error('Failed to load banks'))
   }, [])
@@ -127,7 +127,7 @@ export const CustomerDetailsSection = () => {
   const handleIFSCBlur = async () => {
     if (!form.ifsc.trim()) return
     try {
-      const res = await api.get(`/csp/customers/${form.ifsc}`)
+      const res = await api.get(`/api/csp/customers/${form.ifsc}`)
       const data = res.data.data
       setForm((prev) => ({
         ...prev,
@@ -201,7 +201,7 @@ export const CustomerDetailsSection = () => {
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-[14px] border-b border-[#e5e7eb] bg-[#fafafa]">
         <div className="flex items-center gap-2">
-            <span>👤</span>
+          <span>👤</span>
           <span className="text-[14px] font-bold text-[#111827]">Customer Details</span>
         </div>
       </div>
@@ -210,16 +210,27 @@ export const CustomerDetailsSection = () => {
         {/* Search */}
         <div ref={searchRef} className="relative">
           <label className={labelCls}>Search Existing Customer</label>
-          <div className="flex items-center gap-[10px] px-[12px] py-[9px] bg-white border border-[#d1d5db] rounded-[9px] transition-all focus-within:border-[#0d8f72] focus-within:ring-2 focus-within:ring-[rgba(13,143,114,0.12)]">
-            <Search size={13} className="text-[#9ca3af] flex-shrink-0" />
+          <div className="flex items-center gap-[10px] px-[8px] py-[7px] bg-white border border-[#d1d5db] rounded-[9px] transition-all focus-within:border-[#0d8f72] focus-within:ring-2 focus-within:ring-[rgba(13,143,114,0.12)]">
+            <span className="search-icon text-[13px]">🔍</span>
+
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or account number..."
-              className="flex-1 border-none outline-none text-[13px] text-[#111827] placeholder-[#9ca3af] bg-transparent"
+              className="flex-1 border-none outline-none text-[13px] text-[#111827] placeholder-[#9ca3af] bg-transparent min-w-0"
             />
-            {loading && <Loader2 size={13} className="text-[#6b7280] animate-spin flex-shrink-0" />}
+
+            {loading && (
+              <Loader2 size={13} className="text-[#6b7280] animate-spin flex-shrink-0" />
+            )}
+
+            <button
+              type="button"
+              className="btn btn-teal btn-xs shrink-0"
+            >
+              Search
+            </button>
           </div>
 
           {showDropdown && searchResults.length > 0 && (

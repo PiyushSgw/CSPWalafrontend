@@ -1,6 +1,7 @@
 'use client'
+
 import { useEffect } from 'react'
-import { BarChart2, Plus } from 'lucide-react'
+import { BarChart2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks'
 import { fetchDashboardStats } from '../../../redux/slices/dashboardSlice'
@@ -27,7 +28,6 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, router])
 
-  // Show loading while checking auth
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
@@ -53,17 +53,19 @@ export default function DashboardPage() {
     return 'Good Evening'
   }
 
-  const getDate = () => new Date().toLocaleDateString('en-IN', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
+  const getDate = () =>
+    new Date().toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
 
-  // Show admin role if admin logged in
   const isAdmin = !!authState.admin
   const role = isAdmin ? 'Admin' : 'CSP Agent'
 
   return (
     <>
-      {/* Title Row - 100% ORIGINAL */}
       <div className="flex items-start justify-between flex-wrap gap-3 mb-6">
         <div>
           <h1 className="text-[22px] font-extrabold text-[#111827] tracking-[-0.5px] flex items-center gap-2">
@@ -73,6 +75,7 @@ export default function DashboardPage() {
             {getDate()} · {role}
           </p>
         </div>
+
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => router.push('/print-history')}
@@ -80,6 +83,7 @@ export default function DashboardPage() {
           >
             📊 View Reports
           </button>
+
           <button
             onClick={() => router.push('/passbook')}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d8f72] hover:opacity-90 hover:-translate-y-px rounded-[6px] text-[12px] font-bold text-white transition-all"
@@ -89,9 +93,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stat Cards - 100% ORIGINAL */}
-      <div className="grid grid-cols-4 gap-3.5 ">
-        <div className=" transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
+      <div className="grid grid-cols-4 gap-3.5">
+        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
           <StatCard
             label="Wallet Balance"
             value={loading ? '...' : String(stats?.walletBalance ?? 0)}
@@ -102,7 +105,8 @@ export default function DashboardPage() {
             subVariant="neutral"
           />
         </div>
-        <div className=" transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
+
+        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
           <StatCard
             label="Prints Today"
             value={loading ? '...' : String(stats?.printsToday ?? 0)}
@@ -112,7 +116,8 @@ export default function DashboardPage() {
             subVariant="positive"
           />
         </div>
-        <div className=" transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
+
+        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
           <StatCard
             label="This Month"
             value={loading ? '...' : String(stats?.printsThisMonth ?? 0)}
@@ -122,7 +127,8 @@ export default function DashboardPage() {
             subVariant="positive"
           />
         </div>
-        <div className=" transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
+
+        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
           <StatCard
             label="Total Customers"
             value={loading ? '...' : String(stats?.totalCustomers ?? 0)}
@@ -132,23 +138,16 @@ export default function DashboardPage() {
             subVariant="positive"
           />
         </div>
-
       </div>
 
-      {/* Middle Row - 100% ORIGINAL */}
       <div className="grid grid-cols-[2fr_1fr] gap-4 mb-4">
         <QuickActions />
         <UsageStats stats={stats} loading={loading} />
       </div>
 
-      {/* Bottom Row - 100% ORIGINAL */}
       <div className="grid grid-cols-2 gap-4">
-       <RecentPrintJobs />
-{/* <WalletWidget
-  balance={stats?.walletBalance ?? 0}
-  isLow={(stats?.walletBalance ?? 0) < 50}
-  loading={loading}
-/> */}
+        <RecentPrintJobs />
+        <WalletWidget />
       </div>
     </>
   )

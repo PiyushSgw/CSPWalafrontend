@@ -2,8 +2,8 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import api from '../../utils/axios'
 import { RootState } from '../store'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'
+  
 // Types
 interface User {
   id: number
@@ -42,7 +42,7 @@ export const loginCSP = createAsyncThunk(
   'auth/loginCSP',
   async (data: { email: string; password: string; remember_me?: boolean }, { rejectWithValue }) => {
     try {
-      const res = await api.post('/auth/login', data)
+      const res = await api.post('/api/auth/login', data)
       const { access_token, refresh_token, user } = res.data.data
       localStorage.setItem('csp_access_token', access_token)
       localStorage.setItem('csp_refresh_token', refresh_token)
@@ -85,7 +85,7 @@ export const loginAdmin = createAsyncThunk(
 // Fetch CSP Profile
 export const fetchMe = createAsyncThunk('auth/fetchMeCSP', async (_, { rejectWithValue }) => {
   try {
-    const res = await api.get('/auth/me')
+    const res = await api.get('/api/auth/me')
     return res.data.data as User
   } catch (e: any) {
     return rejectWithValue(e.response?.data?.message)
@@ -114,7 +114,7 @@ export const fetchAdminProfile = createAsyncThunk(
 export const logoutCSP = createAsyncThunk('auth/logoutCSP', async () => {
   try {
     const rt = localStorage.getItem('csp_refresh_token')
-    await api.post('/auth/logout', { refresh_token: rt })
+    await api.post('/api/auth/logout', { refresh_token: rt })
   } catch {}
   localStorage.removeItem('csp_access_token')
   localStorage.removeItem('csp_refresh_token')
@@ -160,7 +160,7 @@ export const registerCSP = createAsyncThunk(
   'auth/registerCSP',
   async (data: any, { rejectWithValue }) => {
     try {
-      const res = await api.post('/auth/register', data)
+      const res = await api.post('/api/auth/register', data)
       return res.data
     } catch (e: any) {
       return rejectWithValue(e.response?.data?.message || 'Registration failed')
@@ -172,7 +172,7 @@ export const verifyOTP = createAsyncThunk(
   'auth/verifyOTP',
   async (data: { mobile: string; otp: string }, { rejectWithValue }) => {
     try {
-      const res = await api.post('/auth/verify-otp', data)
+      const res = await api.post('/api/auth/verify-otp', data)
       return res.data
     } catch (e: any) {
       return rejectWithValue(e.response?.data?.message)
@@ -184,7 +184,7 @@ export const forgotPassword = createAsyncThunk(
   'auth/forgotPassword',
   async (data: { mobile: string }, { rejectWithValue }) => {
     try {
-      const res = await api.post('/auth/forgot-password', data)
+      const res = await api.post('/api/auth/forgot-password', data)
       return { ...res.data, mobile: data.mobile }
     } catch (e: any) {
       return rejectWithValue(e.response?.data?.message)
@@ -196,7 +196,7 @@ export const resetPassword = createAsyncThunk(
   'auth/resetPassword',
   async (data: { mobile: string; otp: string; new_password: string }, { rejectWithValue }) => {
     try {
-      const res = await api.post('/auth/reset-password', data)
+      const res = await api.post('/api/auth/reset-password', data)
       return res.data
     } catch (e: any) {
       return rejectWithValue(e.response?.data?.message)

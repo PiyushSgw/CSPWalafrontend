@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import { CustomerRow } from './CustomerRow'
 import { ApiMeta, MappedCustomer } from './customer'
 

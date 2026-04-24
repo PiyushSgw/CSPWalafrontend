@@ -125,7 +125,7 @@ export const searchCustomers = createAsyncThunk<
   { rejectValue: string }
 >('passbook/searchCustomers', async (query, { rejectWithValue }) => {
   try {
-    const res = await api.get('/csp/customers', { params: { search: query } })
+    const res = await api.get('/api/csp/customers', { params: { search: query } })
     console.log('Search Customers Response:', res.data)
     return res.data?.data || []
   } catch (err: any) {
@@ -141,7 +141,7 @@ export const fetchCustomer = createAsyncThunk<
   { rejectValue: string }
 >('passbook/fetchCustomer', async (customerId, { rejectWithValue }) => {
   try {
-    const res = await api.get(`/csp/customers/${customerId}`)
+    const res = await api.get(`/api/csp/customers/${customerId}`)
     return res.data?.data
   } catch (err: any) {
     return rejectWithValue(
@@ -156,7 +156,7 @@ export const createCustomer = createAsyncThunk<
   { rejectValue: string }
 >('passbook/createCustomer', async (payload, { rejectWithValue }) => {
   try {
-    const res = await api.post('/csp/customers', payload)
+    const res = await api.post('/api/csp/customers', payload)
     return res.data?.data
   } catch (err: any) {
     return rejectWithValue(
@@ -173,7 +173,7 @@ export const fetchCustomerTransactions = createAsyncThunk<
   'passbook/fetchCustomerTransactions',
   async (customerId, { rejectWithValue }) => {
     try {
-      const res = await api.get(`/csp/passbook/transactions/${customerId}`)
+      const res = await api.get(`/api/csp/passbook/transactions/${customerId}`)
 
       const raw: any[] =
         res.data?.data?.transactions ||
@@ -211,7 +211,7 @@ export const generatePassbookPreview = createAsyncThunk<
   { rejectValue: string }
 >('passbook/generatePassbookPreview', async (payload, { rejectWithValue }) => {
   try {
-    const res = await api.post('/csp/passbook/preview', payload)
+    const res = await api.post('/api/csp/passbook/preview', payload)
     return res.data
   } catch (err: any) {
     return rejectWithValue(
@@ -226,7 +226,7 @@ export const printPassbook = createAsyncThunk<
   { rejectValue: string }
 >('passbook/printPassbook', async (payload, { rejectWithValue }) => {
   try {
-    const res = await api.post('/csp/passbook/print', payload)
+    const res = await api.post('/api/csp/passbook/print', payload)
     return res.data
   } catch (err: any) {
     return rejectWithValue(

@@ -40,11 +40,10 @@ export const PrintJobLogSection: React.FC<Props> = ({
           job.type === "Acct Form" ||
           job.type === "Jan Dhan"
       );
-} else if (activeFilter === "Combo") {
-  baseList = mappedList.filter(
-    (job) => (job.type as string) === "Combo" || (job.type as string) === "Form + PB"
-  );
-}
+    } else if (activeFilter === "Combo") {
+      // ✅ FIXED: Only use types that exist in job.type union
+      baseList = mappedList.filter((job) => job.type === "Combo");
+    }
 
     // NEW: date filter
     if (startDate || endDate) {
