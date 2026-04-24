@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5001/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export type ActiveTab = 'new' | 'history';
 
@@ -156,7 +156,7 @@ export const createApplication = createAsyncThunk<
       return rejectWithValue('No auth token found. Please login again.');
     }
 
-    const response = await fetch(`${API_BASE_URL}api/csp/applications`, {
+    const response = await fetch(`${API_BASE_URL}/csp/applications`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -216,7 +216,7 @@ export const downloadApplicationPdf = createAsyncThunk<
     }
 
     const response = await axios.get(
-      `${API_BASE_URL}api/csp/applications/${applicationId}/pdf`,
+      `${API_BASE_URL}/csp/applications/${applicationId}/pdf`,
       {
         responseType: 'blob',
         headers: {

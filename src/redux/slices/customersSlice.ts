@@ -4,7 +4,7 @@ import {
   PayloadAction,
 } from "@reduxjs/toolkit";
 
-const API_BASE_URL = "http://localhost:5001/";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface Customer {
   id: number;
@@ -112,7 +112,7 @@ export const fetchCustomers = createAsyncThunk<
       return rejectWithValue("No auth token found. Please login again.");
     }
 
-    const url = new URL(`${API_BASE_URL}api/csp/customers`);
+    const url = new URL(`${API_BASE_URL}/csp/customers`);
     url.searchParams.set("page", String(params.page || 1));
     url.searchParams.set("limit", String(params.limit || 20));
 
@@ -161,7 +161,7 @@ export const createCustomer = createAsyncThunk<
       return rejectWithValue("No auth token found. Please login again.");
     }
 
-    const response = await fetch(`${API_BASE_URL}api/csp/customers`, {
+    const response = await fetch(`${API_BASE_URL}/csp/customers`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

@@ -58,7 +58,7 @@ export const loginAdmin = createAsyncThunk(
   'auth/loginAdmin',
   async (data: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${API_BASE_URL}api/admin/auth/login`, {
+      const res = await fetch(`${API_BASE_URL}/admin/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -98,7 +98,7 @@ export const fetchAdminProfile = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('admin_token')
-      const res = await fetch(`${API_BASE_URL}api/admin/profile`, {
+      const res = await fetch(`${API_BASE_URL}/admin/profile`, {
         headers: { 'Authorization': `Bearer ${token!}` }
       })
       if (!res.ok) throw new Error('Failed to fetch profile')
@@ -144,7 +144,7 @@ export const initializeAuth = createAsyncThunk(
 export const logoutAdmin = createAsyncThunk('auth/logoutAdmin', async () => {
   try {
     const token = localStorage.getItem('admin_token')
-    await fetch(`${API_BASE_URL}api/admin/auth/logout`, {
+    await fetch(`${API_BASE_URL}/admin/auth/logout`, {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`,

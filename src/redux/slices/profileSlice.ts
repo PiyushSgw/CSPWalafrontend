@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { Debugger } from "inspector/promises";
 
-const API_BASE_URL = "http://localhost:5001/";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface Profile {
   id: number;
@@ -84,7 +84,7 @@ export const loadProfile = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found. Please login again.");
 
-    const response = await fetch(`${API_BASE_URL}api/csp/profile`, {
+    const response = await fetch(`${API_BASE_URL}/csp/profile`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -117,7 +117,7 @@ export const loadDashboard = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}api/csp/dashboard`, {
+    const response = await fetch(`${API_BASE_URL}/csp/dashboard`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -146,7 +146,7 @@ export const updateProfile = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}api/csp/profile`, {
+    const response = await fetch(`${API_BASE_URL}/csp/profile`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -183,7 +183,7 @@ export const updateBankDetails = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}api/csp/profile`, {
+    const response = await fetch(`${API_BASE_URL}/csp/profile`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -213,7 +213,7 @@ export const uploadPhoto = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}api/csp/profile/photo`, {
+    const response = await fetch(`${API_BASE_URL}/csp/profile/photo`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -242,7 +242,7 @@ export const uploadKYC = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}api/csp/profile/kyc`, {
+    const response = await fetch(`${API_BASE_URL}/csp/profile/kyc`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -273,7 +273,7 @@ export const changePassword = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}api/csp/profile/change-password`, {
+    const response = await fetch(`${API_BASE_URL}/csp/profile/change-password`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
