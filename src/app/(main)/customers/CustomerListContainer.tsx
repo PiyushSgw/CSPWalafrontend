@@ -1,90 +1,129 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../../../redux/hooks";
-import { fetchCustomers } from "../../../redux/slices/customersSlice";
-import { CustomerRow } from "./CustomerRow";
+'use client'
 
-export const CustomerListSection: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const { mappedList, meta, loading, error, fetchedAt } =
-    useAppSelector((s) => s.customers);
+import React, { useMemo, useState } from 'react'
+import { CustomerRow } from './CustomerRow'
+import { ApiMeta, MappedCustomer } from './customer'
 
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+interface Props {
+  customers: MappedCustomer[]
+  meta?: ApiMeta
+  loading?: boolean
+}
 
-  const load = (p: number, q: string) =>
-    dispatch(fetchCustomers({ page: p, search: q, limit: 20 }));
+export const CustomerListSection: React.FC<Props> = ({ customers, meta, loading }) => {
+  const [search, setSearch] = useState('')
 
-  useEffect(() => { load(1, ""); }, []);
+  const filteredCustomers = useMemo(() => {
+    const q = search.trim().toLowerCase()
 
-  const handleSearch = (val: string) => {
-    setSearch(val); setPage(1);
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => load(1, val), 400);
-  };
+    if (!q) return customers
 
-  const handlePage = (p: number) => { setPage(p); load(p, search); };
+    return customers.filter((cust) => {
+      const name = cust.name?.toLowerCase() || ''
+      const account =
+        cust.accountShort?.toLowerCase() ||
+        cust.account_number?.toLowerCase() ||
+        ''
+      const mobile = cust.mobile?.toLowerCase() || ''
 
-  const total = meta?.total ?? 0;
-  const from = (page - 1) * 20 + 1;
-  const to = Math.min(page * 20, total);
-  const fetchLabel = fetchedAt
-    ? `Fetched ${new Date(fetchedAt).toLocaleTimeString()}`
-    : "";
+      return (
+        name.includes(q) ||
+        account.includes(q) ||
+        mobile.includes(q)
+      )
+    })
+  }, [customers, search])
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <div className="card-title">All Customers ({total})</div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {fetchLabel && (
-            <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
-              {fetchLabel}
-            </span>
-          )}
+    <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-[#e5e7eb] bg-[#fafafa]">
+        <div className="text-[14px] font-bold text-[#111827]">All Customers</div>
+
+        <div className="relative w-full max-w-[280px]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b7280] text-[14px]">
+            🔍
+          </span>
+
           <input
-            placeholder="Name, account no., mobile..."
+            type="text"
             value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            style={{ width: 240 }}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Name, account no., mobile..."
+            className="w-full h-[40px] rounded-[10px] border border-[#d1d5db] bg-white pl-10 pr-3 text-[13px] text-[#111827] placeholder:text-[#9ca3af] outline-none transition-all focus:border-[#16a34a] focus:ring-2 focus:ring-[#16a34a]/10"
           />
         </div>
       </div>
-      <div className="table-wrap">
-        <table className="data-table">
+
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
           <thead>
-            <tr>
-              <th>Customer</th><th>Account No.</th>
-              <th>Bank</th><th>Type</th>
-              <th>Fetched At</th><th>Actions</th>
+            <tr className="bg-[#f3f4f6] border-b border-[#e5e7eb]">
+              <th className="px-4 py-3 text-left text-[12px] font-bold uppercase tracking-[0.04em] text-[#6b7280]">
+                Customer
+              </th>
+              <th className="px-4 py-3 text-left text-[12px] font-bold uppercase tracking-[0.04em] text-[#6b7280]">
+                Account No.
+              </th>
+              <th className="px-4 py-3 text-left text-[12px] font-bold uppercase tracking-[0.04em] text-[#6b7280]">
+                Bank
+              </th>
+              <th className="px-4 py-3 text-left text-[12px] font-bold uppercase tracking-[0.04em] text-[#6b7280]">
+                Type
+              </th>
+              <th className="px-4 py-3 text-left text-[12px] font-bold uppercase tracking-[0.04em] text-[#6b7280]">
+                Last Print
+              </th>
+              <th className="px-4 py-3 text-left text-[12px] font-bold uppercase tracking-[0.04em] text-[#6b7280]">
+                Actions
+              </th>
             </tr>
           </thead>
+
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", padding: 40 }}>Loading...</td></tr>
-            ) : error ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", padding: 40, color: "var(--color-text-danger)" }}>{error}</td></tr>
-            ) : mappedList.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", padding: 40, color: "var(--color-text-secondary)" }}>No customers found</td></tr>
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-[13px] text-[#6b7280]">
+                  Loading customers...
+                </td>
+              </tr>
+            ) : filteredCustomers.length > 0 ? (
+              filteredCustomers.map((cust, i) => (
+                <CustomerRow key={cust.id || i} customer={cust} />
+              ))
             ) : (
-              mappedList.map((c) => <CustomerRow key={c.id} customer={c} />)
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-[13px] text-[#6b7280]">
+                  No customers found
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
-      {meta && (
-        <div style={{ padding: "12px 16px", borderTop: "0.5px solid var(--color-border-tertiary)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
-          <span>Showing {from}–{to} of {total}</span>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => handlePage(page - 1)} disabled={page === 1}>← Prev</button>
-            {Array.from({ length: Math.min(5, meta.totalPages) }, (_, i) => i + 1).map(n => (
-              <button key={n} onClick={() => handlePage(n)}
-                style={n === page ? { background: "var(--color-background-info)" } : {}}>{n}</button>
-            ))}
-            <button onClick={() => handlePage(page + 1)} disabled={page === meta.totalPages}>Next →</button>
-          </div>
+
+      <div className="flex items-center justify-between px-4 py-3 border-t border-[#e5e7eb] text-[12px] text-[#6b7280]">
+        <span>
+          Showing {filteredCustomers.length} of {meta?.total || customers.length} customers
+        </span>
+
+        <div className="flex items-center gap-2">
+          <button className="text-[12px] font-semibold text-[#6b7280] px-2 py-1 rounded">
+            ← Prev
+          </button>
+
+          <span className="min-w-[26px] h-[26px] inline-flex items-center justify-center rounded-[7px] bg-[#1e3a5f] text-white text-[11px] font-bold">
+            1
+          </span>
+
+          <button className="text-[12px] font-semibold text-[#6b7280] px-2 py-1 rounded">
+            2
+          </button>
+
+          <button className="text-[12px] font-semibold text-[#6b7280] px-2 py-1 rounded">
+            Next →
+          </button>
         </div>
-      )}
+      </div>
     </div>
-  );
-};
+  )
+}
