@@ -25,7 +25,7 @@ export default function WalletWidget() {
 
   useEffect(() => {
     api
-      .get('/api/csp/wallet/ledger')
+      .get('/csp/wallet/ledger')
       .then(res => setData(res.data))
       .catch(() => {})
       .finally(() => setLoading(false))

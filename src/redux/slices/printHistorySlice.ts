@@ -136,7 +136,7 @@ export const fetchPrintHistory = createAsyncThunk<
       return rejectWithValue("No auth token. Redirecting...");
     }
 
-    const url = new URL("/api/csp/passbook/history", API_BASE);
+    const url = new URL("/csp/passbook/history", API_BASE);
 
     if (params.customer_id) {
       url.searchParams.set("customer_id", String(params.customer_id));
