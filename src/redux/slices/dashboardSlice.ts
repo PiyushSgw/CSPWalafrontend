@@ -51,7 +51,7 @@ export const fetchDashboardStats = createAsyncThunk(
   async (_, {}) => {
     try {
       const token = localStorage.getItem('csp_access_token')      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}api/admin/reports/dashboard`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/reports/dashboard`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
