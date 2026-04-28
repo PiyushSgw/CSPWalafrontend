@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "cypress:run:passbook": "cypress run --spec 'cypress/e2e/passbook-*.cy.js'",
+    "cypress:run:api": "cypress run --spec 'cypress/e2e/api-integration.cy.js'"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
@@ -25,6 +29,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "cypress": "^14.5.4",
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
     "postcss": "^8",

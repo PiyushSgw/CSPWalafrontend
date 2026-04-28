@@ -22,18 +22,18 @@ export default function StatCard({ label, value, prefix, sub, icon, accent, subV
       <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${accentGradients[accent]}`} />
 
       <div className="flex items-center justify-between mb-2">
-       <span className="text-[11px] font-semibold tracking-[0.8px] uppercase text-[#6b7280]">
+       <span className="text-[11px] font-semibold tracking-[0.8px] uppercase text-[#6b7280]" data-testid="stat-label">
           {label}
         </span>
-        <span className="text-lg opacity-60">{icon}</span>
+        <span className="text-lg opacity-60" data-testid="stat-icon">{icon}</span>
       </div>
 
-      <p className="text-[26px] font-medium text-[#111827] font-mono leading-none font-weight-500">
-        {prefix && <span className="text-[11px] text-slate-500">{prefix}</span>}
+      <p className="text-[26px] font-medium text-[#111827] font-mono leading-none font-weight-500" data-testid="stat-value">
+        {prefix && <span className="text-[11px] text-slate-500" data-testid="stat-prefix">{prefix}</span>}
         {value}
       </p>
 
-      <p className={`text-[11px] font-normal mt-1.5 ${subVariant === "positive" ? "text-[#16a34a]" : "text-[#6b7280]"}`}>
+      <p className={`text-[11px] font-normal mt-1.5 ${subVariant === "positive" ? "text-[#16a34a]" : "text-[#6b7280]"}`} data-testid="stat-sub">
         {sub}
       </p>
     </div>

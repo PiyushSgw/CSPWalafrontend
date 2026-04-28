@@ -54,8 +54,11 @@ export default function Sidebar() {
   const isAuthenticated = authState.isAuthenticated || authState.isAdminAuthenticated;
   const isAdmin         = !!authState.admin;
 
-  const [mounted, setMounted]             = useState(false);
-  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
+
+  // ✅ Use dashboard state instead of separate API call
+  const dashboardState = useSelector((state: RootState) => state.dashboard);
+  const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -66,28 +69,25 @@ export default function Sidebar() {
     }
   }, [mounted, isAuthenticated, router]);
 
-  // ✅ Wallet API fetch — same as 1st code
-  useEffect(() => {
-    if (isAuthenticated) {
-      api.get('/csp/wallet/transactions')
-        .then(res => setWalletBalance(res.data.balance || 0))
-        .catch(() => {});
-    }
-  }, [isAuthenticated]);
-
   // ✅ Loading state — same as 1st code
   if (!mounted || !isAuthenticated) {
     return <aside className="w-[260px] bg-[#0f2744] animate-pulse flex-shrink-0" />;
   }
 
-  // ✅ Logout handler — same as 1st code
-  const handleLogout = () => {
-    if (isAdmin) {
-      (dispatch as any)(logoutAdmin());
-    } else {
-      (dispatch as any)(logoutCSP());
+  // ✅ Logout handler
+  const handleLogout = async () => {
+    try {
+      if (isAdmin) {
+        await (dispatch as any)(logoutAdmin());
+      } else {
+        await (dispatch as any)(logoutCSP());
+      }
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Force redirect even if logout fails
+      router.replace('/login');
     }
-    router.push('/login');
   };
 
   const initial = user?.name?.[0]?.toUpperCase() || 'U';
@@ -207,7 +207,7 @@ export default function Sidebar() {
             <div className="flex items-baseline gap-0.5 my-1 mb-[10px]">
               <span className="text-white/60 text-[14px] font-medium font-mono">₹</span>
               <span className="text-white text-[22px] font-medium font-mono leading-none">
-                {walletBalance.toFixed(2)}
+                {dashboardWalletBalance.toFixed(2)}
               </span>
             </div>
             <div className="flex gap-2">

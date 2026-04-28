@@ -48,43 +48,90 @@ const getFallbackData = (): DashboardStats => ({
 
 export const fetchDashboardStats = createAsyncThunk(
   'dashboard/fetchStats',
-  async (_, {}) => {
+  async (_, { getState }) => {
     try {
-      const token = localStorage.getItem('csp_access_token')      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/reports/dashboard`, {
+      const state = getState() as any;
+      const isAdmin = !!state.auth.admin;
+      const isAdminAuthenticated = state.auth.isAdminAuthenticated;
+      
+      let token: string;
+      let dashboardUrl: string;
+      
+      if (isAdmin && isAdminAuthenticated) {
+        // Admin user - use admin API
+        token = localStorage.getItem('admin_token') || '';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        dashboardUrl = baseUrl.includes('/api') 
+          ? `${baseUrl}/admin/reports/dashboard`
+          : `${baseUrl}/api/admin/reports/dashboard`
+        console.log('🔗 Admin Dashboard API URL:', dashboardUrl)
+      } else {
+        // CSP user - use CSP API
+        token = localStorage.getItem('csp_access_token') || '';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+        dashboardUrl = baseUrl.includes('/api') 
+          ? `${baseUrl}/csp/dashboard`
+          : `${baseUrl}/api/csp/dashboard`
+        console.log('🔗 CSP Dashboard API URL:', dashboardUrl)
+      }
+      
+      const response = await fetch(dashboardUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
         }
       })
 
       if (!response.ok) {
+        console.log('❌ API FAILED, using fallback data')
         return getFallbackData()
       }
 
       const result = await response.json()
-      console.log('✅ EXACT API RESPONSE:', result)
+      
+      if (isAdmin && isAdminAuthenticated) {
+        console.log('✅ ADMIN DASHBOARD API RESPONSE:', result)
+        const data = result.data  // Admin dashboard structure
+        
+        return {
+          // ✅ MAPPED TO ADMIN DASHBOARD API RESPONSE
+          walletBalance: data.total_wallet_balance || 0,
+          printsToday: data.prints_last_30d?.count || 0,
+          printsThisMonth: data.prints_last_30d?.count || 0,
+          totalCustomers: data.csp?.active || 0,
+          printsRemaining: Math.floor((data.total_wallet_balance || 0) / 10),
+          recentJobs: [],
+          monthlyUsage: data.prints_last_30d?.count || 0,
+          monthlyLimit: 200,
+          dailyLimitUsage: data.prints_last_30d?.count || 0,
+          passbookPrints: data.csp?.pending || 0,
+          accountForms: data.csp?.under_review || 0,
+          totalSpendThisMonth: data.prints_last_30d?.revenue || 0,
+        } as DashboardStats
+      } else {
+        console.log('✅ CSP DASHBOARD API RESPONSE:', result)
+        const data = result.data  // CSP dashboard structure
+        console.log('🔍 CSP Dashboard Data:', data)
+        console.log('🔍 Wallet Balance from API:', data.wallet_balance)
 
-      const data = result.data  // ✅ Your exact structure
-
-      return {
-        // ✅ MAPPED TO YOUR EXACT API RESPONSE
-        walletBalance: data.total_wallet_balance || 0,
-        printsToday: data.pending_recharges?.count || 0,
-        printsThisMonth: data.prints_last_30d?.count || 0,
-        totalCustomers: data.csp?.active || 0,
-        printsRemaining: data.pending_recharges?.amount || 0,
-        recentJobs: [],
-        monthlyUsage: data.prints_last_30d?.count || 0,
-        monthlyLimit: 200,
-        dailyLimitUsage: data.pending_recharges?.count || 0,
-        passbookPrints: data.csp?.pending || 0,
-        accountForms: data.csp?.under_review || 0,
-        totalSpendThisMonth: data.prints_last_30d?.revenue || 0,
-      } as DashboardStats
+        return {
+          // ✅ MAPPED TO CSP DASHBOARD API RESPONSE
+          walletBalance: data.wallet_balance || 0,
+          printsToday: data.prints_today || 0,
+          printsThisMonth: data.prints_this_month || 0,
+          totalCustomers: data.total_customers || 0,
+          printsRemaining: data.prints_remaining || 0,
+          recentJobs: data.recent_print_jobs || [],
+          monthlyUsage: data.prints_this_month || 0,
+          monthlyLimit: 200,
+          dailyLimitUsage: data.prints_today || 0,
+          passbookPrints: data.prints_today || 0,
+          accountForms: data.pending_recharge_requests || 0,
+          totalSpendThisMonth: (data.prints_this_month || 0) * 10, // Assuming ₹10 per print
+        } as DashboardStats
+      }
 
     } catch (error) {
-      console.error('API Error:', error)
+      console.error('Dashboard API Error:', error)
       return getFallbackData()
     }
   }

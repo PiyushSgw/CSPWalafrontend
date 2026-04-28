@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '../../utils/axios'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/redux/store'
 
 type WalletLedgerResponse = {
   balance?: number
@@ -22,11 +24,20 @@ export default function WalletWidget() {
   const router = useRouter()
   const [data, setData] = useState<WalletLedgerResponse | null>(null)
   const [loading, setLoading] = useState(true)
-
+  const dashboardState = useSelector((state: RootState) => state.dashboard);
+  const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
   useEffect(() => {
+    // Get wallet balance instead of ledger for the widget
     api
-      .get('/csp/wallet/ledger')
-      .then(res => setData(res.data))
+      .get('/csp/wallet/balance')
+      .then(res => {
+        // Transform balance API response to match expected structure
+        setData({
+          balance: res.data.balance,
+          lastRecharge: null, // Can be enhanced later
+          transactions: [] // Can be enhanced later
+        })
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
@@ -51,7 +62,7 @@ export default function WalletWidget() {
 
         <div className="font-mono text-[40px] font-medium leading-none mb-1.5 relative">
           <span className="text-[22px] opacity-60 mr-1">₹</span>
-          {loading ? '...' : balance.toFixed(2)}
+          {loading ? '...' : dashboardWalletBalance.toFixed(2)}
         </div>
 
         <p className="text-[12px] opacity-55 mb-5 relative">

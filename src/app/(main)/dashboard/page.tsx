@@ -43,8 +43,15 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    console.log('🔍 Dashboard useEffect - isAuthenticated:', isAuthenticated)
+    console.log('🔍 Dashboard useEffect - authState:', authState)
     dispatch(fetchDashboardStats())
-  }, [dispatch])
+  }, [dispatch, isAuthenticated, authState])
+
+  useEffect(() => {
+    console.log('🔍 Dashboard State:', { stats, loading })
+    console.log('🔍 Wallet Balance from stats:', stats?.walletBalance)
+  }, [stats, loading])
 
   const getGreeting = () => {
     const h = new Date().getHours()
@@ -71,8 +78,8 @@ export default function DashboardPage() {
           <h1 className="text-[22px] font-extrabold text-[#111827] tracking-[-0.5px] flex items-center gap-2">
             {getGreeting()}, {user?.name?.split(' ')[0] || 'User'} 👋
           </h1>
-          <p className="text-[13px] text-[#6b7280] mt-[3px]">
-            {getDate()} · {role}
+          <p className="text-[13px] text-[#6b7280] mt-[3px]" data-testid="dashboard-date">
+            {getDate()} · <span data-testid="dashboard-role">{role}</span>
           </p>
         </div>
 
@@ -80,6 +87,7 @@ export default function DashboardPage() {
           <button
             onClick={() => router.push('/print-history')}
             className="flex items-center gap-1.5 px-3 py-1.5 border-[1.5px] border-[#d1d5db] rounded-[6px] bg-white text-[12px] font-bold text-[#374151] hover:bg-[#f3f5f8] transition-colors"
+            data-testid="view-reports-btn"
           >
             📊 View Reports
           </button>
@@ -87,6 +95,7 @@ export default function DashboardPage() {
           <button
             onClick={() => router.push('/passbook')}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d8f72] hover:opacity-90 hover:-translate-y-px rounded-[6px] text-[12px] font-bold text-white transition-all"
+            data-testid="new-print-job-btn"
           >
             🖨️ New Print Job
           </button>
@@ -94,7 +103,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-4 gap-3.5">
-        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
+        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]" data-testid="wallet-balance-card">
           <StatCard
             label="Wallet Balance"
             value={loading ? '...' : String(stats?.walletBalance ?? 0)}
@@ -106,7 +115,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
+        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]" data-testid="prints-today-card">
           <StatCard
             label="Prints Today"
             value={loading ? '...' : String(stats?.printsToday ?? 0)}
@@ -117,7 +126,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
+        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]" data-testid="this-month-card">
           <StatCard
             label="This Month"
             value={loading ? '...' : String(stats?.printsThisMonth ?? 0)}
@@ -128,7 +137,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]">
+        <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]" data-testid="total-customers-card">
           <StatCard
             label="Total Customers"
             value={loading ? '...' : String(stats?.totalCustomers ?? 0)}
@@ -141,13 +150,21 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-[2fr_1fr] gap-4 mb-4">
-        <QuickActions />
-        <UsageStats stats={stats} loading={loading} />
+        <div data-testid="quick-actions">
+          <QuickActions />
+        </div>
+        <div data-testid="usage-stats">
+          <UsageStats stats={stats} loading={loading} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <RecentPrintJobs />
-        <WalletWidget />
+        <div data-testid="recent-print-jobs">
+          <RecentPrintJobs />
+        </div>
+        <div data-testid="wallet-widget">
+          <WalletWidget />
+        </div>
       </div>
     </>
   )

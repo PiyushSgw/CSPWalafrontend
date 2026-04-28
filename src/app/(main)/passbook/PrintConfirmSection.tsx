@@ -2,8 +2,10 @@
 
 import { Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useEffect } from 'react'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { printPassbook, setWizardStep } from '@/redux/slices/passbookSlice'
+import { fetchDashboardStats } from '@/redux/slices/dashboardSlice'
 
 const fmt = (n: number | string) =>
   `₹${Number(n || 0).toLocaleString('en-IN', {
@@ -18,7 +20,7 @@ const maskAccount = (value?: string) => {
 }
 
 // TODO: TESTING ONLY – remove after wallet integration
-const BYPASS_WALLET_FOR_TESTING = true
+const BYPASS_WALLET_FOR_TESTING = false
 
 export const PrintConfirmSection = () => {
   const dispatch = useAppDispatch()
@@ -32,11 +34,11 @@ export const PrintConfirmSection = () => {
     preview,
   } = useAppSelector((s) => s.passbook)
 
-  const { balance } = useAppSelector((s) => s.wallet)
+  const dashboardState = useAppSelector((s) => s.dashboard)
+  const walletBalance = Number(dashboardState.stats?.walletBalance || 0)
 
   const txns = Array.isArray(transactions) ? transactions : []
-  const printCost = Number(preview?.print_charge || 5)
-  const walletBalance = Number(balance || 0)
+  const printCost = Number(preview?.print_charge || 10)
   const afterPrint = walletBalance - printCost
 
   const isDisabled =
@@ -45,6 +47,13 @@ export const PrintConfirmSection = () => {
   const customerName = selectedCustomer?.name || 'Customer'
   const accountNumber = selectedCustomer?.account_number || ''
   const bankName = selectedCustomer?.bank_name || 'SBI'
+
+  // Fetch dashboard data if not available to get wallet balance
+  useEffect(() => {
+    if (!dashboardState.stats || !dashboardState.stats.walletBalance) {
+      dispatch(fetchDashboardStats())
+    }
+  }, [dispatch, dashboardState.stats])
 
   const handleFinalPrint = async () => {
     if (!selectedCustomer?.id) {
@@ -81,9 +90,19 @@ export const PrintConfirmSection = () => {
     const result = await dispatch(printPassbook(payload))
 
     if (printPassbook.fulfilled.match(result)) {
-      toast.success('Passbook printed successfully!')
-
       const data = result.payload as any
+
+      // Show detailed success message with charge info
+      const charge = data?.data?.charge || data?.charge || 0
+      const balanceAfter = data?.data?.wallet_balance_after || data?.wallet_balance_after || 0
+
+      if (charge > 0) {
+        toast.success(`Passbook printed successfully! ₹${charge} deducted from wallet. New balance: ₹${balanceAfter}`)
+      } else {
+        toast.success('Passbook printed successfully!')
+      }
+
+      // Get PDF URL with fallbacks
       const rawPdfUrl =
         data?.data?.pdf_signed_url ||
         data?.data?.pdf_url ||
@@ -101,6 +120,8 @@ export const PrintConfirmSection = () => {
         } catch {
           window.open(rawPdfUrl, '_blank')
         }
+      } else {
+        toast.error('PDF download link not available')
       }
     } else {
       toast.error((result.payload as string) || 'Print failed')
