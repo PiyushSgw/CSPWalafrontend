@@ -55,14 +55,14 @@ const normalizeJobType = (jobType?: string) => {
 };
 
 export default function RecentPrintJobs() {
-  const printHistoryState = useAppSelector((s: any) => s.printHistory);
+  const dashboardState = useAppSelector((s: any) => s.dashboard);
 
-  const list: PrintJobRow[] = Array.isArray(printHistoryState?.list)
-    ? printHistoryState.list
+  const list: PrintJobRow[] = Array.isArray(dashboardState?.stats?.recentJobs)
+    ? dashboardState.stats.recentJobs
     : [];
 
-  const loading = Boolean(printHistoryState?.loading);
-  const error = printHistoryState?.error;
+  const loading = Boolean(dashboardState?.loading);
+  const error = dashboardState?.error;
 
   // If backend returns latest first
   const jobs = [...list].slice(0, 5);

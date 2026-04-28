@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Loader2,
   ArrowLeft,
@@ -14,6 +14,9 @@ import {
   fetchCustomerTransactions,
   generatePassbookPreview,
   clearTransactions,
+  addTransaction,
+  deleteTransaction,
+  updateTransaction,
 } from '@/redux/slices/passbookSlice'
 import toast from 'react-hot-toast'
 
@@ -38,6 +41,41 @@ export const TransactionTableSection = () => {
       dispatch(clearTransactions())
     }
   }, [dispatch, selectedCustomer?.id])
+
+  const handleAddRow = () => {
+    if (!selectedCustomer?.id) {
+      toast.error('Please select a customer first')
+      return
+    }
+
+    // Create a new empty transaction with today's date
+    const today = new Date().toISOString().slice(0, 10)
+    const lastBalance = txns.length > 0 ? txns[txns.length - 1].balance : 0
+    
+    const newTransaction = {
+      customer_id: selectedCustomer.id,
+      txn_date: today,
+      description: '',
+      debit: 0,
+      credit: 0,
+      balance: lastBalance,
+    }
+
+    dispatch(addTransaction(newTransaction))
+    toast.success('New transaction row added')
+  }
+
+  const handleDeleteRow = (index: number) => {
+    dispatch(deleteTransaction(index))
+    toast.success('Transaction row deleted')
+  }
+
+  const handleFieldUpdate = (index: number, field: string, value: string | number) => {
+    dispatch(updateTransaction({ 
+      index, 
+      data: { [field]: value }
+    }))
+  }
 
   const handlePreview = async () => {
     if (!selectedCustomer?.id) {
@@ -95,6 +133,7 @@ export const TransactionTableSection = () => {
 
         <button
           type="button"
+          onClick={handleAddRow}
           className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
         >
           + Add Row
@@ -171,41 +210,68 @@ export const TransactionTableSection = () => {
               {txns.map((txn, i) => (
                 <tr key={txn.id ?? i} className="bg-white transition-colors hover:bg-slate-50">
                   <td className="px-3 py-3 align-middle">
-                    <div className="relative flex h-[36px] items-center rounded-[9px] border border-slate-300 bg-white pl-3 pr-8 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap">
-                      {txn.txn_date}
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-500">
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={txn.txn_date}
+                        onChange={(e) => handleFieldUpdate(i, 'txn_date', e.target.value)}
+                        className="h-[36px] w-full rounded-[9px] border border-slate-300 bg-white pl-3 pr-8 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus:border-blue-500 focus:outline-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-500 pointer-events-none">
                         📅
                       </span>
                     </div>
                   </td>
 
                   <td className="px-3 py-3 align-middle">
-                    <div className="flex h-[36px] items-center overflow-hidden rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap text-ellipsis">
-                      {txn.description}
-                    </div>
+                    <input
+                      type="text"
+                      value={txn.description}
+                      onChange={(e) => handleFieldUpdate(i, 'description', e.target.value)}
+                      placeholder="Enter description"
+                      className="h-[36px] w-full rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus:border-blue-500 focus:outline-none placeholder:text-slate-400"
+                    />
                   </td>
 
                   <td className="px-3 py-3 align-middle">
-                    <div className="flex h-[36px] items-center justify-end rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap">
-                      {Number(txn.debit) > 0 ? fmt(txn.debit) : '0.00'}
-                    </div>
+                    <input
+                      type="number"
+                      value={txn.debit}
+                      onChange={(e) => handleFieldUpdate(i, 'debit', Number(e.target.value) || 0)}
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      className="h-[36px] w-full rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] text-slate-700 text-right shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus:border-blue-500 focus:outline-none placeholder:text-slate-400"
+                    />
                   </td>
 
                   <td className="px-3 py-3 align-middle">
-                    <div className="flex h-[36px] items-center justify-end rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap">
-                      {Number(txn.credit) > 0 ? fmt(txn.credit) : '0.00'}
-                    </div>
+                    <input
+                      type="number"
+                      value={txn.credit}
+                      onChange={(e) => handleFieldUpdate(i, 'credit', Number(e.target.value) || 0)}
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      className="h-[36px] w-full rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] text-slate-700 text-right shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus:border-blue-500 focus:outline-none placeholder:text-slate-400"
+                    />
                   </td>
 
                   <td className="px-3 py-3 align-middle">
-                    <div className="flex h-[36px] items-center justify-end rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] font-medium text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.03)] whitespace-nowrap">
-                      {fmt(txn.balance)}
-                    </div>
+                    <input
+                      type="number"
+                      value={txn.balance}
+                      onChange={(e) => handleFieldUpdate(i, 'balance', Number(e.target.value) || 0)}
+                      placeholder="0.00"
+                      step="0.01"
+                      className="h-[36px] w-full rounded-[9px] border border-slate-300 bg-white px-3 text-[11px] font-medium text-slate-700 text-right shadow-[0_1px_2px_rgba(0,0,0,0.03)] focus:border-blue-500 focus:outline-none placeholder:text-slate-400"
+                    />
                   </td>
 
                   <td className="px-2 py-3 align-middle">
                     <button
                       type="button"
+                      onClick={() => handleDeleteRow(i)}
                       className="mx-auto flex h-7 w-7 items-center justify-center rounded-md text-[18px] leading-none text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
                       aria-label="Delete row"
                     >

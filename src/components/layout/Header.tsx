@@ -5,6 +5,7 @@ import { RootState } from '../../redux/store';
 import { logoutCSP, logoutAdmin } from '../../redux/slices/authslice';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
+import api from '../../utils/axios';
 
 export default function Header() {
   const authState = useSelector((state: RootState) => state.auth);
@@ -13,7 +14,7 @@ export default function Header() {
   const router    = useRouter();
   const pathname  = usePathname();
 
-  const [walletBalance, setWalletBalance]         = useState<number>(485);
+  const [walletBalance, setWalletBalance]         = useState<number>(0);
   const [showDropdown, setShowDropdown]           = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [mounted, setMounted]                     = useState(false);
@@ -21,6 +22,15 @@ export default function Header() {
   const notificationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
+
+  const dashboardState = useSelector((state: RootState) => state.dashboard);
+  const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
+
+  useEffect(() => {
+    if (mounted && authState.isAuthenticated && !authState.admin) {
+      setWalletBalance(dashboardWalletBalance);
+    }
+  }, [mounted, authState.isAuthenticated, authState.admin, dashboardWalletBalance]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -51,14 +61,20 @@ export default function Header() {
     return <header className="topbar animate-pulse" />;
   }
 
-  const handleLogout = () => {
-    const isAdmin = !!authState.admin;
-    if (isAdmin) {
-      (dispatch as any)(logoutAdmin());
-    } else {
-      (dispatch as any)(logoutCSP());
+  const handleLogout = async () => {
+    try {
+      const isAdmin = !!authState.admin;
+      if (isAdmin) {
+        await (dispatch as any)(logoutAdmin());
+      } else {
+        await (dispatch as any)(logoutCSP());
+      }
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Force redirect even if logout fails
+      router.replace('/login');
     }
-    router.push('/login');
   };
 
   const initial      = user?.name?.[0]?.toUpperCase() || 'U';
@@ -86,7 +102,7 @@ export default function Header() {
           >
             <span>⚠️</span>
             <span style={{ marginLeft: '4px' }} className="whitespace-nowrap">
-              <strong>Low Balance:</strong> ₹{walletBalance} remaining
+              <strong>Low Balance:</strong> ₹{dashboardWalletBalance} remaining
             </span>
           </div>
         )}
