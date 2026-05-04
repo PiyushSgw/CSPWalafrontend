@@ -24,23 +24,69 @@ export default function WalletWidget() {
   const router = useRouter()
   const [data, setData] = useState<WalletLedgerResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const authState = useSelector((state: RootState) => state.auth);
   const dashboardState = useSelector((state: RootState) => state.dashboard);
   const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
+  const isAdmin = authState.isAdminAuthenticated;
+  
   useEffect(() => {
-    // Get wallet balance instead of ledger for the widget
-    api
-      .get('/csp/wallet/balance')
-      .then(res => {
-        // Transform balance API response to match expected structure
-        setData({
-          balance: res.data.balance,
-          lastRecharge: null, // Can be enhanced later
-          transactions: [] // Can be enhanced later
-        })
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+    // Skip API call for admin users - use dashboard data instead
+    if (isAdmin) {
+      console.log('🔍 WalletWidget: Admin user detected, using dashboard data');
+      setData({
+        balance: dashboardWalletBalance,
+        lastRecharge: null,
+        transactions: []
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // For CSP users, get wallet balance using fetch to avoid axios interceptor redirects
+    const token = localStorage.getItem('csp_access_token');
+    if (!token) {
+      console.log('🔍 WalletWidget: No CSP token found');
+      setError('No authentication token');
+      setLoading(false);
+      return;
+    }
+    
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+    const apiUrl = baseUrl.includes('/api') 
+      ? `${baseUrl}/csp/wallet/balance`
+      : `${baseUrl}/api/csp/wallet/balance`;
+    
+    console.log('🔍 WalletWidget: Fetching CSP wallet balance from:', apiUrl);
+    
+    fetch(apiUrl, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`API failed with status ${res.status}`);
+      }
+      return res.json();
+    })
+    .then(res => {
+      console.log('✅ WalletWidget: CSP wallet data received:', res);
+      setData({
+        balance: res.data?.balance || 0,
+        lastRecharge: null,
+        transactions: []
+      });
+      setError(null);
+    })
+    .catch(err => {
+      console.error('❌ WalletWidget: API failed:', err.message);
+      setError('Failed to load wallet data');
+      // Don't redirect to login, just show error
+    })
+    .finally(() => setLoading(false));
+  }, [isAdmin, dashboardWalletBalance])
 
   const balance = data?.balance || 0
   const lastRecharge = data?.lastRecharge
@@ -62,13 +108,13 @@ export default function WalletWidget() {
 
         <div className="font-mono text-[40px] font-medium leading-none mb-1.5 relative">
           <span className="text-[22px] opacity-60 mr-1">₹</span>
-          {loading ? '...' : dashboardWalletBalance.toFixed(2)}
+          {loading ? '...' : error ? 'Error' : dashboardWalletBalance.toFixed(2)}
         </div>
 
         <p className="text-[12px] opacity-55 mb-5 relative">
-          {lastRecharge
+          {error ? error : (lastRecharge
             ? `Last recharged: ₹${lastRecharge.amount} on ${lastRecharge.date}`
-            : 'No recharge yet'}
+            : 'No recharge yet')}
         </p>
 
         <div className="flex gap-[10px] relative">
@@ -99,6 +145,8 @@ export default function WalletWidget() {
         <div className="px-4 py-[14px]">
           {loading ? (
             <div className="text-center text-[#6b7280] text-[13px] py-4">Loading...</div>
+          ) : error ? (
+            <div className="text-center text-[#dc2626] text-[13px] py-4">{error}</div>
           ) : transactions.length === 0 ? (
             <div className="text-center text-[#6b7280] text-[13px] py-4">No transactions yet</div>
           ) : (

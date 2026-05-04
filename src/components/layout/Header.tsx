@@ -62,18 +62,34 @@ export default function Header() {
   }
 
   const handleLogout = async () => {
+    console.log('🔐 Starting logout process...');
+    
+    // Navigate to login first to prevent blank screen
+    router.push('/login');
+    
+    // Then clear tokens and update state
     try {
       const isAdmin = !!authState.admin;
+      console.log('🔐 User type:', isAdmin ? 'Admin' : 'CSP');
+      
+      // Clear tokens immediately
       if (isAdmin) {
-        await (dispatch as any)(logoutAdmin());
+        console.log('🔐 Clearing admin tokens...');
+        localStorage.removeItem('admin_token');
+        // Also clear Redux state
+        dispatch({ type: 'auth/logoutAdmin/fulfilled', payload: null });
       } else {
-        await (dispatch as any)(logoutCSP());
+        console.log('🔐 Clearing CSP tokens...');
+        localStorage.removeItem('csp_access_token');
+        localStorage.removeItem('csp_refresh_token');
+        // Also clear Redux state
+        dispatch({ type: 'auth/logoutCSP/fulfilled', payload: null });
       }
-      router.replace('/login');
+      
+      console.log('✅ Logout completed successfully');
     } catch (error) {
-      console.error('Logout failed:', error);
-      // Force redirect even if logout fails
-      router.replace('/login');
+      console.error('❌ Logout failed:', error);
+      // Even if logout fails, we're already on login page
     }
   };
 
