@@ -6,13 +6,20 @@ import { logoutCSP, logoutAdmin } from '../../redux/slices/authslice';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import api from '../../utils/axios';
+import AdminHeader from '../admin/AdminHeader';
 
 export default function Header() {
   const authState = useSelector((state: RootState) => state.auth);
   const user      = authState.user || authState.admin;
+  const isAdmin   = !!authState.admin;
   const dispatch  = useDispatch();
   const router    = useRouter();
   const pathname  = usePathname();
+
+  // ✅ If admin is logged in and accessing admin routes, show admin header
+  if (isAdmin && pathname?.startsWith('/admin')) {
+    return <AdminHeader />
+  }
 
   const [walletBalance, setWalletBalance]         = useState<number>(0);
   const [showDropdown, setShowDropdown]           = useState(false);

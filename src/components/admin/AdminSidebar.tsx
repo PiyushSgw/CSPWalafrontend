@@ -1,230 +1,122 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../../redux/store";
+import { logoutAdmin } from "../../redux/slices/authslice";
 import {
   LayoutDashboard, Users, CheckSquare, Building2,
-  Wallet, FileText, ShieldCheck
+  Wallet, FileText, UserCheck, LogOut
 } from "lucide-react";
-
-type NavItem = {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-  badge?: string;
-  badgeStyle?: "red" | "blue";
-};
 
 const navGroups = [
   {
     section: "MAIN",
     items: [
-      {
-        href: "/admin/dashboard",
-        label: "Dashboard", 
-        icon: LayoutDashboard,
-        iconBg: "bg-emerald-500/20",
-        iconColor: "text-emerald-400",
-      },
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, iconBg: "bg-emerald-500/20", iconColor: "text-emerald-400" },
     ],
   },
   {
     section: "CSP MANAGEMENT",
     items: [
-      {
-        href: "/admin/csp-approval",
-        label: "CSP Approval", 
-        icon: CheckSquare,
-        iconBg: "bg-slate-500/20",
-        iconColor: "text-slate-400",
-        badge: "1",
-        badgeStyle: "red" as const,
-      },
-      {
-        href: "/admin/csp-list",
-        label: "CSP List",
-        icon: Users,
-        iconBg: "bg-indigo-500/20", 
-        iconColor: "text-indigo-400",
-      },
+      { href: "/admin/csp-approval", label: "CSP Approval", icon: CheckSquare, iconBg: "bg-amber-500/20", iconColor: "text-amber-400" },
+      { href: "/admin/csp-list", label: "CSP List", icon: Users, iconBg: "bg-indigo-500/20", iconColor: "text-indigo-400" },
     ],
   },
   {
     section: "SETTINGS",
     items: [
-      {
-        href: "/admin/banks",
-        label: "Bank Master",
-        icon: Building2,
-        iconBg: "bg-amber-500/20",
-        iconColor: "text-amber-400",
-      },
-      {
-        href: "/admin/wallet-approval",
-        label: "Wallet Approval",
-        icon: Wallet,
-        iconBg: "bg-slate-500/20",
-        iconColor: "text-slate-400",
-        badge: "NEW",
-        badgeStyle: "blue" as const,
-      },
+      { href: "/admin/banks", label: "Bank Master", icon: Building2, iconBg: "bg-sky-500/20", iconColor: "text-sky-400" },
+      { href: "/admin/wallet-approval", label: "Wallet Approval", icon: Wallet, iconBg: "bg-violet-500/20", iconColor: "text-violet-400" },
     ],
   },
   {
-    section: "REPORTS",
+    section: "DATA",
     items: [
-      {
-        href: "/admin/print-jobs",
-        label: "Print Jobs",
-        icon: FileText,
-        iconBg: "bg-orange-500/20",
-        iconColor: "text-orange-400",
-      },
+      { href: "/admin/customers", label: "Customers", icon: UserCheck, iconBg: "bg-teal-500/20", iconColor: "text-teal-400" },
+      { href: "/admin/print-jobs", label: "Print Jobs", icon: FileText, iconBg: "bg-orange-500/20", iconColor: "text-orange-400" },
     ],
   },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const admin = useSelector((s: RootState) => s.auth.admin);
+  const pendingCount = useSelector((s: RootState) => s.admin.pendingCount);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true) }, []);
+  if (!mounted) return <aside className="w-[260px] bg-[#0f2744] animate-pulse flex-shrink-0" />;
+
+  const initial = admin?.name?.[0]?.toUpperCase() || 'A';
+  const handleLogout = async () => {
+    try { await (dispatch as any)(logoutAdmin()) } catch {}
+    router.replace('/login');
+  };
 
   return (
-    <aside className="flex flex-col w-[240px] min-w-[240px] h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
-      {/* BRAND */}
-      <div className="flex items-center gap-3 px-5 py-[18px] border-b border-slate-700/50 flex-shrink-0">
-        <div className="w-9 h-9 bg-gradient-to-r from-slate-500 to-slate-600 rounded-lg flex items-center justify-center font-bold text-white text-[15px] flex-shrink-0 shadow-lg">
-          A
-        </div>
-        <div>
-          <p className="text-white font-bold text-[15px] leading-tight">CSPWala</p>
-          <p className="text-slate-400 text-[10px] font-semibold tracking-[1.2px] uppercase mt-0.5">
-            Admin Portal
-          </p>
-        </div>
-      </div>
-
-      {/* USER CARD */}
-      <div className="mx-3 my-3 bg-slate-800/80 backdrop-blur-sm rounded-xl p-3 border border-slate-700/50 flex-shrink-0 shadow-lg">
-        <div className="flex items-center gap-2.5">
-          <div className="w-[34px] h-[34px] rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-md">
-            A
-          </div>
-          <div className="min-w-0">
-            <p className="text-white font-semibold text-[13px] leading-tight truncate">Admin User</p>
-            <p className="text-slate-400 text-[11px] mt-0.5 truncate">ADMIN-001</p>
+    <aside className="flex flex-col w-[260px] min-w-[260px] h-screen bg-[#0f2744] overflow-hidden">
+      <nav className="flex-1 overflow-x-hidden py-[14px]">
+        {/* Brand */}
+        <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-white/[0.08] flex-shrink-0">
+          <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[8px] flex items-center justify-center font-extrabold text-white text-[18px] flex-shrink-0">A</div>
+          <div>
+            <p className="text-white font-extrabold text-[16px] tracking-[-0.3px] leading-tight">CSPWala</p>
+            <p className="text-white/40 text-[10px] font-semibold tracking-[0.5px] uppercase mt-0.5">Admin Portal</p>
           </div>
         </div>
-        <div className="flex items-center mt-2.5 pt-2.5 border-t border-slate-700/50">
-          <p className="text-slate-400 text-[10.5px] truncate flex-1">🔐 Super Administrator</p>
-          <span className="bg-emerald-500/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm">
-            ● ACTIVE
-          </span>
-        </div>
-      </div>
 
-      {/* SCROLLABLE NAV */}
-      <nav className="sidebar-scroll flex-1 overflow-y-scroll overflow-x-hidden pb-2 px-2">
+        {/* User Card */}
+        <div className="mx-[14px] mt-[14px] bg-white/5 border border-white/10 rounded-[10px] px-[14px] py-3">
+          <div className="flex items-center gap-[10px]">
+            <div className="w-[34px] h-[34px] rounded-[8px] bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-[14px] flex-shrink-0">{initial}</div>
+            <div className="min-w-0">
+              <p className="text-white font-bold text-[12px] leading-tight">{admin?.name || 'Admin'}</p>
+              <p className="text-white/45 text-[10px] font-mono mt-0.5">{admin?.email || ''}</p>
+            </div>
+          </div>
+          <div className="flex items-center mt-[10px] pt-[10px] border-t border-white/[0.07]">
+            <p className="text-white/50 text-[10px]">🔐 {admin?.role === 'super_admin' ? 'Super Admin' : 'Admin'}</p>
+            <span className="ml-auto bg-[rgba(13,143,114,0.25)] text-[#4ade80] text-[9px] font-bold px-2 py-[2px] rounded-full tracking-[0.5px]">● ACTIVE</span>
+          </div>
+        </div>
+
+        {/* Nav Items */}
         {navGroups.map((group) => (
-          <div key={group.section} className="px-1 mt-4 space-y-1">
-            <p className="text-slate-500 text-[9.5px] font-semibold tracking-[1.2px] uppercase px-2 mb-2">
-              {group.section}
-            </p>
-            {group.items.map(({ href, label, icon: Icon, iconBg, iconColor, badge, badgeStyle }) => {
-              const isActive = pathname === href || pathname?.startsWith(href + "/");
-              
+          <div key={group.section}>
+            <p className="text-white/25 text-[9px] font-bold uppercase tracking-[1.5px] px-5 pt-2 pb-1 mt-1.5">{group.section}</p>
+            {group.items.map(({ href, label, icon: Icon, iconBg, iconColor }) => {
+              const isActive = pathname === href || pathname?.startsWith(href + '/');
+              const badge = href === '/admin/csp-approval' && pendingCount?.pending ? String(pendingCount.pending) : undefined;
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`
-                    group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 mb-1
-                    relative overflow-hidden
-                    ${isActive 
-                      ? 'bg-gradient-to-r from-slate-600/30 to-slate-500/30 border-l-4 border-slate-400 pl-1 shadow-lg shadow-slate-900/50' 
-                      : 'hover:bg-slate-800/50 text-slate-300 hover:text-slate-100'
-                    }
-                  `}
-                >
-                  {/* Icon Box */}
-                  <div className={`
-                    w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm
-                    transition-all duration-200 group-hover:scale-105
-                    ${isActive 
-                      ? 'bg-slate-500/30 shadow-slate-500/50' 
-                      : iconBg
-                    }
-                  `}>
-                    <Icon
-                      size={16}
-                      className={`
-                        transition-all duration-200
-                        ${isActive 
-                          ? 'text-slate-300 shadow-lg drop-shadow-lg' 
-                          : iconColor
-                        }
-                      `}
-                      strokeWidth={isActive ? 2.5 : 2}
-                    />
+                <Link key={href} href={href}
+                  className={`relative flex items-center gap-[11px] px-5 py-[10px] mx-[10px] rounded-[8px] transition-all duration-150 mb-[1px] ${
+                    isActive ? 'bg-[rgba(139,92,246,0.18)] border border-[rgba(139,92,246,0.25)]' : 'border border-transparent hover:bg-white/[0.07]'
+                  }`}>
+                  {isActive && <span className="absolute top-1/2 -translate-y-1/2 rounded-r-[3px] bg-purple-500" style={{ left: '-10px', width: '3px', height: '60%' }} />}
+                  <div className={`w-[32px] h-[32px] rounded-[7px] flex items-center justify-center flex-shrink-0 transition-colors ${isActive ? 'bg-[rgba(139,92,246,0.3)]' : iconBg}`}>
+                    <Icon size={16} className={isActive ? 'text-purple-300' : iconColor} strokeWidth={isActive ? 2.5 : 2} />
                   </div>
-
-                  {/* Label - FULL NAME VISIBLE */}
-                  <span className={`
-                    flex-1 min-w-0 text-left leading-tight font-medium
-                    ${isActive ? 'text-slate-100 font-semibold drop-shadow-sm' : 'text-slate-300'}
-                    group-hover:text-slate-100
-                  `}>
-                    {label}
-                  </span>
-
-                  {/* Badge */}
-                  {badge && (
-                    <span
-                      className={`
-                        text-white font-bold flex-shrink-0 leading-none shadow-lg
-                        ${badgeStyle === "red"
-                          ? "bg-red-500/90 text-xs px-2 py-1 rounded-full shadow-red-500/50"
-                          : "bg-slate-500/90 text-[10px] px-1.5 py-1 rounded shadow-slate-500/50"
-                        }
-                      `}
-                    >
-                      {badge}
-                    </span>
-                  )}
-
-                  {/* Active Glow Effect */}
-                  {isActive && (
-                    <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-t from-slate-400/50 to-transparent" />
-                  )}
+                  <span className={`flex-1 truncate text-[13px] leading-tight ${isActive ? 'text-white font-semibold' : 'text-white/60 font-medium'}`}>{label}</span>
+                  {badge && <span className="bg-[#dc2626] text-white text-[10px] px-[6px] py-[1px] rounded-full font-bold flex-shrink-0">{badge}</span>}
                 </Link>
-              );
+              )
             })}
           </div>
         ))}
-        <div className="h-4" />
-      </nav>
+        <div className="h-2" />
 
-      {/* LICENSE CARD */}
-      <div className="flex-shrink-0 px-3 pb-4 pt-2">
-        <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 shadow-lg">
-          <p className="text-slate-500 text-[9px] font-semibold tracking-[1.1px] uppercase mb-2">
-            Admin License
-          </p>
-          <div className="flex items-baseline gap-1 mb-4">
-            <span className="text-slate-400 text-[16px] font-bold font-mono">●</span>
-            <span className="text-slate-100 text-[26px] font-bold font-mono leading-none tracking-tight">
-              UNLIMITED
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Link href="/admin/users" className="py-2.5 bg-gradient-to-r from-slate-600 to-slate-500 hover:from-slate-500 hover:to-slate-400 text-white text-[11px] font-semibold rounded-lg transition-all shadow-md hover:shadow-lg text-center">
-              Manage Users
-            </Link>
-            <button className="py-2.5 border border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-500 text-[11px] font-semibold rounded-lg transition-all shadow-sm">
-              Logs
-            </button>
-          </div>
+        {/* Logout */}
+        <div className="flex-shrink-0 mx-[14px] mb-[16px]">
+          <button onClick={handleLogout}
+            className="w-full py-[10px] bg-white/[0.05] border border-white/[0.1] hover:bg-red-500/20 hover:border-red-500/30 text-white/60 hover:text-red-400 text-[12px] font-bold rounded-[8px] transition-all flex items-center justify-center gap-2">
+            <LogOut size={14} /> Logout
+          </button>
         </div>
-      </div>
+      </nav>
     </aside>
   );
 }

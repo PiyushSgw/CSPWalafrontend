@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
 import { logoutCSP, logoutAdmin } from '../../redux/slices/authslice';
 import api from '../../utils/axios';
+import AdminSidebar from '../admin/AdminSidebar';
 
 const navGroups = [
   {
@@ -53,6 +54,11 @@ export default function Sidebar() {
   const user            = authState.user || authState.admin;
   const isAuthenticated = authState.isAuthenticated || authState.isAdminAuthenticated;
   const isAdmin         = !!authState.admin;
+
+  // ✅ If admin is logged in and accessing admin routes, show admin sidebar
+  if (isAdmin && pathname?.startsWith('/admin')) {
+    return <AdminSidebar />
+  }
 
   const [mounted, setMounted] = useState(false);
 

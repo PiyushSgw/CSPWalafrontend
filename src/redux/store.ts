@@ -9,6 +9,7 @@ import authSlice from './slices/authslice';
 import printHistoryReducer from "./slices/printHistorySlice";
 import profileReducer from './slices/profileSlice'
 import accountOpeningReducer from './slices/accountOpeningSlice';
+import adminReducer from './slices/adminSlice';
 
 
 import storage from 'redux-persist/lib/storage'; // localStorage
@@ -32,6 +33,7 @@ export const store = configureStore({
     printHistory: printHistoryReducer,
     profile: profileReducer,
      accountOpening: accountOpeningReducer,
+     admin: adminReducer,
 
   },
   middleware: (getDefault) => getDefault({ serializableCheck: false }),

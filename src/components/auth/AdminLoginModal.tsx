@@ -38,7 +38,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     // Add small delay + refresh to ensure navigation works
     setTimeout(() => {
       router.refresh();
-      router.push('/dashboard');
+      router.push('/admin/dashboard');
     }, 100);
   } else {
     console.log('Login failed:', result);
