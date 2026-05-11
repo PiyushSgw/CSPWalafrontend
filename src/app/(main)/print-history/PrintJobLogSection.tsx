@@ -41,15 +41,16 @@ export const PrintJobLogSection: React.FC<Props> = ({
           job.type === "Jan Dhan"
       );
     } else if (activeFilter === "Combo") {
-      // ✅ FIXED: Only use types that exist in job.type union
       baseList = mappedList.filter((job) => job.type === "Combo");
+    } else {
+      baseList = mappedList; // Show all types
     }
 
     // NEW: date filter
     if (startDate || endDate) {
       baseList = baseList.filter((job) => {
         const rawDate = String(
-          job.createdAtRaw ?? job.dateTime ?? ""
+          job.createdAtRaw ?? ""
         ).trim();
 
         const jobDate = new Date(rawDate);
@@ -72,7 +73,7 @@ export const PrintJobLogSection: React.FC<Props> = ({
     if (!q) return baseList;
 
     return baseList.filter((job) => {
-      const jobId = String(job.id ?? "").toLowerCase();
+      const jobId = String(job.jobId ?? "").toLowerCase();
       const customer = String(job.customer ?? "").toLowerCase();
       const normalizedId = jobId.replace(/[^a-z0-9]/gi, "");
 

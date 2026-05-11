@@ -126,16 +126,37 @@ export const initializeAuth = createAsyncThunk(
     const state = getState() as { auth: RootState['auth'] };
     const adminToken = localStorage.getItem('admin_token');
     const cspToken = localStorage.getItem('csp_access_token');
-    console.log('Initializing auth with tokens:', { adminToken, cspToken });
+    
+    // Validate and clean tokens
+    const cleanToken = (token: string | null) => {
+      if (!token || token.length < 10) return null;
+      
+      try {
+        // Remove any potential corruption
+        const clean = token.replace(/[[Prototype]]: Object/g, '').trim();
+        if (clean.length < 10) return null;
+        return clean;
+      } catch {
+        return null;
+      }
+    };
+    
+    const cleanAdminToken = cleanToken(adminToken);
+    const cleanCspToken = cleanToken(cspToken);
+    
+    console.log('Initializing auth with cleaned tokens:', { 
+      adminToken: cleanAdminToken, 
+      cspToken: cleanCspToken 
+    });
     
     // Skip if already authenticated
     if (state.auth.isAuthenticated || state.auth.isAdminAuthenticated) {
       return;
     }
     
-    if (adminToken) {
+    if (cleanAdminToken) {
       await dispatch(fetchAdminProfile());
-    } else if (cspToken) {
+    } else if (cleanCspToken) {
       await dispatch(fetchMe());
     }
   }

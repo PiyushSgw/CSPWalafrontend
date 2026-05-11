@@ -151,7 +151,6 @@ export const createCustomer = createAsyncThunk<
   CreateCustomerPayload,
   { rejectValue: string }
 >("customers/create", async (customerData, { rejectWithValue }) => {
-  debugger;
   try {
     const token = getAuthToken();
 
@@ -177,6 +176,71 @@ export const createCustomer = createAsyncThunk<
     return data;
   } catch (error: any) {
     return rejectWithValue(error.message || "Failed to create customer");
+  }
+});
+
+export const fetchCustomer = createAsyncThunk<
+  ApiResponse<Customer>,
+  number,
+  { rejectValue: string }
+>("customers/fetchOne", async (customerId, { rejectWithValue }) => {
+  try {
+    const token = getAuthToken();
+
+    if (!token) {
+      return rejectWithValue("No auth token found. Please login again.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/csp/customers/${customerId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data: ApiResponse<Customer> = await response.json();
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || `HTTP ${response.status}`);
+    }
+
+    return data;
+  } catch (error: any) {
+    return rejectWithValue(error.message || "Failed to fetch customer");
+  }
+});
+
+export const updateCustomer = createAsyncThunk<
+  ApiResponse<Customer>,
+  { id: number; name: string; account_number: string; account_type: string; ifsc: string; bank_id: number; mobile?: string; opening_balance: number },
+  { rejectValue: string }
+>("customers/update", async (customerData, { rejectWithValue }) => {
+  try {
+    const token = getAuthToken();
+
+    if (!token) {
+      return rejectWithValue("No auth token found. Please login again.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/csp/customers/${customerData.id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(customerData),
+    });
+
+    const data: ApiResponse<Customer> = await response.json();
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || `HTTP ${response.status}`);
+    }
+
+    return data;
+  } catch (error: any) {
+    return rejectWithValue(error.message || "Failed to update customer");
   }
 });
 
@@ -237,6 +301,46 @@ const customersSlice = createSlice({
       .addCase(createCustomer.rejected, (state, action) => {
         state.creating = false;
         state.createError = action.payload || "Failed to create customer";
+      })
+      .addCase(fetchCustomer.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchCustomer.fulfilled,
+        (state, action: PayloadAction<ApiResponse<Customer>>) => {
+          state.loading = false;
+          state.error = null;
+          // Update customer in list if found
+          const index = state.list.findIndex(c => c.id === action.payload.data.id);
+          if (index !== -1) {
+            state.list[index] = action.payload.data;
+          }
+        }
+      )
+      .addCase(fetchCustomer.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch customer";
+      })
+      .addCase(updateCustomer.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(
+        updateCustomer.fulfilled,
+        (state, action: PayloadAction<ApiResponse<Customer>>) => {
+          state.loading = false;
+          state.error = null;
+          // Update customer in list if found
+          const index = state.list.findIndex(c => c.id === action.payload.data.id);
+          if (index !== -1) {
+            state.list[index] = action.payload.data;
+          }
+        }
+      )
+      .addCase(updateCustomer.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to update customer";
       });
   },
 });

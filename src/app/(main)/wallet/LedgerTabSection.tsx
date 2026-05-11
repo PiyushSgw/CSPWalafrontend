@@ -9,7 +9,6 @@ export interface Props {
   onRequestRecharge: () => void
 }
 
-debugger
 export const LedgerTabSection: React.FC<Props> = ({
   balance,
   transactions,
@@ -20,9 +19,10 @@ export const LedgerTabSection: React.FC<Props> = ({
     return <div className="skeleton">Loading wallet...</div>
   }
 
-  const passbookPrints = 118 // TODO: Calculate from ledger
-  const totalDebit = 830
-  const totalRecharge = 1500
+  // Calculate actual values from transactions
+  const passbookPrints = transactions.filter(tx => tx.desc?.includes('Passbook print charge')).length
+  const totalDebit = Math.abs(transactions.filter(tx => tx.type === 'Debit').reduce((sum, tx) => sum + Number(tx.amount), 0))
+  const totalRecharge = transactions.filter(tx => tx.type === 'Credit').reduce((sum, tx) => sum + Number(tx.amount), 0)
 
   return (
     <div id="wt-ledger">

@@ -24,6 +24,7 @@ export type StatusLabel  = "Printed" | "Failed" | "Pending";
 export interface MappedPrintJob {
   createdAtRaw: string;
   id: string;
+  jobId: string;
   dateTime: string;
   customer: string;
   bank: string;
@@ -47,7 +48,10 @@ export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
   data: T;
-  meta?: ApiMeta;
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
 }
 
 // ── Fetch params (matches backend query params) ────────────

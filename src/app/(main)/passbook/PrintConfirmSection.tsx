@@ -19,7 +19,7 @@ const maskAccount = (value?: string) => {
   return `XXXX${last4}`
 }
 
-// TODO: TESTING ONLY – remove after wallet integration
+// Wallet integration enabled
 const BYPASS_WALLET_FOR_TESTING = false
 
 export const PrintConfirmSection = () => {
@@ -66,7 +66,7 @@ export const PrintConfirmSection = () => {
       return
     }
 
-    // TODO: enable this again after wallet integration
+    // Check wallet balance before printing
     if (!BYPASS_WALLET_FOR_TESTING && walletBalance < printCost) {
       toast.error('Insufficient wallet balance')
       return
@@ -75,8 +75,7 @@ export const PrintConfirmSection = () => {
     const payload = {
       customer_id: selectedCustomer.id,
       account_number: accountNumber,
-      // TODO: change back to printCost after wallet integration
-      print_cost: BYPASS_WALLET_FOR_TESTING ? 0 : printCost,
+      print_cost: printCost,
       transactions: txns.map((t, i) => ({
         sr_no: i + 1,
         txn_date: t.txn_date,

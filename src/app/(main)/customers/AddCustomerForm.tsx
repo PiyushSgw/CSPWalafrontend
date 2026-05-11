@@ -34,7 +34,6 @@ export const AddCustomerForm: React.FC = () => {
 
   // ── shared: build payload + dispatch once ──────────────
   const submitAndCreate = () => {
-    debugger;
     dispatch(clearError());
     return dispatch(
       createCustomer({
@@ -42,8 +41,8 @@ export const AddCustomerForm: React.FC = () => {
         account_number: formData.account_number.trim(),
         account_type: formData.account_type,
         ifsc: formData.ifsc.trim(),
-        bank_id: 1,      // TODO: get from props / selector
-        branch_id: 0,    // TODO: must not be 0 — server rejects it
+        bank_id: 1,      // TODO: get from banks selector
+        branch_id: 0,    // TODO: implement branch selection
         mobile: formData.mobile.trim(),
         opening_balance: Number(formData.opening_balance),
       })

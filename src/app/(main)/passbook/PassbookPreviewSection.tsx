@@ -15,8 +15,8 @@ import {
   setWizardStep,
   generatePassbookPreview,
 } from '@/redux/slices/passbookSlice'
+import { fetchPrintHistory } from '@/redux/slices/printHistorySlice'
 
-const TEST_SKIP_PRINT_VALIDATION = true
 
 const money = (n: number) =>
   Number(n || 0).toLocaleString('en-IN', {
@@ -53,9 +53,10 @@ export const PassbookPreviewSection = () => {
   const { selectedCustomer, transactions, preview, previewLoading, printing, printError } =
     useAppSelector((s) => s.passbook)
   const { balance } = useAppSelector((s) => s.wallet)
+  const { list: printHistory } = useAppSelector((s) => s.printHistory)
 
   const printCharge = preview?.print_charge || 10
-  const walletBalance = Number(balance) || 0
+  const walletBalance = balance?.balance || 0
   const canPrint = walletBalance >= printCharge
   const txns = Array.isArray(transactions) ? transactions : []
 
@@ -74,6 +75,18 @@ export const PassbookPreviewSection = () => {
     [txns]
   )
 
+  // Check if this is first-time passbook printing for this customer
+  const isFirstTimePrinting = useMemo(() => {
+    if (!selectedCustomer?.id || !Array.isArray(printHistory)) return true
+    
+    const customerPrintJobs = printHistory.filter(job => 
+      job.customer_id === selectedCustomer.id && 
+      job.job_type === 'passbook'
+    )
+    
+    return customerPrintJobs.length === 0
+  }, [selectedCustomer?.id, printHistory])
+
   useEffect(() => {
     if (!preview?.html && selectedCustomer?.id && validTransactions.length > 0) {
       dispatch(
@@ -86,6 +99,13 @@ export const PassbookPreviewSection = () => {
     }
   }, [dispatch, preview?.html, selectedCustomer?.id, selectedCustomer?.account_number, validTransactions])
 
+  // Fetch print history to check if this is first-time printing
+  useEffect(() => {
+    if (selectedCustomer?.id) {
+      dispatch(fetchPrintHistory({ limit: 100 }) as any)
+    }
+  }, [dispatch, selectedCustomer?.id])
+
   const handleConfirmPrint = async () => {
     if (!selectedCustomer?.id) {
       toast.error('Customer not selected')
@@ -97,27 +117,35 @@ export const PassbookPreviewSection = () => {
       return
     }
 
-    if (TEST_SKIP_PRINT_VALIDATION) {
-      toast.success('Test mode: moved to next step')
-      dispatch(setWizardStep(4))
-      return
-    }
-
-    if (!canPrint) {
-      toast.error(`Insufficient balance. Need ₹${printCharge} to print.`)
-      return
+    // For first-time printing, check if wallet has sufficient balance for deduction
+    if (isFirstTimePrinting) {
+      if (!canPrint) {
+        toast.error(`Insufficient balance. Need ₹${printCharge} for first-time passbook printing.`)
+        return
+      }
+      toast.success(`₹${printCharge} will be deducted from your wallet for first-time printing.`)
+    } else {
+      // For subsequent prints, check if wallet has sufficient balance
+      if (!canPrint) {
+        toast.error(`Insufficient balance. Need ₹${printCharge} to print.`)
+        return
+      }
     }
 
     const result = await dispatch(
       printPassbook({
         customer_id: selectedCustomer.id,
         account_number: selectedCustomer.account_number,
+        print_cost: isFirstTimePrinting ? printCharge : printCharge,
         transactions: validTransactions,
       })
     )
 
     if (printPassbook.fulfilled.match(result)) {
-      toast.success('Passbook printed successfully!')
+      const message = isFirstTimePrinting 
+        ? 'Passbook printed successfully! Wallet deducted.'
+        : 'Passbook printed successfully!'
+      toast.success(message)
       dispatch(setWizardStep(4))
     } else {
       toast.error((result.payload as string) || 'Failed to print passbook')
@@ -257,13 +285,25 @@ export const PassbookPreviewSection = () => {
         )}
       </div>
 
+      {isFirstTimePrinting && canPrint && (
+        <div className="mt-4 flex items-start gap-3 rounded-[10px] border border-green-200 bg-green-50 p-4">
+          <AlertCircle size={16} className="mt-0.5 flex-shrink-0 text-green-600" />
+          <div className="text-[12px]">
+            <p className="font-semibold text-green-800">First-Time Passbook Printing</p>
+            <p className="mt-0.5 text-green-700">
+              This is the first time printing for this customer. ₹{printCharge} will be deducted from your wallet.
+            </p>
+          </div>
+        </div>
+      )}
+
       {!canPrint && (
         <div className="mt-4 flex items-start gap-3 rounded-[10px] border border-amber-200 bg-amber-50 p-4">
           <AlertCircle size={16} className="mt-0.5 flex-shrink-0 text-amber-600" />
           <div className="text-[12px]">
             <p className="font-semibold text-amber-800">Insufficient Wallet Balance</p>
             <p className="mt-0.5 text-amber-700">
-              You need ₹{printCharge} to print. Current balance: ₹{walletBalance.toFixed(2)}.
+              You need ₹{printCharge} to print{isFirstTimePrinting ? ' for first-time passbook printing' : ''}. Current balance: ₹{walletBalance}.
               Please recharge your wallet.
             </p>
           </div>
@@ -294,7 +334,7 @@ export const PassbookPreviewSection = () => {
             printing ||
             previewLoading ||
             validTransactions.length === 0 ||
-            (!TEST_SKIP_PRINT_VALIDATION && !canPrint)
+            !canPrint
           }
           className="inline-flex items-center gap-2 rounded-[9px] bg-[#0d8f72] px-5 py-[9px] text-[13px] font-bold text-white transition-colors hover:bg-[#0b7a62] disabled:opacity-50"
         >

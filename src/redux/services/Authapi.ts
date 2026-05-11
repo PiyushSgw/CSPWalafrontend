@@ -11,7 +11,7 @@ export interface AuthResponse {
 export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://localhost:3001/api',
+    baseUrl: 'http://localhost:5001/api',
   }),
   tagTypes: ['User'],
   endpoints: (builder) => ({

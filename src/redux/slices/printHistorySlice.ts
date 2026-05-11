@@ -9,7 +9,7 @@ import type {
   PrintStats,
 } from "../../app/(main)/print-history/printHistory";
 
-const API_BASE = "http://localhost:5001";
+import api from "../../utils/axios";
 const TOKEN_KEY = "csp_access_token";
 
 const getToken = () => {
@@ -51,31 +51,53 @@ const mapStatus = (s?: string): MappedPrintJob["status"] => {
   }
 };
 
-const mapJob = (j: PrintJob): MappedPrintJob => ({
-  id: `#${String(j.id ?? 0).padStart(6, "0")}`,
+const getDefaultCharge = (jobType?: string): number => {
+  switch ((jobType || "").toLowerCase()) {
+    case "combo":
+      return 13;
+    case "form":
+    case "acct_form":
+    case "jan_dhan":
+      return 10;
+    case "passbook":
+    default:
+      return 0;
+  }
+};
 
-  // ✅ FIX: add required raw date field
-  createdAtRaw: j.created_at ?? "",
+const mapJob = (j: PrintJob): MappedPrintJob => {
+  // Calculate charge: use API value if available and not zero, otherwise use default
+  const apiCharge = Number(j.charge ?? 0);
+  const defaultCharge = getDefaultCharge(j.job_type);
+  const finalCharge = apiCharge > 0 ? apiCharge : defaultCharge;
+  
+  return {
+    id: String(j.id ?? 0), // Keep as string for display but without # prefix
+    jobId: `#${String(j.id ?? 0).padStart(6, "0")}`, // New field for formatted display
 
-  dateTime: j.created_at
-    ? new Date(j.created_at).toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "—",
+    // ✅ FIX: add required raw date field
+    createdAtRaw: j.created_at ?? "",
 
-  customer: j.customer_name || "—",
-  bank: j.bank_code || j.bank_name || "—",
-  type: mapJobType(j.job_type),
-  pages: `${Number(j.pages ?? 0)} pg`,
-  charge: `₹${Number(j.charge ?? 0).toFixed(2)}`,
-  rawCharge: Number(j.charge ?? 0),
-  status: mapStatus(j.status),
-  isFree: Boolean(j.is_free),
-});
+    dateTime: j.created_at
+      ? new Date(j.created_at).toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—",
+
+    customer: j.customer_name || "—",
+    bank: j.bank_code || j.bank_name || "—",
+    type: mapJobType(j.job_type),
+    pages: `${Number(j.pages ?? 0)} pg`,
+    charge: `₹${finalCharge.toFixed(2)}`,
+    rawCharge: finalCharge,
+    status: mapStatus(j.status),
+    isFree: Boolean(j.is_free),
+  };
+};
 
 const calcStats = (list: PrintJob[]): PrintStats => ({
   totalJobs: list.length,
@@ -112,11 +134,11 @@ const initialState: PrintHistoryState = {
 let ac: AbortController | null = null;
 
 const normalizeHistoryArray = (raw: any): PrintJob[] => {
+  if (Array.isArray(raw?.jobs)) return raw.jobs;
+  if (Array.isArray(raw?.history)) return raw.history;
   if (Array.isArray(raw?.data?.jobs)) return raw.data.jobs;
   if (Array.isArray(raw?.data?.history)) return raw.data.history;
   if (Array.isArray(raw?.data)) return raw.data;
-  if (Array.isArray(raw?.jobs)) return raw.jobs;
-  if (Array.isArray(raw?.history)) return raw.history;
   return [];
 };
 
@@ -136,62 +158,16 @@ export const fetchPrintHistory = createAsyncThunk<
       return rejectWithValue("No auth token. Redirecting...");
     }
 
-    const url = new URL("/csp/passbook/history", API_BASE);
-
-    if (params.customer_id) {
-      url.searchParams.set("customer_id", String(params.customer_id));
-    }
-    if (params.bank_id) {
-      url.searchParams.set("bank_id", String(params.bank_id));
-    }
-    if (params.from_date) {
-      url.searchParams.set("from_date", params.from_date);
-    }
-    if (params.to_date) {
-      url.searchParams.set("to_date", params.to_date);
-    }
-
-    url.searchParams.set("page", String(params.page ?? 1));
-    url.searchParams.set("limit", String(params.limit ?? 100));
-
-    const res = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      signal: ac.signal,
-    });
+    const res = await api.get('/csp/passbook/history', { params });
 
     if (res.status === 401) {
       handleAuthError();
-      return rejectWithValue("Session expired. Redirecting to login...");
+      return rejectWithValue("Unauthorized");
     }
 
-    const raw = await res.json();
+    const normalized = normalizeHistoryArray(res.data);
 
-    if (!res.ok || !raw?.success) {
-      return rejectWithValue(raw?.message || `HTTP ${res.status}`);
-    }
-
-    const normalizedData = normalizeHistoryArray(raw);
-    const apiData = raw?.data ?? {};
-
-    const meta: ApiMeta = {
-      total: Number(apiData?.total ?? normalizedData.length ?? 0),
-      page: Number(apiData?.page ?? params.page ?? 1),
-      limit: Number(apiData?.limit ?? params.limit ?? 100),
-      totalPages: Number(apiData?.totalPages ?? 1),
-    };
-
-    ac = null;
-
-    return {
-      success: true,
-      message: raw?.message ?? "Success",
-      data: normalizedData,
-      meta,
-    };
+    return res.data;
   } catch (e: unknown) {
     ac = null;
 
@@ -236,12 +212,18 @@ const printHistorySlice = createSlice({
       .addCase(fetchPrintHistory.fulfilled, (state, { payload }) => {
         state.loading = false;
 
-        const list = Array.isArray(payload?.data) ? payload.data : [];
+        const jobs = normalizeHistoryArray(payload);
+        const meta = {
+          total: payload?.total ?? 0,
+          page: payload?.page ?? 1,
+          limit: payload?.limit ?? 20,
+          totalPages: payload?.totalPages ?? 1,
+        };
 
-        state.list = list;
-        state.mappedList = list.map(mapJob);
-        state.stats = calcStats(list);
-        state.meta = payload?.meta ?? null;
+        state.list = jobs;
+        state.mappedList = jobs.map(mapJob);
+        state.stats = calcStats(jobs);
+        state.meta = meta;
         state.fetchedAt = new Date().toISOString();
       })
       .addCase(fetchPrintHistory.rejected, (state, action) => {
@@ -251,8 +233,7 @@ const printHistorySlice = createSlice({
           return;
         }
 
-        state.error =
-          action.payload ?? action.error.message ?? "Failed to fetch print history";
+        state.error = action.payload || "Failed to fetch print history";
       });
   },
 });

@@ -162,9 +162,9 @@ export default function DashboardPage() {
         <div data-testid="recent-print-jobs">
           <RecentPrintJobs />
         </div>
-        <div data-testid="wallet-widget">
+        {/* <div data-testid="wallet-widget">
           <WalletWidget />
-        </div>
+        </div> */}
       </div>
     </>
   )

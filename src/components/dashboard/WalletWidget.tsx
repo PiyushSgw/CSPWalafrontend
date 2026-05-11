@@ -2,98 +2,126 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import api from '../../utils/axios'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '@/redux/store'
+import { fetchLedger, fetchRechargeRequests } from '@/redux/slices/walletSlice'
+import { fetchPrintHistory } from '@/redux/slices/printHistorySlice'
+
+type Transaction = {
+  amount: number
+  icon: string
+  desc: string
+  date: string
+}
 
 type WalletLedgerResponse = {
   balance?: number
-  lastRecharge?: {
-    amount: number
-    date: string
-  } | null
-  transactions?: {
-    amount: number
-    icon?: string
-    name: string
-    time: string
-  }[]
+  lastRecharge?: { amount: number; date: string } | null
+  transactions?: Transaction[]
 }
 
 export default function WalletWidget() {
   const router = useRouter()
   const [data, setData] = useState<WalletLedgerResponse | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const authState = useSelector((state: RootState) => state.auth);
-  const dashboardState = useSelector((state: RootState) => state.dashboard);
-  const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
-  const isAdmin = authState.isAdminAuthenticated;
-  
-  useEffect(() => {
-    // Skip API call for admin users - use dashboard data instead
-    if (isAdmin) {
-      console.log('🔍 WalletWidget: Admin user detected, using dashboard data');
-      setData({
-        balance: dashboardWalletBalance,
-        lastRecharge: null,
-        transactions: []
-      });
-      setLoading(false);
-      return;
-    }
-    
-    // For CSP users, get wallet balance using fetch to avoid axios interceptor redirects
-    const token = localStorage.getItem('csp_access_token');
-    if (!token) {
-      console.log('🔍 WalletWidget: No CSP token found');
-      setError('No authentication token');
-      setLoading(false);
-      return;
-    }
-    
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-    const apiUrl = baseUrl.includes('/api') 
-      ? `${baseUrl}/csp/wallet/balance`
-      : `${baseUrl}/api/csp/wallet/balance`;
-    
-    console.log('🔍 WalletWidget: Fetching CSP wallet balance from:', apiUrl);
-    
-    fetch(apiUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error(`API failed with status ${res.status}`);
-      }
-      return res.json();
-    })
-    .then(res => {
-      console.log('✅ WalletWidget: CSP wallet data received:', res);
-      setData({
-        balance: res.data?.balance || 0,
-        lastRecharge: null,
-        transactions: []
-      });
-      setError(null);
-    })
-    .catch(err => {
-      console.error('❌ WalletWidget: API failed:', err.message);
-      setError('Failed to load wallet data');
-      // Don't redirect to login, just show error
-    })
-    .finally(() => setLoading(false));
-  }, [isAdmin, dashboardWalletBalance])
+  const dispatch = useDispatch()
 
-  const balance = data?.balance || 0
+  const dashboardState = useSelector((state: RootState) => state.dashboard)
+  const walletState = useSelector((state: RootState) => state.wallet)
+  const printHistoryState = useSelector((state: RootState) => state.printHistory)
+  const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0
+
+  useEffect(() => {
+    dispatch(fetchLedger({ limit: 5 }) as any)
+    dispatch(fetchPrintHistory({ limit: 5 }) as any)
+    dispatch(fetchRechargeRequests({ limit: 5 }) as any)
+  }, [dispatch])
+
+  const getIcon = (jobType?: string): string => {
+    switch (jobType) {
+      case 'Passbook': return '🖨️'
+      case 'Combo':    return '📋'
+      case 'Form':     return '📋'
+      default:         return '🖨️'
+    }
+  }
+
+  const formatDate = (raw: string): string => {
+    if (!raw) return ''
+    const d = new Date(raw)
+    const now = new Date()
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+
+    if (isToday) {
+      return `Today ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`
+    }
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+  }
+
+  useEffect(() => {
+    const allTransactions: Transaction[] = []
+
+    // Print jobs from printHistoryState ONLY
+    if (printHistoryState.mappedList?.length > 0) {
+      printHistoryState.mappedList.forEach((job: any) => {
+        allTransactions.push({
+          amount: -(job.rawCharge || 0),
+          icon: getIcon(job.type),
+          desc: `${job.type || 'Print'} — ${job.customer || 'Unknown'}`,
+          date: formatDate(job.dateTime || job.time || job.created_at),
+        })
+      })
+    }
+
+    // Recharges from walletState.rechargeRequests ONLY
+    if (walletState.rechargeRequests?.length > 0) {
+      walletState.rechargeRequests.forEach((req: any) => {
+        if (req.status === 'approved' || req.status === 'credited_at') {
+          allTransactions.push({
+            amount: req.amount,
+            icon: '💰',
+            desc: 'Wallet Recharge',
+            date: formatDate(req.credited_at || req.created_at),
+          })
+        }
+      })
+    }
+
+    // Sort newest first, keep top 5
+    allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    const lastCreditTx = allTransactions.find((tx) => tx.amount > 0)
+
+    setData({
+      balance: dashboardWalletBalance,
+      lastRecharge: lastCreditTx
+        ? {
+            amount: lastCreditTx.amount,
+            date: lastCreditTx.date,
+          }
+        : null,
+      transactions: allTransactions.slice(0, 5),
+    })
+
+    setLoading(walletState.loading || printHistoryState.loading)
+  }, [
+    walletState.rechargeRequests,
+    printHistoryState.mappedList,
+    walletState.loading,
+    printHistoryState.loading,
+    dashboardWalletBalance,
+  ])
+
   const lastRecharge = data?.lastRecharge
   const transactions = data?.transactions || []
 
   return (
     <div className="flex flex-col gap-4">
+
+      {/* ── Balance Card ── */}
       <div
         className="rounded-[14px] p-6 text-white relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #0f2744, #1e4b8c)' }}
@@ -124,7 +152,6 @@ export default function WalletWidget() {
           >
             + Recharge Now
           </button>
-
           <button
             onClick={() => router.push('/wallet')}
             className="flex-1 py-[10px] rounded-[9px] bg-white/10 text-white/80 text-[12px] font-bold hover:opacity-90 hover:-translate-y-px transition-all"
@@ -134,8 +161,9 @@ export default function WalletWidget() {
         </div>
       </div>
 
+      {/* ── Recent Transactions ── */}
       <div className="bg-white border border-[#e5e7eb] rounded-[12px] overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e5e7eb]">
+        <div className="flex items-center px-5 py-4 border-b border-[#e5e7eb]">
           <div className="flex items-center gap-2 text-[14px] font-bold text-[#111827]">
             <div className="w-2 h-2 rounded-full bg-[#0d8f72]" />
             Recent Transactions
@@ -150,40 +178,42 @@ export default function WalletWidget() {
           ) : transactions.length === 0 ? (
             <div className="text-center text-[#6b7280] text-[13px] py-4">No transactions yet</div>
           ) : (
-            <div>
-              {transactions.map((tx, i) => (
+            transactions.map((tx, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 py-[11px] border-b border-[#f3f4f6] last:border-0"
+              >
+                {/* Icon bubble */}
                 <div
-                  key={i}
-                  className="flex items-center gap-3 py-3 border-b border-[#e5e7eb] last:border-0"
+                  className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-[16px] flex-shrink-0 ${
+                    tx.amount > 0 ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]'
+                  }`}
                 >
-                  <div
-                    className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-[15px] flex-shrink-0 ${
-                      tx.amount > 0 ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]'
-                    }`}
-                  >
-                    {tx.icon}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-[#111827] truncate leading-tight">
-                      {tx.name}
-                    </p>
-                    <p className="text-[11px] text-[#6b7280] mt-0.5">{tx.time}</p>
-                  </div>
-
-                  <span
-                    className={`font-mono text-[14px] font-medium flex-shrink-0 ${
-                      tx.amount > 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'
-                    }`}
-                  >
-                    {tx.amount > 0 ? '+' : '-'}₹{Math.abs(tx.amount)}
-                  </span>
+                  {tx.icon}
                 </div>
-              ))}
-            </div>
+
+                {/* desc + date */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-[#111827] truncate leading-tight">
+                    {tx.desc}
+                  </p>
+                  <p className="text-[11px] text-[#9ca3af] mt-[2px]">{tx.date}</p>
+                </div>
+
+                {/* amount */}
+                <span
+                  className={`font-mono text-[13px] font-bold flex-shrink-0 ${
+                    tx.amount > 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'
+                  }`}
+                >
+                  {tx.amount > 0 ? '+' : '-'}₹{Math.abs(tx.amount)}
+                </span>
+              </div>
+            ))
           )}
         </div>
       </div>
+
     </div>
   )
 }

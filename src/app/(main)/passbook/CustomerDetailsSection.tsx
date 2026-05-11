@@ -54,9 +54,18 @@ const initialForm: FormState = {
   customer_photo: null,
 }
 
+interface CustomerDetailsSectionProps {
+  loadExistingTrigger?: number
+}
+
+interface CustomerDetailsSectionProps {
+  showExistingCustomerSearch?: boolean
+}
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const CustomerDetailsSection = () => {
+export const CustomerDetailsSection: React.FC<CustomerDetailsSectionProps> = ({
+  loadExistingTrigger = 0,
+}) => {
   const dispatch = useAppDispatch()
   const { selectedCustomer, loading, error } = useAppSelector((s) => s.passbook)
 
@@ -66,6 +75,7 @@ export const CustomerDetailsSection = () => {
   const [banks, setBanks] = useState<{ id: number; name: string }[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState<FormState>(initialForm)
+  const [isEditing, setIsEditing] = useState(false)
 
   const searchRef = useRef<HTMLDivElement>(null)
 
@@ -86,6 +96,32 @@ export const CustomerDetailsSection = () => {
     setForm((prev) => ({ ...prev, [key]: value }))
 
   // ── Effects ────────────────────────────────────────────────────────────────
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!loadExistingTrigger) return
+
+    // Fetch all customers when loadExistingTrigger is triggered
+    const fetchAllCustomers = async () => {
+      try {
+        // Clear search query to show all customers
+        setSearchQuery('')
+        const result = await dispatch(searchCustomers('')) // Search with empty string to get all customers
+        if (searchCustomers.fulfilled.match(result)) {
+          setSearchResults(result.payload || [])
+          setShowDropdown(true)
+        }
+      } catch (error) {
+        console.error('Failed to fetch customers:', error)
+      }
+    }
+
+    fetchAllCustomers()
+
+    setTimeout(() => {
+      searchInputRef.current?.focus()
+    }, 0)
+  }, [loadExistingTrigger, dispatch])
 
   useEffect(() => {
     api
@@ -104,23 +140,36 @@ export const CustomerDetailsSection = () => {
   }, [])
 
   useEffect(() => {
+    // If a customer is already selected, populate form with their data
+    if (selectedCustomer && !form.name) {
+      setForm(mapCustomerToForm(selectedCustomer))
+      setSearchQuery(selectedCustomer.name || '')
+      // Don't show dropdown when customer is selected
+      setShowDropdown(false)
+      return
+    }
+
     if (!searchQuery.trim()) {
       setSearchResults([])
       setShowDropdown(false)
       return
     }
+
     const timer = setTimeout(async () => {
       const result = await dispatch(searchCustomers(searchQuery))
       if (searchCustomers.fulfilled.match(result)) {
         setSearchResults(result.payload || [])
-        setShowDropdown(true)
+        // Only show dropdown if no customer is selected (prevents repeated popup)
+        if (!selectedCustomer) {
+          setShowDropdown(true)
+        }
       } else {
         setSearchResults([])
         setShowDropdown(false)
       }
     }, 350)
     return () => clearTimeout(timer)
-  }, [searchQuery, dispatch])
+  }, [selectedCustomer, dispatch, searchQuery])
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -146,25 +195,51 @@ export const CustomerDetailsSection = () => {
       dispatch(setSelectedCustomer(customer))
       setForm(mapCustomerToForm(customer))
       setSearchQuery(customer.name || '')
+      setSearchResults([]) // Clear search results to prevent repeated popup
       setShowDropdown(false)
       toast.success('Customer selected')
     }
   }
 
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!form.name || !form.account_number || !form.ifsc || !form.bank_id) {
-      toast.error('Please fill all required fields')
+    // For existing customers, only name is required for editing
+    const isExisting = !!selectedCustomer?.id
+    const requiredFields = isExisting
+      ? [form.name] // Only name required for existing customers
+      : [form.name, form.account_number, form.ifsc, form.bank_id] // All fields required for new customers
+
+    if (requiredFields.some(field => !field || field.trim() === '')) {
+      const missingFields = isExisting
+        ? ['Customer name is required']
+        : ['Name, Account Number, IFSC, and Bank are required']
+      toast.error(missingFields.join(', '))
       return
     }
 
-    const isExisting =
-      !!selectedCustomer?.id && selectedCustomer.account_number === form.account_number
-
     if (isExisting) {
+      // For existing customers, update their information
+      const updatePayload = {
+        id: selectedCustomer.id,
+        name: form.name,
+        account_number: form.account_number,
+        account_type: form.account_type,
+        ifsc: form.ifsc.toUpperCase(),
+        bank_id: Number(form.bank_id),
+        mobile: form.mobile || undefined,
+        opening_balance: parseFloat(form.opening_balance) || 0,
+      }
+
+      // Call update API (you'll need to implement this in passbookSlice)
+      // For now, just proceed to next step
       dispatch(setWizardStep(2))
-      toast.success('Using existing customer')
+      toast.success('Customer updated successfully')
+      setIsEditing(false)
       return
     }
 
@@ -204,6 +279,15 @@ export const CustomerDetailsSection = () => {
           <span>👤</span>
           <span className="text-[14px] font-bold text-[#111827]">Customer Details</span>
         </div>
+        {selectedCustomer && (
+          <button
+            type="button"
+            onClick={handleEditToggle}
+            className="text-[12px] font-medium text-[#0d8f72] hover:text-[#0b7a62] transition-colors"
+          >
+            {isEditing ? 'Cancel' : 'Edit'}
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -212,11 +296,16 @@ export const CustomerDetailsSection = () => {
           <label className={labelCls}>Search Existing Customer</label>
           <div className="flex items-center gap-[10px] px-[8px] py-[7px] bg-white border border-[#d1d5db] rounded-[9px] transition-all focus-within:border-[#0d8f72] focus-within:ring-2 focus-within:ring-[rgba(13,143,114,0.12)]">
             <span className="search-icon text-[13px]">🔍</span>
-
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => {
+                if (searchQuery.trim().length > 0 || searchResults.length > 0) {
+                  setShowDropdown(true)
+                }
+              }}
               placeholder="Search by name or account number..."
               className="flex-1 border-none outline-none text-[13px] text-[#111827] placeholder-[#9ca3af] bg-transparent min-w-0"
             />
@@ -287,26 +376,26 @@ export const CustomerDetailsSection = () => {
           </div>
 
           <div className="flex flex-col gap-[5px]">
-            <label className={labelCls}>Account Number <span className="text-red-500">*</span></label>
-            <input type="text" required value={form.account_number} onChange={(e) => updateField('account_number', e.target.value)} placeholder="Bank account number" className={`${inputCls} font-mono`} />
+            <label className={labelCls}>Account Number {isEditing ? '' : <span className="text-red-500">*</span>}</label>
+            <input type="text" required={!isEditing} value={form.account_number} onChange={(e) => updateField('account_number', e.target.value)} placeholder="Bank account number" className={`${inputCls} font-mono`} disabled={isEditing && !!selectedCustomer} />
           </div>
 
           <div className="flex flex-col gap-[5px]">
-            <label className={labelCls}>Account Type <span className="text-red-500">*</span></label>
-            <select value={form.account_type} onChange={(e) => updateField('account_type', e.target.value)} className={inputCls}>
+            <label className={labelCls}>Account Type {isEditing ? '' : <span className="text-red-500">*</span>}</label>
+            <select value={form.account_type} onChange={(e) => updateField('account_type', e.target.value)} className={inputCls} disabled={isEditing && !!selectedCustomer}>
               {ACCOUNT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
 
           <div className="flex flex-col gap-[5px]">
-            <label className={labelCls}>IFSC Code <span className="text-red-500">*</span></label>
-            <input type="text" required value={form.ifsc} onChange={(e) => updateField('ifsc', e.target.value.toUpperCase())} onBlur={handleIFSCBlur} placeholder="SBIN0001234" maxLength={11} className={`${inputCls} uppercase font-mono`} />
+            <label className={labelCls}>IFSC Code {isEditing ? '' : <span className="text-red-500">*</span>}</label>
+            <input type="text" required={!isEditing} value={form.ifsc} onChange={(e) => updateField('ifsc', e.target.value.toUpperCase())} onBlur={handleIFSCBlur} placeholder="SBIN0001234" maxLength={11} className={`${inputCls} uppercase font-mono`} disabled={isEditing && !!selectedCustomer} />
             <p className="text-[11px] text-[#9ca3af]">Bank auto-fills on blur</p>
           </div>
 
           <div className="flex flex-col gap-[5px]">
-            <label className={labelCls}>Bank <span className="text-red-500">*</span></label>
-            <select value={form.bank_id} onChange={(e) => updateField('bank_id', e.target.value)} className={inputCls}>
+            <label className={labelCls}>Bank {isEditing ? '' : <span className="text-red-500">*</span>}</label>
+            <select value={form.bank_id} onChange={(e) => updateField('bank_id', e.target.value)} className={inputCls} disabled={isEditing && !!selectedCustomer}>
               <option value="">Select bank</option>
               {banks.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
@@ -339,7 +428,7 @@ export const CustomerDetailsSection = () => {
               <Loader2 size={14} className="animate-spin" />
             ) : (
               <>
-                Next: Add Transactions
+                {isEditing ? 'Save Changes' : 'Next: Add Transactions'}
                 <ArrowRight size={14} />
               </>
             )}

@@ -47,7 +47,7 @@ export const CustomerRow: React.FC<Props> = ({ customer }) => {
   }
 
   const handleEdit = () => {
-    console.log('Edit customer:', customer)
+    router.push(`/customers/edit?id=${customer.id}`)
   }
 
   return (

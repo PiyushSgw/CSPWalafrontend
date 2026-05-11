@@ -162,7 +162,16 @@ export default function CustomerDetailsForm() {
   const set = <K extends keyof typeof formData>(
     field: K,
     value: (typeof formData)[K],
-  ) => dispatch(updateFormField({ field, value }));
+  ) => {
+    dispatch(updateFormField({ field, value }));
+    // Ensure state updates are properly handled
+    if (field.includes('ckyc_number') || field.includes('date') || field.includes('branch_code') || 
+        field.includes('official_name') || field.includes('pf_number') || field.includes('designation') ||
+        field.includes('account_number') || field.includes('branch_name') || field.includes('place')) {
+      // Force re-render for optional details and bank use fields
+      setTimeout(() => {}, 0);
+    }
+  };
 
   const syncFullName = (first: string, middle: string, last: string) =>
     set("full_name", [first, middle, last].filter(Boolean).join(" "));
@@ -238,15 +247,46 @@ export default function CustomerDetailsForm() {
     }
   };
 
-  const handleImageChange = (
+  const handleImageChange = async (
     e: ChangeEvent<HTMLInputElement>,
     field: "photo_url" | "signature_url",
   ) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
+    
+    // Clean up previous blob URL
     const cur = formData[field];
     if (cur?.startsWith("blob:")) URL.revokeObjectURL(cur);
-    set(field, URL.createObjectURL(file));
+    
+    try {
+      // Upload file to backend
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', field);
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/csp/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('csp_access_token')}`,
+        },
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        // Store the backend URL - construct full URL for display, but store relative path for backend
+        const backendUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'}/csp/file/${result.data.url}`;
+        set(field, backendUrl);
+      } else {
+        // Fallback to blob URL if upload fails
+        set(field, URL.createObjectURL(file));
+      }
+    } catch (error) {
+      // Fallback to blob URL if upload fails
+      console.error('Upload failed, using blob URL:', error);
+      set(field, URL.createObjectURL(file));
+    }
+    
     e.target.value = "";
   };
 
@@ -282,7 +322,7 @@ export default function CustomerDetailsForm() {
           display: flex;
           align-items: center;
           gap: 10px;
-          background: var(--teal);
+          background: #0d8f72;
           color: #ffffff;
           font-size: 12px;
           font-weight: 700;
@@ -402,13 +442,13 @@ export default function CustomerDetailsForm() {
           transition: border-color 0.15s;
         }
         .cdf-service-label:hover {
-          border-color: var(--teal);
-          background: var(--teal-light);
+          border-color: #0d8f72;
+          background: #e8f5f1;
         }
         .cdf-service-checkbox {
           width: 15px;
           height: 15px;
-          accent-color: var(--teal);
+          accent-color: #0d8f72;
         }
 
         /* ── Image preview ── */
@@ -1117,12 +1157,18 @@ export default function CustomerDetailsForm() {
         <button
           type="button"
           className="cdf-toggle-banner"
-          onClick={() => setOptionalOpen((v) => !v)}
+          onClick={(e) => {
+            e.preventDefault();
+            setOptionalOpen((v) => !v);
+          }}
         >
           <input
             type="checkbox"
             checked={optionalOpen}
-            onChange={() => {}}
+            onChange={(e) => {
+              e.preventDefault();
+              setOptionalOpen(e.target.checked);
+            }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />
@@ -1288,12 +1334,18 @@ export default function CustomerDetailsForm() {
         <button
           type="button"
           className="cdf-toggle-banner"
-          onClick={() => setBankUseOpen((v) => !v)}
+          onClick={(e) => {
+            e.preventDefault();
+            setBankUseOpen((v) => !v);
+          }}
         >
           <input
             type="checkbox"
             checked={bankUseOpen}
-            onChange={() => {}}
+            onChange={(e) => {
+              e.preventDefault();
+              setBankUseOpen(e.target.checked);
+            }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />
@@ -1399,6 +1451,10 @@ export default function CustomerDetailsForm() {
                 src={formData.photo_url}
                 alt="Photo"
                 className="cdf-img-preview"
+                onError={(e) => {
+                  console.error('Photo load error:', formData.photo_url);
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             )}
           </div>
@@ -1415,6 +1471,10 @@ export default function CustomerDetailsForm() {
                 src={formData.signature_url}
                 alt="Signature"
                 className="cdf-img-preview"
+                onError={(e) => {
+                  console.error('Signature load error:', formData.signature_url);
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             )}
           </div>

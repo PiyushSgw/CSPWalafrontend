@@ -1,7 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { Debugger } from "inspector/promises";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'
+import api from "../../utils/axios";
 
 export interface Profile {
   id: number;
@@ -84,18 +82,13 @@ export const loadProfile = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found. Please login again.");
 
-    const response = await fetch(`${API_BASE_URL}/csp/profile`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+    const response = await api.get('/csp/profile', {
       signal: abortController.signal,
     });
 
-    const data: ApiResponse<any> = await response.json();
+    const data: ApiResponse<any> = response.data;
 
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       throw new Error(data.message || `HTTP ${response.status}`);
     }
 
@@ -117,17 +110,11 @@ export const loadDashboard = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}/csp/dashboard`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await api.get('/csp/dashboard');
 
-    const data: ApiResponse<Dashboard> = await response.json();
+    const data: ApiResponse<Dashboard> = response.data;
 
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       throw new Error(data.message || `HTTP ${response.status}`);
     }
 
@@ -146,18 +133,11 @@ export const updateProfile = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}/csp/profile`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(profileData),
-    });
+    const response = await api.put('/csp/profile', profileData);
 
-    const data: ApiResponse<Profile> = await response.json();
+    const data: ApiResponse<Profile> = response.data;
 
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       throw new Error(data.message || `HTTP ${response.status}`);
     }
 
@@ -183,18 +163,11 @@ export const updateBankDetails = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}/csp/profile`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(bankData),
-    });
+    const response = await api.put('/csp/profile', bankData);
 
-    const data: ApiResponse<Profile> = await response.json();
+    const data: ApiResponse<Profile> = response.data;
 
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       throw new Error(data.message || `HTTP ${response.status}`);
     }
 
@@ -213,17 +186,15 @@ export const uploadPhoto = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}/csp/profile/photo`, {
-      method: "POST",
+    const response = await api.post('/csp/profile/photo', formData, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
       },
-      body: formData,
     });
 
-    const data: ApiResponse<{ photo_url: string }> = await response.json();
+    const data: ApiResponse<{ photo_url: string }> = response.data;
 
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       throw new Error(data.message || `HTTP ${response.status}`);
     }
 
@@ -242,17 +213,11 @@ export const uploadKYC = createAsyncThunk<
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}/csp/profile/kyc`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
+    const response = await api.post('/csp/profile/kyc', formData);
 
-    const data: ApiResponse<{ kyc_status: string }> = await response.json();
+    const data: ApiResponse<{ kyc_status: string }> = response.data;
 
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       throw new Error(data.message || `HTTP ${response.status}`);
     }
 
@@ -267,29 +232,20 @@ export const changePassword = createAsyncThunk<
   { current_Password: string; new_Password: string },
   { rejectValue: string }
 >("profile/changePassword", async (passwordData, { rejectWithValue }) => {
-  debugger;
 
   try {
     const token = getAuthToken();
     if (!token) return rejectWithValue("No auth token found.");
 
-    const response = await fetch(`${API_BASE_URL}/csp/profile/change-password`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        current_password: passwordData.current_Password,
-        new_password: passwordData.new_Password,
-      }),
+    const response = await api.put('/csp/profile/change-password', {
+      current_password: passwordData.current_Password,
+      new_password: passwordData.new_Password,
     });
 
-    const data: ApiResponse<void> = await response.json();
+    const data: ApiResponse<void> = response.data;
 
-    console.log("Change Password Response:", data); // ✅ debug
-
-    if (!response.ok || !data.success) {
+    
+    if (!data.success) {
       throw new Error(data.message || `HTTP ${response.status}`);
     }
 

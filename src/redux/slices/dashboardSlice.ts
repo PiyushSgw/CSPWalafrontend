@@ -23,6 +23,7 @@ interface RecentJob {
   charge: number
   is_reprint: boolean
   created_at: string
+  job_type?: string
 }
 
 interface DashboardState {
@@ -81,12 +82,16 @@ export const fetchDashboardStats = createAsyncThunk(
         }
       })
 
+      console.log('🔍 Dashboard API Response Status:', response.status)
+      console.log('🔍 Dashboard API Response OK:', response.ok)
+
       if (!response.ok) {
         console.log('❌ API FAILED, using fallback data')
         return getFallbackData()
       }
 
       const result = await response.json()
+      console.log('🔍 Dashboard Raw Response:', result)
       
       if (isAdmin && isAdminAuthenticated) {
         console.log('✅ ADMIN DASHBOARD API RESPONSE:', result)
@@ -112,6 +117,20 @@ export const fetchDashboardStats = createAsyncThunk(
         const data = result.data  // CSP dashboard structure
         console.log('🔍 CSP Dashboard Data:', data)
         console.log('🔍 Wallet Balance from API:', data.wallet_balance)
+        console.log('🔍 Recent Print Jobs from API:', data.recent_print_jobs)
+        
+        // Debug: Log job types in recent jobs
+        if (data.recent_print_jobs && Array.isArray(data.recent_print_jobs)) {
+          data.recent_print_jobs.forEach((job: any, index: number) => {
+            console.log(`🔍 Job ${index + 1}:`, {
+              id: job.id,
+              customer_name: job.customer_name,
+              job_type: job.job_type,
+              charge: job.charge,
+              created_at: job.created_at
+            });
+          });
+        }
 
         return {
           // ✅ MAPPED TO CSP DASHBOARD API RESPONSE

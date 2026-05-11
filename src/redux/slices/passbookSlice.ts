@@ -61,6 +61,15 @@ interface PassbookState {
   printError: string | null
   printResult: any | null
   transactionMeta: TransactionMeta
+  printHistory: any[]
+  printHistoryLoading: boolean
+  printHistoryError: string | null
+  printHistoryMeta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 // ─── Thunk Payload Types ──────────────────────────────────────────────────────
@@ -113,6 +122,15 @@ const initialState: PassbookState = {
   transactionMeta: {
     total: 0,
     page: 1,
+    totalPages: 1,
+  },
+  printHistory: [],
+  printHistoryLoading: false,
+  printHistoryError: null,
+  printHistoryMeta: {
+    total: 0,
+    page: 1,
+    limit: 20,
     totalPages: 1,
   },
 }
@@ -231,6 +249,21 @@ export const printPassbook = createAsyncThunk<
   } catch (err: any) {
     return rejectWithValue(
       err?.response?.data?.message || 'Failed to print passbook'
+    )
+  }
+})
+
+export const fetchPrintHistory = createAsyncThunk<
+  any,
+  { customer_id?: number; bank_id?: number; from_date?: string; to_date?: string; page?: number; limit?: number },
+  { rejectValue: string }
+>('passbook/fetchPrintHistory', async (params = {}, { rejectWithValue }) => {
+  try {
+    const res = await api.get('/api/csp/passbook/history', { params })
+    return res.data
+  } catch (err: any) {
+    return rejectWithValue(
+      err?.response?.data?.message || 'Failed to fetch print history'
     )
   }
 })
@@ -402,6 +435,26 @@ const passbookSlice = createSlice({
       .addCase(printPassbook.rejected, (state, action) => {
         state.printing = false
         state.printError = action.payload ?? 'Print failed'
+      })
+
+      .addCase(fetchPrintHistory.pending, (state) => {
+        state.printHistoryLoading = true
+        state.printHistoryError = null
+      })
+      .addCase(fetchPrintHistory.fulfilled, (state, action) => {
+        state.printHistoryLoading = false
+        const data = action.payload?.data ?? action.payload
+        state.printHistory = data?.jobs || []
+        state.printHistoryMeta = {
+          total: data?.total || 0,
+          page: data?.page || 1,
+          limit: data?.limit || 20,
+          totalPages: data?.totalPages || 1,
+        }
+      })
+      .addCase(fetchPrintHistory.rejected, (state, action) => {
+        state.printHistoryLoading = false
+        state.printHistoryError = action.payload ?? 'Failed to fetch print history'
       })
   },
 })

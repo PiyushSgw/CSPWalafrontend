@@ -96,7 +96,7 @@ export const fetchWalletBalance = createAsyncThunk(
   'wallet/fetchBalance',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await cspApi.get('/csp/wallet/balance')
+      const res = await cspApi.get('/api/csp/wallet/balance')
       return res.data.data as RawWalletBalance
     } catch (e: any) {
       return rejectWithValue(e.response?.data?.message || 'Failed to fetch balance')
@@ -108,7 +108,7 @@ export const fetchLedger = createAsyncThunk(
   'wallet/fetchLedger',
   async (params: any = {}, { rejectWithValue }) => {
     try {
-      const res = await cspApi.get('/csp/wallet/ledger', { params })
+      const res = await cspApi.get('/api/csp/wallet/ledger', { params })
       return {
         data: res.data.data as RawWalletTransaction[],
         meta: res.data.meta
@@ -123,7 +123,7 @@ export const fetchRechargeRequests = createAsyncThunk(
   'wallet/fetchRechargeRequests',
   async (params: any = {}, { rejectWithValue }) => {
     try {
-      const res = await cspApi.get('/csp/wallet/recharge-requests', { params })
+      const res = await cspApi.get('/api/csp/wallet/recharge-requests', { params })
       return {
         data: res.data.data as RawRechargeRequest[],
         meta: res.data.meta
@@ -138,7 +138,7 @@ export const fetchPaymentDetails = createAsyncThunk(
   'wallet/fetchPaymentDetails',
   async (amount: number, { rejectWithValue }) => {
     try {
-      const res = await cspApi.get('/csp/wallet/payment-details', { params: { amount } })
+      const res = await cspApi.get('/api/csp/wallet/payment-details', { params: { amount } })
       return res.data.data as PaymentDetails
     } catch (e: any) {
       return rejectWithValue(e.response?.data?.message || 'Failed to fetch payment details')
@@ -150,7 +150,7 @@ export const submitRechargeRequest = createAsyncThunk(
   'wallet/submitRecharge',
   async (data: { amount: number; utr: string; payment_mode: string }, { rejectWithValue }) => {
     try {
-      const res = await cspApi.post('/csp/wallet/recharge', data)
+      const res = await cspApi.post('/api/csp/wallet/recharge', data)
       return res.data.data as RawRechargeRequest
     } catch (e: any) {
       return rejectWithValue(e.response?.data?.message || 'Failed to submit request')

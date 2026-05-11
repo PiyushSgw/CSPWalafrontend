@@ -1,5 +1,13 @@
 import React from "react";
 
+export interface WalletTransaction {
+  dateTime: string;
+  desc: string;
+  type: "Debit" | "Credit";
+  amount: string;
+  balanceAfter: string;
+}
+
 interface Props {
   dateTime: string;
   desc: string;

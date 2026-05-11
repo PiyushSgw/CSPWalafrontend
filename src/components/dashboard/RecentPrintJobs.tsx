@@ -1,18 +1,29 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAppSelector } from '../../redux/hooks';
+import { useAppSelector, useAppDispatch } from '../../redux/hooks';
+import { fetchPrintHistory } from '../../redux/slices/printHistorySlice';
+import { fetchCustomers } from '../../redux/slices/customersSlice';
+import toast from 'react-hot-toast';
+import api from "../../utils/axios";
 
 type PrintJobRow = {
-  id?: number | string;
-  print_job_id?: number | string;
+  id?: string;
+  customer?: string;
   customer_name?: string;
   account_number?: string;
+  bank?: string;
   bank_name?: string;
   bank_code?: string;
+  type?: string;
   job_type?: string;
   created_at?: string;
+  createdAtRaw?: string;
   charge?: string | number | null;
+  rawCharge?: number;
+  is_reprint?: boolean;
+  status?: string;
 };
 
 const typeConfig: Record<string, { bg: string; text: string }> = {
@@ -24,12 +35,35 @@ const typeConfig: Record<string, { bg: string; text: string }> = {
   Combo: { bg: 'bg-[#f5f3ff]', text: 'text-[#7c3aed]' },
 };
 
+const maskAccountNumber = (accountNumber?: string) => {
+  if (!accountNumber) return '—';
+  if (accountNumber.length <= 4) return accountNumber;
+  const lastFour = accountNumber.slice(-4);
+  const maskedPart = 'x'.repeat(accountNumber.length - 4);
+  return `${maskedPart}${lastFour}`;
+};
+
+const findAccountNumberByCustomerName = (customerName: string, customers: any[]) => {
+  if (!customerName) return null;
+  
+  console.log('Looking for customer:', customerName);
+  console.log('Available customers:', customers.map(c => ({ name: c.name, account_number: c.account_number })));
+  
+  const customer = customers.find(c => 
+    c.name === customerName || 
+    c.name?.toLowerCase() === customerName?.toLowerCase()
+  );
+  
+  console.log('Found customer:', customer);
+  console.log('Account number:', customer?.account_number);
+  
+  return customer?.account_number;
+};
+
 const formatDateTime = (value?: string) => {
   if (!value) return '—';
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-
   return date.toLocaleString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -41,34 +75,64 @@ const formatDateTime = (value?: string) => {
 
 const normalizeJobType = (jobType?: string) => {
   if (!jobType) return 'Passbook';
-
   const value = jobType.trim().toLowerCase();
-
   if (value === 'passbook') return 'Passbook';
   if (value === 'form + pb' || value === 'form+pb') return 'Form + PB';
   if (value === 'form') return 'Form';
   if (value === 'combo') return 'Combo';
   if (value === 'acct form' || value === 'acct_form') return 'Acct Form';
   if (value === 'jan dhan' || value === 'jan_dhan') return 'Jan Dhan';
-
   return jobType;
 };
 
 export default function RecentPrintJobs() {
-  const dashboardState = useAppSelector((s: any) => s.dashboard);
+  const dispatch = useAppDispatch();
+  const [reprintingJobId, setReprintingJobId] = useState<string | null>(null);
+  
+  // ✅ Use printHistory slice instead of dashboard
+  const printHistoryState = useAppSelector((s: any) => s.printHistory);
+  
+  // ✅ Get customers data for account number lookup
+  const customersState = useAppSelector((s: any) => s.customers);
+  
+  useEffect(() => {
+    dispatch(fetchPrintHistory({ limit: 5 }) as any);
+    dispatch(fetchCustomers({ limit: 100 }) as any); // Fetch customers for account number lookup
+  }, [dispatch]);
 
-  const list: PrintJobRow[] = Array.isArray(dashboardState?.stats?.recentJobs)
-    ? dashboardState.stats.recentJobs
-    : [];
+  const loading = Boolean(printHistoryState?.loading);
+  const error = printHistoryState?.error;
+  
+  // ✅ Use mappedList from printHistory slice (top 5 recent)
+  const jobs: PrintJobRow[] = printHistoryState?.mappedList?.slice(0, 5) || [];
 
-  const loading = Boolean(dashboardState?.loading);
-  const error = dashboardState?.error;
-
-  // If backend returns latest first
-  const jobs = [...list].slice(0, 5);
-
-  // If backend returns oldest first, use this instead:
-  // const jobs = [...list].slice(-5).reverse();
+  const handleReprint = async (jobId: string) => {
+    if (reprintingJobId === jobId) return;
+    
+    try {
+      setReprintingJobId(jobId);
+      const response = await api.post(`/csp/passbook/reprint/${jobId}`);
+      
+      if (response.data.success) {
+        const { pdf_signed_url, is_free, reprint_charge } = response.data.data;
+        
+        // Open PDF in new tab
+        window.open(pdf_signed_url, '_blank');
+        
+        toast.success(
+          `Reprint ready! ${is_free ? 'Free reprint' : `₹${reprint_charge} charged`}`
+        );
+      } else {
+        toast.error(response.data.message || 'Reprint failed');
+      }
+    } catch (error: any) {
+      console.error('Reprint error:', error);
+      const message = error.response?.data?.message || error.message || 'Reprint failed';
+      toast.error(message);
+    } finally {
+      setReprintingJobId(null);
+    }
+  };
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[12px] overflow-hidden shadow-sm">
@@ -128,20 +192,25 @@ export default function RecentPrintJobs() {
 
             <tbody>
               {jobs.map((j) => {
-                const normalizedType = normalizeJobType(j?.job_type);
+                const normalizedType = normalizeJobType(j?.type || j?.job_type);
                 const typeStyle = typeConfig[normalizedType] || typeConfig.Passbook;
 
                 return (
                   <tr
-                    key={j?.id ?? j?.print_job_id ?? `${j?.account_number}-${j?.created_at}`}
+                    key={j?.id ?? `${j?.account_number}-${j?.created_at}`}
                     className="border-b border-[#e5e7eb] last:border-0 hover:bg-[#fafbfc] transition-colors"
                   >
                     <td className="px-[14px] py-3 pl-5">
                       <p className="font-semibold text-[13px] text-[#374151] leading-tight">
-                        {j?.customer_name || 'N/A'}
+                        {j?.customer_name || j?.customer || 'N/A'}
                       </p>
                       <p className="text-[11px] text-[#6b7280] font-mono mt-0.5">
-                        A/C: {j?.account_number || '—'}
+                        A/C: {maskAccountNumber(
+                          findAccountNumberByCustomerName(
+                            j?.customer_name || j?.customer || '', 
+                            customersState?.list || []
+                          )
+                        )}
                       </p>
                     </td>
 
@@ -154,26 +223,32 @@ export default function RecentPrintJobs() {
                     </td>
 
                     <td className="px-[14px] py-3 text-[13px] text-[#374151]">
-                      {j?.bank_name || j?.bank_code || '—'}
+                      {j?.bank_name || j?.bank_code || j?.bank || '—'}
                     </td>
 
                     <td className="px-[14px] py-3 text-[11px] text-[#6b7280] whitespace-nowrap">
-                      {formatDateTime(j?.created_at)}
+                      {/* ✅ Date from printHistory slice */}
+                      {formatDateTime(j?.createdAtRaw || j?.created_at)}
                     </td>
 
                     <td className="px-[14px] py-3 font-mono text-[13px] text-[#dc2626] font-medium whitespace-nowrap">
+                      {/* ✅ Charge from printHistory slice */}
                       {j?.charge !== undefined && j?.charge !== null && j?.charge !== ''
-                        ? `-₹${Number(j.charge).toFixed(2)}`
+                        ? `-${j.charge}`
                         : '—'}
                     </td>
 
                     <td className="px-[14px] py-3 pr-5">
-                      <button
-                        type="button"
-                        className="px-[9px] py-1 border-[1.5px] border-[#d1d5db] rounded-[5px] text-[11px] font-bold text-[#374151] bg-transparent hover:bg-[#f3f5f8] transition-colors whitespace-nowrap"
-                      >
-                        Reprint
-                      </button>
+                      
+                        <button
+                          type="button"
+                          onClick={() => handleReprint(j?.id || '')}
+                          disabled={reprintingJobId !== null}
+                          className="px-[9px] py-1 border-[1.5px] border-[#d1d5db] rounded-[5px] text-[11px] font-bold text-[#374151] bg-transparent hover:bg-[#f3f5f8] transition-colors whitespace-nowrap"
+                        >
+                          {reprintingJobId === j?.id ? 'Reprinting...' : 'Reprint'}
+                        </button>
+                     
                     </td>
                   </tr>
                 );

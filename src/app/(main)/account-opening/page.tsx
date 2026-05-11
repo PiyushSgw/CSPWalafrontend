@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+// import { checkAndClearBlobCache } from '@/utils/clearCache';
 import TabBar from './TopBar';
 import BankSelector from './BankSelector';
 import AccountTypeSelector from './AccountTypeSelector';
@@ -15,6 +16,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import {
   createApplication,
   downloadApplicationPdf,
+  fetchApplicationHistory,
   resetSubmitState,
   setActiveTab,
   setSelectedBank,
@@ -25,6 +27,11 @@ import {
 
 export default function AccountFormPage() {
   const dispatch = useAppDispatch();
+
+  // Clear blob cache on page load to prevent 404 errors
+  // useEffect(() => {
+  //   checkAndClearBlobCache();
+  // }, []);
 
   const {
     activeTab,
@@ -72,6 +79,11 @@ export default function AccountFormPage() {
       dispatch(resetSubmitState());
     }
   }, [pdfError, dispatch]);
+
+  // Load history to get latest application ID
+  useEffect(() => {
+    dispatch(fetchApplicationHistory());
+  }, [dispatch]);
 
   const validateForm = () => {
     if (!selectedBank) return 'Bank is required';
@@ -141,18 +153,22 @@ export default function AccountFormPage() {
       return;
     }
 
-    const latestApplicationId = history?.[0]?.id;
-
+    // Get the latest application ID from history or use a fallback
+    let latestApplicationId = history?.[0]?.id;
+    
+    // If no history or no ID in history, we need to create application first
     if (!latestApplicationId) {
-      toast.error('Application ID not found. Please save the form again.');
+      toast.error('Please save the application first before generating PDF.');
       return;
     }
 
     try {
       const charge = formData.include_passbook ? 13 : 10;
+      console.log('Generating PDF for application ID:', latestApplicationId);
       await dispatch(downloadApplicationPdf(latestApplicationId)).unwrap();
       toast.success(`PDF generated successfully! ₹${charge} deducted.`);
     } catch (error: any) {
+      console.error('PDF generation error:', error);
       toast.error(error || 'PDF generation failed');
     }
   };
