@@ -24,6 +24,7 @@ export default function WalletWidget() {
   const router = useRouter()
   const [data, setData] = useState<WalletLedgerResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const dispatch = useDispatch()
 
   const dashboardState = useSelector((state: RootState) => state.dashboard)
@@ -34,6 +35,10 @@ export default function WalletWidget() {
   useEffect(() => {
     dispatch(fetchLedger({ limit: 5 }) as any)
     dispatch(fetchPrintHistory({ limit: 5 }) as any)
+      .unwrap()
+      .catch((error: any) => {
+        // Continue without print history - show only wallet and recharge data
+      })
     dispatch(fetchRechargeRequests({ limit: 5 }) as any)
   }, [dispatch])
 
@@ -64,8 +69,8 @@ export default function WalletWidget() {
   useEffect(() => {
     const allTransactions: Transaction[] = []
 
-    // Print jobs from printHistoryState ONLY
-    if (printHistoryState.mappedList?.length > 0) {
+    // Print jobs from printHistoryState ONLY (with fallback for 500 errors)
+    if (printHistoryState.mappedList && printHistoryState.mappedList.length > 0) {
       printHistoryState.mappedList.forEach((job: any) => {
         allTransactions.push({
           amount: -(job.rawCharge || 0),
@@ -107,6 +112,7 @@ export default function WalletWidget() {
     })
 
     setLoading(walletState.loading || printHistoryState.loading)
+    setError(null) // Clear error when data loads successfully
   }, [
     walletState.rechargeRequests,
     printHistoryState.mappedList,

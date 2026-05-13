@@ -258,14 +258,36 @@ export const fetchPrintHistory = createAsyncThunk<
   { customer_id?: number; bank_id?: number; from_date?: string; to_date?: string; page?: number; limit?: number },
   { rejectValue: string }
 >('passbook/fetchPrintHistory', async (params = {}, { rejectWithValue }) => {
-  try {
-    const res = await api.get('/api/csp/passbook/history', { params })
-    return res.data
-  } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.message || 'Failed to fetch print history'
-    )
+  let retryCount = 0
+  const maxRetries = 2
+  
+  while (retryCount <= maxRetries) {
+    try {
+      const res = await api.get('/csp/passbook/history', { params })
+      console.log('Fetch Print History Response:', res.data)
+      return res.data
+    } catch (err: any) {
+      console.error(`Fetch Print History Error (attempt ${retryCount + 1}):`, err?.response?.data)
+      
+      // Check if it's a 500 error and we can retry
+      if (err?.response?.status === 500 && retryCount < maxRetries) {
+        retryCount++
+        console.log(`Retrying print history request (${retryCount}/${maxRetries})...`)
+        // Wait 1 second before retry
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        continue
+      }
+      
+      // For other errors or max retries reached, return error
+      return rejectWithValue(
+        err?.response?.data?.message || 
+        (err?.response?.status === 500 ? 'Server error occurred while fetching print history.' : 'Failed to fetch print history')
+      )
+    }
   }
+  
+  // This should not be reached, but just in case
+  return rejectWithValue('Failed to fetch print history after retries')
 })
 
 // ─── Slice ────────────────────────────────────────────────────────────────────

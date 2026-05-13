@@ -144,12 +144,9 @@ const normalizeHistoryArray = (raw: any): PrintJob[] => {
 
 export const fetchPrintHistory = createAsyncThunk<
   ApiResponse<PrintJob[]>,
-  FetchPrintHistoryParams | undefined,
+  FetchPrintHistoryParams,
   { rejectValue: string }
->("printHistory/fetchAll", async (params = {}, { rejectWithValue }) => {
-  ac?.abort();
-  ac = new AbortController();
-
+>('printHistory/fetchPrintHistory', async (params = {}, { rejectWithValue }) => {
   try {
     const token = getToken();
 
@@ -165,18 +162,14 @@ export const fetchPrintHistory = createAsyncThunk<
       return rejectWithValue("Unauthorized");
     }
 
-    const normalized = normalizeHistoryArray(res.data);
-
     return res.data;
-  } catch (e: unknown) {
-    ac = null;
-
+  } catch (e: any) {
     if (e instanceof DOMException && e.name === "AbortError") {
       return rejectWithValue("Request cancelled");
     }
 
     return rejectWithValue(
-      e instanceof Error ? e.message : "Failed to fetch print history"
+      e?.response?.data?.message || 'Failed to fetch print history'
     );
   }
 });

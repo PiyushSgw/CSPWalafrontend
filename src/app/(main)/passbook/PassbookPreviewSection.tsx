@@ -52,12 +52,14 @@ export const PassbookPreviewSection = () => {
   const dispatch = useAppDispatch()
   const { selectedCustomer, transactions, preview, previewLoading, printing, printError } =
     useAppSelector((s) => s.passbook)
-  const { balance } = useAppSelector((s) => s.wallet)
+  const walletState = useAppSelector((s) => s.wallet)
   const { list: printHistory } = useAppSelector((s) => s.printHistory)
 
   const printCharge = preview?.print_charge || 10
-  const walletBalance = balance?.balance || 0
-  const canPrint = walletBalance >= printCharge
+  const walletBalance = walletState.balance?.balance || 0
+  // Wallet integration enabled
+  const BYPASS_WALLET_FOR_TESTING = false
+  const canPrint = BYPASS_WALLET_FOR_TESTING || walletBalance >= printCharge
   const txns = Array.isArray(transactions) ? transactions : []
 
   const validTransactions = useMemo(
@@ -77,7 +79,13 @@ export const PassbookPreviewSection = () => {
 
   // Check if this is first-time passbook printing for this customer
   const isFirstTimePrinting = useMemo(() => {
-    if (!selectedCustomer?.id || !Array.isArray(printHistory)) return true
+    if (!selectedCustomer?.id) return true
+    
+    // If printHistory failed to load, assume it's first time
+    if (!Array.isArray(printHistory)) {
+      console.warn('Print history not available, assuming first-time printing')
+      return true
+    }
     
     const customerPrintJobs = printHistory.filter(job => 
       job.customer_id === selectedCustomer.id && 
@@ -103,6 +111,11 @@ export const PassbookPreviewSection = () => {
   useEffect(() => {
     if (selectedCustomer?.id) {
       dispatch(fetchPrintHistory({ limit: 100 }) as any)
+        .unwrap()
+        .catch((error: any) => {
+          console.warn('Print history fetch failed:', error)
+          toast.error('Failed to fetch print history. Print functionality will still work.')
+        })
     }
   }, [dispatch, selectedCustomer?.id])
 
@@ -132,23 +145,64 @@ export const PassbookPreviewSection = () => {
       }
     }
 
-    const result = await dispatch(
-      printPassbook({
-        customer_id: selectedCustomer.id,
-        account_number: selectedCustomer.account_number,
-        print_cost: isFirstTimePrinting ? printCharge : printCharge,
-        transactions: validTransactions,
-      })
-    )
+    const payload = {
+      customer_id: selectedCustomer.id,
+      account_number: selectedCustomer.account_number,
+      print_cost: printCharge,
+      transactions: validTransactions,
+    }
 
-    if (printPassbook.fulfilled.match(result)) {
-      const message = isFirstTimePrinting 
-        ? 'Passbook printed successfully! Wallet deducted.'
-        : 'Passbook printed successfully!'
-      toast.success(message)
-      dispatch(setWizardStep(4))
-    } else {
-      toast.error((result.payload as string) || 'Failed to print passbook')
+    try {
+      const result = await dispatch(printPassbook(payload))
+
+      if (printPassbook.fulfilled.match(result)) {
+        const data = result.payload as any
+        
+        // Check for mock PDF URLs and provide fallback
+        const pdfUrl = data?.data?.pdf_signed_url || data?.data?.pdf_url || data?.pdf_url || ''
+        if (pdfUrl && (pdfUrl.includes('/mock-s3/') || pdfUrl.includes('mock') || pdfUrl.includes('placeholder'))) {
+          // Generate browser print fallback
+          const printContent = document.getElementById('passbook-preview-content')
+          if (printContent) {
+            const printWindow = window.open('', '_blank')
+            if (printWindow) {
+              printWindow.document.write(`
+                <html>
+                  <head>
+                    <title>Passbook - ${selectedCustomer?.name || 'Customer'}</title>
+                    <style>
+                      body { font-family: 'Courier New', monospace; margin: 20px; }
+                      table { width: 100%; border-collapse: collapse; }
+                      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                      th { background-color: #f2f2f2; }
+                      .header { text-align: center; margin-bottom: 20px; }
+                    </style>
+                  </head>
+                  <body>
+                    ${printContent.innerHTML}
+                  </body>
+                </html>
+              `)
+              printWindow.document.close()
+              printWindow.print()
+              toast.success('Passbook sent to printer')
+            } else {
+              toast.error('Please allow popups for this site to print.')
+            }
+          }
+        } else {
+          const message = isFirstTimePrinting 
+            ? 'Passbook printed successfully! Wallet deducted.'
+            : 'Passbook printed successfully!'
+          toast.success(message)
+        }
+        
+        dispatch(setWizardStep(4))
+      } else {
+        toast.error((result.payload as string) || 'Failed to print passbook')
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Print failed. Please try again.')
     }
   }
 
@@ -202,6 +256,7 @@ export const PassbookPreviewSection = () => {
         ) : (
           <div className="bg-[#f7f7f7] p-4 sm:p-5">
             <div
+              id="passbook-preview-content"
               className="mx-auto w-full max-w-[760px] rounded-[8px] border border-[#c9ccd3] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
               style={{ fontFamily: '"Courier New", monospace' }}
             >
@@ -317,6 +372,7 @@ export const PassbookPreviewSection = () => {
         </div>
       )}
 
+      
       <div className="mt-4 flex items-center justify-between">
         <button
           type="button"
