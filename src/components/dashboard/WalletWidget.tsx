@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import api from '../../utils/axios'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '@/redux/store'
+import { fetchLedger, fetchRechargeRequests } from '@/redux/slices/walletSlice'
+import { fetchPrintHistory } from '@/redux/slices/printHistorySlice'
 
 type WalletLedgerResponse = {
   balance?: number
@@ -22,75 +23,58 @@ type WalletLedgerResponse = {
 
 export default function WalletWidget() {
   const router = useRouter()
-  const [data, setData] = useState<WalletLedgerResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const dispatch = useDispatch()
   const authState = useSelector((state: RootState) => state.auth);
   const dashboardState = useSelector((state: RootState) => state.dashboard);
+  const walletState = useSelector((state: RootState) => state.wallet);
+  const printHistoryState = useSelector((state: RootState) => state.printHistory);
+  
   const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
   const isAdmin = authState.isAdminAuthenticated;
   
   useEffect(() => {
-    // Skip API call for admin users - use dashboard data instead
-    if (isAdmin) {
-      console.log('🔍 WalletWidget: Admin user detected, using dashboard data');
-      setData({
-        balance: dashboardWalletBalance,
-        lastRecharge: null,
-        transactions: []
-      });
-      setLoading(false);
-      return;
-    }
-    
-    // For CSP users, get wallet balance using fetch to avoid axios interceptor redirects
-    const token = localStorage.getItem('csp_access_token');
-    if (!token) {
-      console.log('🔍 WalletWidget: No CSP token found');
-      setError('No authentication token');
-      setLoading(false);
-      return;
-    }
-    
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-    const apiUrl = baseUrl.includes('/api') 
-      ? `${baseUrl}/csp/wallet/balance`
-      : `${baseUrl}/api/csp/wallet/balance`;
-    
-    console.log('🔍 WalletWidget: Fetching CSP wallet balance from:', apiUrl);
-    
-    fetch(apiUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error(`API failed with status ${res.status}`);
-      }
-      return res.json();
-    })
-    .then(res => {
-      console.log('✅ WalletWidget: CSP wallet data received:', res);
-      setData({
-        balance: res.data?.balance || 0,
-        lastRecharge: null,
-        transactions: []
-      });
-      setError(null);
-    })
-    .catch(err => {
-      console.error('❌ WalletWidget: API failed:', err.message);
-      setError('Failed to load wallet data');
-      // Don't redirect to login, just show error
-    })
-    .finally(() => setLoading(false));
-  }, [isAdmin, dashboardWalletBalance])
+    // Fetch wallet data for both admin and CSP users
+    dispatch(fetchLedger({ limit: 5 }) as any);
+    dispatch(fetchRechargeRequests({ limit: 3 }) as any);
+    dispatch(fetchPrintHistory({ limit: 5 }) as any);
+  }, [dispatch]);
 
-  const balance = data?.balance || 0
-  const lastRecharge = data?.lastRecharge
-  const transactions = data?.transactions || []
+  // Get balance from dashboard for admin, from wallet for CSP
+  const balance = isAdmin ? dashboardWalletBalance : (walletState.balance?.balance || 0);
+  
+  // Get last recharge from wallet state
+  const lastRecharge = walletState.rechargeRequests.length > 0 
+    ? {
+        amount: walletState.rechargeRequests[0].amount,
+        date: walletState.rechargeRequests[0].date
+      }
+    : null;
+
+  // Show only recharge transactions, fallback to print history if no recharges
+  const rechargeTransactions = walletState.ledger
+    .filter((tx: any) => tx.type === 'Credit' && (tx.desc?.toLowerCase().includes('recharge') || tx.desc?.toLowerCase().includes('credit')))
+    .slice(0, 5)
+    .map((tx: any) => ({
+      amount: tx.amount_raw,
+      icon: '💰',
+      name: tx.desc,
+      time: tx.dateTime
+    }));
+
+  // If no recharge transactions, show recent print history
+  const printHistoryTransactions = printHistoryState.mappedList
+    .slice(0, 5)
+    .map((job: any) => ({
+      amount: -job.rawCharge,
+      icon: '🖨️',
+      name: `${job.type} - ${job.customer}`,
+      time: job.dateTime
+    }));
+
+  const transactions = rechargeTransactions.length > 0 ? rechargeTransactions : printHistoryTransactions;
+
+  const loading = walletState.loading || printHistoryState.loading;
+  const error = walletState.error || printHistoryState.error;
 
   return (
     <div className="flex flex-col gap-4">
@@ -151,7 +135,7 @@ export default function WalletWidget() {
             <div className="text-center text-[#6b7280] text-[13px] py-4">No transactions yet</div>
           ) : (
             <div>
-              {transactions.map((tx, i) => (
+              {transactions.map((tx: any, i: number) => (
                 <div
                   key={i}
                   className="flex items-center gap-3 py-3 border-b border-[#e5e7eb] last:border-0"

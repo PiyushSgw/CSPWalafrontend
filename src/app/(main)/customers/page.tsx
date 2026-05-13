@@ -93,7 +93,9 @@ export default function CustomersPage() {
           <CustomerListSection
             customers={filteredCustomers}
             meta={meta || undefined}
-            loading={loading}           
+            loading={loading}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
           />
         </div>
 

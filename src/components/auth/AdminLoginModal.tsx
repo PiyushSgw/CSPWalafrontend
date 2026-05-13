@@ -21,6 +21,7 @@ export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProp
     const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [navigating, setNavigating] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,19 +30,18 @@ export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProp
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
+  setLoading(true);
   
   const result = await dispatch(loginAdmin(form));
   
   if (loginAdmin.fulfilled.match(result)) {
     toast.success('Admin login successful!');
     onClose();
-    // Add small delay + refresh to ensure navigation works
-    setTimeout(() => {
-      router.refresh();
-      router.push('/admin/dashboard');
-    }, 100);
+    setNavigating(true);
+    router.push('/admin/dashboard');
   } else {
-    console.log('Login failed:', result);
+    setLoading(false);
+    toast.error((result.payload as string) || 'Admin login failed');
   }
 };
 
@@ -49,6 +49,15 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   return (
     <>
+      {/* Navigation Loader Overlay */}
+      {navigating && (
+        <div className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="animate-spin w-10 h-10 text-purple-600 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-gray-700">Redirecting to dashboard...</p>
+          </div>
+        </div>
+      )}
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]" onClick={onClose} />
       

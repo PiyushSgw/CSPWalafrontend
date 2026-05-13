@@ -139,7 +139,8 @@ export const fetchCustomers = createAsyncThunk<
     abortController = null;
 
     if (error.name === "AbortError") {
-      return rejectWithValue("Request cancelled");
+      // Silently return without error - this is intentional cancellation
+      return rejectWithValue("__CANCELLED__");
     }
 
     return rejectWithValue(error.message || "Failed to fetch customers");
@@ -151,7 +152,6 @@ export const createCustomer = createAsyncThunk<
   CreateCustomerPayload,
   { rejectValue: string }
 >("customers/create", async (customerData, { rejectWithValue }) => {
-  debugger;
   try {
     const token = getAuthToken();
 
@@ -216,7 +216,10 @@ const customersSlice = createSlice({
       )
       .addCase(fetchCustomers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Failed to fetch customers";
+        // Don't show error for intentionally cancelled requests
+        if (action.payload !== "__CANCELLED__") {
+          state.error = action.payload || "Failed to fetch customers";
+        }
       })
       .addCase(createCustomer.pending, (state) => {
         state.creating = true;

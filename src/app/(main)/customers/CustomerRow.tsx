@@ -43,11 +43,20 @@ export const CustomerRow: React.FC<Props> = ({ customer }) => {
   const typeStyle = getTypeStyles(customer.type || '')
 
   const handlePrintPB = () => {
-    router.push(`/passbook?customerId=${customer.id}`)
+    // Build query params with all customer data needed for passbook
+    const params = new URLSearchParams({
+      customer_id: String(customer.id),
+      name: customer.name || '',
+      account_number: customer.account_number || '',
+      account_type: customer.type || 'savings',
+      bank: customer.bank || '',
+      mobile: customer.mobile || ''
+    })
+    router.push(`/passbook?${params.toString()}`)
   }
 
   const handleEdit = () => {
-    console.log('Edit customer:', customer)
+    router.push(`/customers/edit/${customer.id}`)
   }
 
   return (

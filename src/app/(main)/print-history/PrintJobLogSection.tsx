@@ -4,6 +4,38 @@ import React, { useMemo, useState } from "react";
 import { useAppSelector } from "../../../redux/hooks";
 import { PrintJobRow } from "./PrintJobRow";
 import type { PrintHistoryFilter } from "./PrintHistoryFilterBar";
+import type { MappedPrintJob } from "./printHistory";
+
+const exportToCSV = (jobs: MappedPrintJob[]) => {
+  if (jobs.length === 0) return;
+
+  const headers = ["Job ID", "Date/Time", "Customer", "Bank", "Type", "Pages", "Charge", "Status"];
+  const rows = jobs.map((job) => [
+    job.id,
+    job.dateTime,
+    job.customer,
+    job.bank,
+    job.type,
+    job.pages,
+    job.charge,
+    job.status,
+  ]);
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute("href", url);
+  link.setAttribute("download", `print-history-${new Date().toISOString().split("T")[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 interface Props {
   currentPage: number;
@@ -107,7 +139,26 @@ export const PrintJobLogSection: React.FC<Props> = ({
       >
         <div className="card-title">Print Job Log ({total})</div>
 
-        {/* SEARCH BOX */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          {/* Export CSV Button */}
+          <button
+            onClick={() => exportToCSV(filteredList)}
+            disabled={filteredList.length === 0}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "1px solid var(--color-border-primary)",
+              background: "white",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: filteredList.length === 0 ? "not-allowed" : "pointer",
+              opacity: filteredList.length === 0 ? 0.6 : 1,
+            }}
+          >
+            📥 Export CSV
+          </button>
+
+          {/* SEARCH BOX */}
         <div
           style={{
             position: "relative",
@@ -155,6 +206,7 @@ export const PrintJobLogSection: React.FC<Props> = ({
               }}
             />
           </div>
+        </div>
         </div>
       </div>
 

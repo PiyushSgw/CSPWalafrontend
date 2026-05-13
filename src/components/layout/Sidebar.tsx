@@ -82,17 +82,26 @@ export default function Sidebar() {
 
   // ✅ Logout handler
   const handleLogout = async () => {
+    console.log('🔐 Sidebar logout: Starting logout process...');
+    
+    // Navigate to login first to prevent blank screen
+    router.push('/login');
+    
+    // Then clear tokens and update state
     try {
       if (isAdmin) {
-        await (dispatch as any)(logoutAdmin());
+        console.log('🔐 Sidebar logout: Clearing admin tokens...');
+        localStorage.removeItem('admin_token');
+        dispatch({ type: 'auth/logoutAdmin/fulfilled', payload: null });
       } else {
-        await (dispatch as any)(logoutCSP());
+        console.log('🔐 Sidebar logout: Clearing CSP tokens...');
+        localStorage.removeItem('csp_access_token');
+        localStorage.removeItem('csp_refresh_token');
+        dispatch({ type: 'auth/logoutCSP/fulfilled', payload: null });
       }
-      router.replace('/login');
+      console.log('✅ Sidebar logout: Completed successfully');
     } catch (error) {
-      console.error('Logout failed:', error);
-      // Force redirect even if logout fails
-      router.replace('/login');
+      console.error('❌ Sidebar logout failed:', error);
     }
   };
 

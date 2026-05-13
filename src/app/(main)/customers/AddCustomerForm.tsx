@@ -34,7 +34,6 @@ export const AddCustomerForm: React.FC = () => {
 
   // ── shared: build payload + dispatch once ──────────────
   const submitAndCreate = () => {
-    debugger;
     dispatch(clearError());
     return dispatch(
       createCustomer({
@@ -120,11 +119,11 @@ export const AddCustomerForm: React.FC = () => {
           </div>
 
           <div className="form-group" style={{ marginBottom: 12 }}>
-            <label className="form-label">Account Number <span className="req">*</span></label>
+            <label className="form-label">Account Number (Optional)</label>
             <input className="form-input" type="text"
-              placeholder="Bank account number"
+              placeholder="Bank account number (if available)"
               value={formData.account_number}
-              onChange={(e) => set("account_number", e.target.value)} required />
+              onChange={(e) => set("account_number", e.target.value)} />
           </div>
 
           <div className="form-group" style={{ marginBottom: 12 }}>
@@ -138,15 +137,15 @@ export const AddCustomerForm: React.FC = () => {
           </div>
 
           <div className="form-group" style={{ marginBottom: 12 }}>
-            <label className="form-label">IFSC Code <span className="req">*</span></label>
+            <label className="form-label">IFSC Code (Optional)</label>
             <input className="form-input" type="text"
-              placeholder="e.g. SBIN0004521"
+              placeholder="e.g. SBIN0004521 (if available)"
               value={formData.ifsc}
-              onChange={(e) => set("ifsc", e.target.value.toUpperCase())} required />
+              onChange={(e) => set("ifsc", e.target.value.toUpperCase())} />
           </div>
 
           <div className="form-group" style={{ marginBottom: 12 }}>
-            <label className="form-label">Mobile Number</label>
+            <label className="form-label">Mobile Number (Optional)</label>
             <input className="form-input" type="tel"
               placeholder="9123456789"
               value={formData.mobile}

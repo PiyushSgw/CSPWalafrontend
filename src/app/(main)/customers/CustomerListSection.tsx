@@ -9,9 +9,11 @@ interface Props {
   customers: MappedCustomer[]
   meta?: ApiMeta
   loading?: boolean
+  currentPage?: number
+  onPageChange?: (page: number) => void
 }
 
-export const CustomerListSection: React.FC<Props> = ({ customers, meta, loading }) => {
+export const CustomerListSection: React.FC<Props> = ({ customers, meta, loading, currentPage = 1, onPageChange }) => {
   const [search, setSearch] = useState('')
 
   const filteredCustomers = useMemo(() => {
@@ -34,6 +36,10 @@ export const CustomerListSection: React.FC<Props> = ({ customers, meta, loading 
       )
     })
   }, [customers, search])
+
+  const totalPages = meta?.totalPages || 1
+  const hasPrevPage = currentPage > 1
+  const hasNextPage = currentPage < totalPages
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm overflow-hidden">
@@ -108,19 +114,31 @@ export const CustomerListSection: React.FC<Props> = ({ customers, meta, loading 
         </span>
 
         <div className="flex items-center gap-2">
-          <button className="text-[12px] font-semibold text-[#6b7280] px-2 py-1 rounded">
+          <button
+            onClick={() => onPageChange?.(currentPage - 1)}
+            disabled={!hasPrevPage || !onPageChange}
+            className={`text-[12px] font-semibold px-2 py-1 rounded transition-colors ${
+              hasPrevPage
+                ? 'text-[#374151] hover:bg-gray-100'
+                : 'text-gray-400 cursor-not-allowed'
+            }`}
+          >
             ← Prev
           </button>
 
           <span className="min-w-[26px] h-[26px] inline-flex items-center justify-center rounded-[7px] bg-[#1e3a5f] text-white text-[11px] font-bold">
-            1
+            {currentPage}
           </span>
 
-          <button className="text-[12px] font-semibold text-[#6b7280] px-2 py-1 rounded">
-            2
-          </button>
-
-          <button className="text-[12px] font-semibold text-[#6b7280] px-2 py-1 rounded">
+          <button
+            onClick={() => onPageChange?.(currentPage + 1)}
+            disabled={!hasNextPage || !onPageChange}
+            className={`text-[12px] font-semibold px-2 py-1 rounded transition-colors ${
+              hasNextPage
+                ? 'text-[#374151] hover:bg-gray-100'
+                : 'text-gray-400 cursor-not-allowed'
+            }`}
+          >
             Next →
           </button>
         </div>

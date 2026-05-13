@@ -123,7 +123,7 @@ export const fetchDashboardStats = createAsyncThunk(
           recentJobs: data.recent_print_jobs || [],
           monthlyUsage: data.prints_this_month || 0,
           monthlyLimit: 200,
-          dailyLimitUsage: data.prints_today || 0,
+          dailyLimitUsage: Math.round(((data.prints_today || 0) / 50) * 100), // daily limit of 50 prints
           passbookPrints: data.prints_today || 0,
           accountForms: data.pending_recharge_requests || 0,
           totalSpendThisMonth: (data.prints_this_month || 0) * 10, // Assuming ₹10 per print

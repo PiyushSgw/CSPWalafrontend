@@ -5,32 +5,74 @@ import { toast } from 'react-hot-toast';
 import api from '../../utils/axios';
 import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 
+// Static bank options - managed from admin side
+const BANK_OPTIONS = [
+  { id: 1, name: 'State Bank of India (SBI)' },
+  { id: 2, name: 'Punjab National Bank (PNB)' },
+  { id: 3, name: 'Bank of Baroda (BOB)' },
+  { id: 4, name: 'Canara Bank' },
+  { id: 5, name: 'Union Bank of India' },
+  { id: 6, name: 'Bank of India' },
+  { id: 7, name: 'Indian Bank' },
+  { id: 8, name: 'Central Bank of India' },
+  { id: 9, name: 'Indian Overseas Bank' },
+  { id: 10, name: 'UCO Bank' },
+  { id: 11, name: 'HDFC Bank' },
+  { id: 12, name: 'ICICI Bank' },
+  { id: 13, name: 'Axis Bank' },
+  { id: 14, name: 'Kotak Mahindra Bank' },
+  { id: 15, name: 'Yes Bank' },
+  { id: 16, name: 'IndusInd Bank' },
+  { id: 17, name: 'IDBI Bank' },
+  { id: 18, name: 'Bandhan Bank' },
+  { id: 99, name: 'Other' },
+];
+
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [bankId, setBankId] = useState('');
+  const [otherBankName, setOtherBankName] = useState('');
+  const [branchId, setBranchId] = useState('');
+  const [location, setLocation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const isOtherBank = bankId === '99';
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await api.post('/auth/register', {
+      // If "Other" selected, send bank name as location note or handle separately
+      const registrationData: any = {
         name,
         mobile,
         email: email || undefined,
         password,
-      });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      document.cookie = `token=${response.data.token}; path=/`;
-      toast.success('Registered successfully!');
-      router.push('/login');
+        bank_id: parseInt(bankId),
+        branch_id: branchId ? parseInt(branchId) : undefined,
+        location: location || undefined,
+      };
+      
+      // If Other bank selected, append bank name to location for admin to review
+      if (isOtherBank && otherBankName.trim()) {
+        registrationData.location = location 
+          ? `${location} | Other Bank: ${otherBankName.trim()}`
+          : `Other Bank: ${otherBankName.trim()}`;
+      }
+
+      const response = await api.post('/auth/register', registrationData);
+      
+      // Store mobile for OTP verification
+      localStorage.setItem('registration_mobile', mobile);
+      toast.success('Registration successful! Please verify OTP sent to your mobile.');
+      router.push('/verify-otp');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Registration failed');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -92,13 +134,70 @@ export default function RegisterPage() {
 
             {/* Mobile */}
             <div>
-              <label className="text-sm font-medium text-gray-600">Mobile Number</label>
+              <label className="text-sm font-medium text-gray-600">Mobile Number <span className="text-red-500">*</span></label>
               <input
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
                 placeholder="9876543210"
                 className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
                 required
+                maxLength={10}
+              />
+            </div>
+
+            {/* Bank Selection */}
+            <div>
+              <label className="text-sm font-medium text-gray-600">Bank <span className="text-red-500">*</span></label>
+              <select
+                value={bankId}
+                onChange={(e) => setBankId(e.target.value)}
+                className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                required
+              >
+                <option value="">Select Bank</option>
+                {BANK_OPTIONS.map((bank) => (
+                  <option key={bank.id} value={bank.id}>
+                    {bank.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Other Bank Name (shown when Other selected) */}
+            {isOtherBank && (
+              <div>
+                <label className="text-sm font-medium text-gray-600">Enter Bank Name <span className="text-red-500">*</span></label>
+                <input
+                  value={otherBankName}
+                  onChange={(e) => setOtherBankName(e.target.value)}
+                  placeholder="e.g., Maharashtra Gramin Bank"
+                  className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
+                  required={isOtherBank}
+                />
+                <p className="text-xs text-gray-500 mt-1">Admin will verify and add this bank to the system.</p>
+              </div>
+            )}
+
+            {/* Branch ID (Optional) */}
+            <div>
+              <label className="text-sm font-medium text-gray-600">Branch ID (Optional)</label>
+              <input
+                type="number"
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                placeholder="Enter branch ID if available"
+                className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+
+            {/* Location (Optional) */}
+            <div>
+              <label className="text-sm font-medium text-gray-600">Location (Optional)</label>
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g., Mumbai, Maharashtra"
+                className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
 

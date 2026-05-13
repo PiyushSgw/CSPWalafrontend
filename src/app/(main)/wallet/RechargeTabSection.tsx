@@ -50,15 +50,30 @@ export const RechargeTabSection: React.FC<{
     }
   }
 
+  const [utrError, setUtrError] = useState<string | null>(null)
+
+  const validateUtr = (value: string): boolean => {
+    // UTR should be 12-22 alphanumeric characters
+    const utrRegex = /^[A-Za-z0-9]{12,22}$/
+    return utrRegex.test(value.trim())
+  }
+
   const handleRechargeSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     onClearError()
+    setUtrError(null)
 
     if (!enteredAmount || enteredAmount <= 0) {
       return
     }
 
     if (!utr.trim()) {
+      setUtrError('UTR/Reference number is required')
+      return
+    }
+
+    if (!validateUtr(utr)) {
+      setUtrError('UTR must be 12-22 alphanumeric characters (no spaces or special chars)')
       return
     }
 
@@ -70,6 +85,7 @@ export const RechargeTabSection: React.FC<{
       })
 
       setUtr('')
+      setUtrError(null)
       setSelectedAmount(500)
       setEnteredAmount(500)
       setPaymentMethod('UPI')
@@ -254,15 +270,24 @@ export const RechargeTabSection: React.FC<{
                     UTR / Reference Number <span className="req">*</span>
                   </label>
                   <input
-                    className="form-input"
+                    className={`form-input ${utrError ? 'border-red-500' : ''}`}
                     type="text"
                     value={utr}
-                    onChange={(e) => setUtr(e.target.value)}
+                    onChange={(e) => {
+                      setUtr(e.target.value)
+                      if (utrError) setUtrError(null)
+                    }}
                     placeholder="12-digit UTR or transaction reference"
                   />
-                  <div className="form-hint">
-                    Found in your UPI app or bank transaction history
-                  </div>
+                  {utrError ? (
+                    <div className="form-hint" style={{ color: 'var(--color-text-danger)' }}>
+                      {utrError}
+                    </div>
+                  ) : (
+                    <div className="form-hint">
+                      Found in your UPI app or bank transaction history
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 14 }}>

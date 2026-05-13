@@ -9,7 +9,7 @@ import type {
   PrintStats,
 } from "../../app/(main)/print-history/printHistory";
 
-const API_BASE = "http://localhost:5001";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 const TOKEN_KEY = "csp_access_token";
 
 const getToken = () => {
@@ -136,7 +136,7 @@ export const fetchPrintHistory = createAsyncThunk<
       return rejectWithValue("No auth token. Redirecting...");
     }
 
-    const url = new URL("/csp/passbook/history", API_BASE);
+    const url = new URL("/api/csp/passbook/history", API_BASE);
 
     if (params.customer_id) {
       url.searchParams.set("customer_id", String(params.customer_id));
@@ -205,6 +205,43 @@ export const fetchPrintHistory = createAsyncThunk<
   }
 });
 
+export const reprintPassbook = createAsyncThunk<
+  ApiResponse<{ pdf_signed_url: string; is_free: boolean; reprint_charge: number }>,
+  { jobId: number },
+  { rejectValue: string }
+>("printHistory/reprint", async ({ jobId }, { rejectWithValue }) => {
+  try {
+    const token = getToken();
+
+    if (!token) {
+      return rejectWithValue("No auth token. Please login.");
+    }
+
+    const apiUrl = `${API_BASE}/csp/passbook/reprint/${jobId}`;
+    console.log('🔍 Reprint API URL:', apiUrl);
+    console.log('🔍 Token exists:', !!token);
+    
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+    console.log('🔍 Reprint Response:', { status: response.status, data });
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || `HTTP ${response.status}`);
+    }
+
+    return data;
+  } catch (error: any) {
+    return rejectWithValue(error.message || "Failed to reprint passbook");
+  }
+});
+
 const printHistorySlice = createSlice({
   name: "printHistory",
   initialState,
@@ -253,6 +290,18 @@ const printHistorySlice = createSlice({
 
         state.error =
           action.payload ?? action.error.message ?? "Failed to fetch print history";
+      })
+      .addCase(reprintPassbook.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(reprintPassbook.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(reprintPassbook.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to reprint passbook";
       });
   },
 });

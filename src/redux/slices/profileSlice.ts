@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { Debugger } from "inspector/promises";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'
 
@@ -267,7 +266,6 @@ export const changePassword = createAsyncThunk<
   { current_Password: string; new_Password: string },
   { rejectValue: string }
 >("profile/changePassword", async (passwordData, { rejectWithValue }) => {
-  debugger;
 
   try {
     const token = getAuthToken();

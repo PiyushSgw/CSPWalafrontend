@@ -20,6 +20,7 @@ export default function LoginForm() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [navigating, setNavigating] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -35,6 +36,7 @@ export default function LoginForm() {
     const res = await dispatch(loginCSP(form));
     if (loginCSP.fulfilled.match(res)) {
       toast.success('Welcome back!');
+      setNavigating(true);
       router.push('/dashboard');
     } else {
       toast.error((res.payload as string) || 'Login failed');
@@ -42,7 +44,16 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen flex relative" style={{ background: '#f8fafc' }}>
+      {/* Navigation Loader Overlay */}
+      {navigating && (
+        <div className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="animate-spin w-10 h-10 text-green-600 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-gray-700">Redirecting to dashboard...</p>
+          </div>
+        </div>
+      )}
       {/* Left Panel */}
       <div className="hidden lg:flex flex-col w-2/5 p-12 justify-between" style={{ background: '#0f1629' }}>
         <div className="flex items-center gap-3">
