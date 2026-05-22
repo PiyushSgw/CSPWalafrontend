@@ -13,16 +13,18 @@ export interface Customer {
   branch_name: string | null;
 }
 
+
+
 export interface MappedCustomer {
-  account_number: any;
   id: number;
   name: string;
   mobile: string;
+  account_number: string;
   accountShort: string;
   bank: string;
   type: "Savings" | "Current" | "Jan Dhan";
   lastPrint: string;
-  fetchedAt: string; // ISO date saved during fetch
+  fetchedAt: string;
 }
 
 export interface ApiMeta {

@@ -4,7 +4,7 @@ import {
   PayloadAction,
 } from "@reduxjs/toolkit";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 export interface Customer {
   id: number;
@@ -21,14 +21,17 @@ export interface Customer {
   branch_name: string | null;
 }
 
+// ── FIXED: added account_number and fetchedAt ──────────────────────────────
 export interface MappedCustomer {
   id: number;
   name: string;
   mobile: string;
+  account_number: string;
   accountShort: string;
   bank: string;
   type: "Savings" | "Current" | "Jan Dhan";
   lastPrint: string;
+  fetchedAt: string;
 }
 
 export interface ApiMeta {
@@ -61,6 +64,18 @@ export interface FetchCustomersParams {
   page?: number;
   search?: string;
   limit?: number;
+}
+
+export interface UpdateCustomerPayload {
+  id: number;
+  name?: string;
+  account_number?: string;
+  account_type?: string;
+  ifsc?: string;
+  bank_id?: number;
+  branch_id?: number;
+  mobile?: string;
+  opening_balance?: number;
 }
 
 interface CustomersState {
@@ -97,52 +112,34 @@ export const fetchCustomers = createAsyncThunk<
   FetchCustomersParams | undefined,
   { rejectValue: string }
 >("customers/fetchAll", async (params = {}, { rejectWithValue }) => {
-  if (abortController) {
-    abortController.abort();
-  }
-
+  if (abortController) abortController.abort();
   abortController = new AbortController();
 
   try {
     const token = getAuthToken();
-
-    if (!token) {
-      return rejectWithValue("No auth token found. Please login again.");
-    }
+    if (!token) return rejectWithValue("No auth token found. Please login again.");
 
     const url = new URL(`${API_BASE_URL}/csp/customers`);
     url.searchParams.set("page", String(params.page || 1));
     url.searchParams.set("limit", String(params.limit || 20));
-
     if (typeof params.search === "string" && params.search.trim()) {
       url.searchParams.set("search", params.search.trim());
     }
 
     const response = await fetch(url.toString(), {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       signal: abortController.signal,
     });
 
     const data: ApiResponse<Customer[]> = await response.json();
-
-    if (!response.ok || data.success === false) {
-      throw new Error(data.message || `HTTP ${response.status}`);
-    }
+    if (!response.ok || data.success === false) throw new Error(data.message || `HTTP ${response.status}`);
 
     abortController = null;
     return data;
   } catch (error: any) {
     abortController = null;
-
-    if (error.name === "AbortError") {
-      // Silently return without error - this is intentional cancellation
-      return rejectWithValue("__CANCELLED__");
-    }
-
+    if (error.name === "AbortError") return rejectWithValue("__CANCELLED__");
     return rejectWithValue(error.message || "Failed to fetch customers");
   }
 });
@@ -154,29 +151,42 @@ export const createCustomer = createAsyncThunk<
 >("customers/create", async (customerData, { rejectWithValue }) => {
   try {
     const token = getAuthToken();
-
-    if (!token) {
-      return rejectWithValue("No auth token found. Please login again.");
-    }
+    if (!token) return rejectWithValue("No auth token found. Please login again.");
 
     const response = await fetch(`${API_BASE_URL}/csp/customers`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(customerData),
     });
 
     const data: ApiResponse<Customer> = await response.json();
-
-    if (!response.ok || data.success === false) {
-      throw new Error(data.message || `HTTP ${response.status}`);
-    }
-
+    if (!response.ok || data.success === false) throw new Error(data.message || `HTTP ${response.status}`);
     return data;
   } catch (error: any) {
     return rejectWithValue(error.message || "Failed to create customer");
+  }
+});
+
+export const updateCustomer = createAsyncThunk<
+  ApiResponse<Customer>,
+  UpdateCustomerPayload,
+  { rejectValue: string }
+>("customers/update", async (customerData, { rejectWithValue }) => {
+  try {
+    const token = getAuthToken();
+    if (!token) return rejectWithValue("No auth token found. Please login again.");
+
+    const response = await fetch(`${API_BASE_URL}/csp/customers/${customerData.id}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(customerData),
+    });
+
+    const data: ApiResponse<Customer> = await response.json();
+    if (!response.ok || data.success === false) throw new Error(data.message || `HTTP ${response.status}`);
+    return data;
+  } catch (error: any) {
+    return rejectWithValue(error.message || "Failed to update customer");
   }
 });
 
@@ -204,19 +214,15 @@ const customersSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(
-        fetchCustomers.fulfilled,
-        (state, action: PayloadAction<ApiResponse<Customer[]>>) => {
-          state.loading = false;
-          state.list = action.payload.data || [];
-          state.meta = action.payload.meta || null;
-          state.total = action.payload.meta?.total || 0;
-          state.error = null;
-        }
-      )
+      .addCase(fetchCustomers.fulfilled, (state, action: PayloadAction<ApiResponse<Customer[]>>) => {
+        state.loading = false;
+        state.list = action.payload.data || [];
+        state.meta = action.payload.meta || null;
+        state.total = action.payload.meta?.total || 0;
+        state.error = null;
+      })
       .addCase(fetchCustomers.rejected, (state, action) => {
         state.loading = false;
-        // Don't show error for intentionally cancelled requests
         if (action.payload !== "__CANCELLED__") {
           state.error = action.payload || "Failed to fetch customers";
         }
@@ -225,21 +231,21 @@ const customersSlice = createSlice({
         state.creating = true;
         state.createError = null;
       })
-      .addCase(
-        createCustomer.fulfilled,
-        (state, action: PayloadAction<ApiResponse<Customer>>) => {
-          state.creating = false;
-          state.createError = null;
-          state.list.unshift(action.payload.data);
-          state.total += 1;
-          if (state.meta) {
-            state.meta.total += 1;
-          }
-        }
-      )
+      .addCase(createCustomer.fulfilled, (state, action: PayloadAction<ApiResponse<Customer>>) => {
+        state.creating = false;
+        state.createError = null;
+        state.list.unshift(action.payload.data);
+        state.total += 1;
+        if (state.meta) state.meta.total += 1;
+      })
       .addCase(createCustomer.rejected, (state, action) => {
         state.creating = false;
         state.createError = action.payload || "Failed to create customer";
+      })
+      .addCase(updateCustomer.fulfilled, (state, action: PayloadAction<ApiResponse<Customer>>) => {
+        const updated = action.payload.data;
+        const idx = state.list.findIndex((c) => c.id === updated.id);
+        if (idx !== -1) state.list[idx] = updated;
       });
   },
 });

@@ -6,8 +6,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { PageHeaderSection } from "./PageHeaderSection";
 import { CustomerListSection } from "./CustomerListSection";
 import { AddCustomerSection } from "./AddCustomerSection";
+import EditCustomerModal from "./EditCustomerModal";
 
-import { fetchCustomers } from "@/redux/slices/customersSlice";
+import { fetchCustomers, updateCustomer } from "@/redux/slices/customersSlice";
+
 import type { RootState, AppDispatch } from "@/redux/store";
 import { Customer, MappedCustomer } from "./customer";
 
@@ -20,6 +22,8 @@ export default function CustomersPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<MappedCustomer | null>(null);
 
   useEffect(() => {
     dispatch(fetchCustomers({ page: currentPage, limit: 20 }));
@@ -32,58 +36,69 @@ export default function CustomersPage() {
   };
 
   const mappedCustomers: MappedCustomer[] = useMemo(() => {
-  return list.map((cust: Customer) => ({
-    id: cust.id,
-    name: cust.name,
-    mobile: cust.mobile,
-    account_number: cust.account_number,
-    accountShort: cust.account_number
-      ? `XXXX ${cust.account_number.slice(-4)}`
-      : "XXXX",
-    bank: cust.bank_code || cust.bank_name || "-",
-    type:
-      cust.account_type?.toLowerCase() === "savings"
-        ? "Savings"
-        : cust.account_type?.toLowerCase() === "current"
-        ? "Current"
-        : "Jan Dhan",
-    lastPrint: cust.created_at
-      ? new Date(cust.created_at).toLocaleDateString("en-IN")
-      : "-",
-    fetchedAt: cust.created_at || new Date().toISOString(),
-  }));
-}, [list]);
+    return list.map((cust: Customer) => ({
+      id: cust.id,
+      name: cust.name,
+      mobile: cust.mobile,
+      account_number: cust.account_number,
+      accountShort: cust.account_number
+        ? `XXXX ${cust.account_number.slice(-4)}`
+        : "XXXX",
+      bank: cust.bank_code || cust.bank_name || "-",
+      type: (
+        cust.account_type?.toLowerCase() === "savings"
+          ? "Savings"
+          : cust.account_type?.toLowerCase() === "current"
+          ? "Current"
+          : "Jan Dhan"
+      ) as "Savings" | "Current" | "Jan Dhan",
+      lastPrint: cust.created_at
+        ? new Date(cust.created_at).toLocaleDateString("en-IN")
+        : "-",
+      fetchedAt: cust.created_at || new Date().toISOString(),
+    }));
+  }, [list]);
 
   const filteredCustomers = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-
     if (!q) return mappedCustomers;
-
-    return mappedCustomers.filter((cust) => {
-      return (
-        cust.name.toLowerCase().includes(q) ||
-        cust.mobile.toLowerCase().includes(q) ||
-        cust.accountShort.toLowerCase().includes(q) ||
-        cust.bank.toLowerCase().includes(q)
-      );
-    });
+    return mappedCustomers.filter((cust) =>
+      cust.name?.toLowerCase().includes(q) ||
+      cust.mobile?.toLowerCase().includes(q) ||
+      cust.accountShort?.toLowerCase().includes(q) ||
+      cust.bank?.toLowerCase().includes(q)
+    );
   }, [mappedCustomers, searchTerm]);
+
+  const handleEdit = (customer: MappedCustomer) => {
+    setSelectedCustomer(customer);
+    setIsEditOpen(true);
+  };
+
+  const handleUpdate = async (updatedCustomer: MappedCustomer) => {
+    await dispatch(updateCustomer({
+      id: updatedCustomer.id,
+      name: updatedCustomer.name,
+      mobile: updatedCustomer.mobile,
+      account_number: updatedCustomer.account_number,
+      account_type: updatedCustomer.type.toLowerCase().replace(" ", "_"),
+    }));
+    setIsEditOpen(false);
+    setSelectedCustomer(null);
+    dispatch(fetchCustomers({ page: currentPage, limit: 20 }));
+  };
+
+  const handleCloseModal = () => {
+    setIsEditOpen(false);
+    setSelectedCustomer(null);
+  };
 
   return (
     <div className="page active" id="page-customers">
       <PageHeaderSection />
 
       {error && (
-        <div
-          style={{
-            marginBottom: 16,
-            padding: "12px 16px",
-            borderRadius: 8,
-            background: "#fee2e2",
-            color: "#b91c1c",
-            fontSize: 14,
-          }}
-        >
+        <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 8, background: "#fee2e2", color: "#b91c1c", fontSize: 14 }}>
           {error}
         </div>
       )}
@@ -96,13 +111,20 @@ export default function CustomersPage() {
             loading={loading}
             currentPage={currentPage}
             onPageChange={handlePageChange}
+            onEdit={handleEdit}
           />
         </div>
-
         <div>
           <AddCustomerSection />
         </div>
       </div>
+
+      <EditCustomerModal
+        isOpen={isEditOpen}
+        onClose={handleCloseModal}
+        editData={selectedCustomer}
+        onUpdate={handleUpdate}
+      />
     </div>
   );
 }

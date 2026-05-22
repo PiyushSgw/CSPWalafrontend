@@ -1,7 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useAppSelector } from '../../redux/hooks';
+import { useState } from 'react';
+import { toast } from 'react-hot-toast'; // or wherever you import toast from
+import { useAppSelector, useAppDispatch } from '../../redux/hooks';
+import { reprintPassbook } from '../../redux/slices/printHistorySlice'; // adjust path
 
 type PrintJobRow = {
   id?: number | string;
@@ -26,10 +29,8 @@ const typeConfig: Record<string, { bg: string; text: string }> = {
 
 const formatDateTime = (value?: string) => {
   if (!value) return '—';
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-
   return date.toLocaleString('en-IN', {
     day: '2-digit',
     month: 'short',
@@ -41,21 +42,22 @@ const formatDateTime = (value?: string) => {
 
 const normalizeJobType = (jobType?: string) => {
   if (!jobType) return 'Passbook';
-
   const value = jobType.trim().toLowerCase();
-
   if (value === 'passbook') return 'Passbook';
   if (value === 'form + pb' || value === 'form+pb') return 'Form + PB';
   if (value === 'form') return 'Form';
   if (value === 'combo') return 'Combo';
   if (value === 'acct form' || value === 'acct_form') return 'Acct Form';
   if (value === 'jan dhan' || value === 'jan_dhan') return 'Jan Dhan';
-
   return jobType;
 };
 
 export default function RecentPrintJobs() {
+  const dispatch = useAppDispatch();
   const dashboardState = useAppSelector((s: any) => s.dashboard);
+
+  // Track which job is currently reprinting by its ID
+  const [reprintingId, setReprintingId] = useState<number | string | null>(null);
 
   const list: PrintJobRow[] = Array.isArray(dashboardState?.stats?.recentJobs)
     ? dashboardState.stats.recentJobs
@@ -63,12 +65,60 @@ export default function RecentPrintJobs() {
 
   const loading = Boolean(dashboardState?.loading);
   const error = dashboardState?.error;
-
-  // If backend returns latest first
   const jobs = [...list].slice(0, 5);
 
-  // If backend returns oldest first, use this instead:
-  // const jobs = [...list].slice(-5).reverse();
+  const handleReprint = async (job: PrintJobRow) => {
+    // Get the job ID — use whichever field is available
+    const rawId = job.id ?? job.print_job_id;
+    if (!rawId) {
+      toast.error('Job ID not found.');
+      return;
+    }
+
+    // Prevent double-click
+    if (reprintingId !== null) return;
+
+    const jobId = Number(String(rawId).replace('#', ''));
+    setReprintingId(rawId);
+
+    try {
+      const result = await dispatch(reprintPassbook({ jobId }));
+
+      if (result.meta.requestStatus === 'fulfilled') {
+        // Open PDF in new tab
+        if (
+          typeof result.payload === 'object' &&
+          result.payload?.data?.pdf_signed_url
+        ) {
+          window.open(result.payload.data.pdf_signed_url, '_blank');
+        }
+        toast.success(
+          (typeof result.payload === 'object' ? result.payload?.message : '') ||
+            'Reprint successful!'
+        );
+      } else if (result.meta.requestStatus === 'rejected') {
+        const errorMessage =
+          typeof result.payload === 'string' ? result.payload : 'Reprint failed';
+
+        if (
+          errorMessage.includes('Print job not found') ||
+          errorMessage.includes('Not Found')
+        ) {
+          toast.error('Print job not found. The job may have been deleted or expired.');
+        } else if (errorMessage.includes('No auth token')) {
+          toast.error('Authentication required. Please login again.');
+        } else {
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error('Reprint failed');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Reprint failed');
+    } finally {
+      setReprintingId(null);
+    }
+  };
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[12px] overflow-hidden shadow-sm">
@@ -77,7 +127,6 @@ export default function RecentPrintJobs() {
           <span className="w-2 h-2 bg-[#0d8f72] rounded-full flex-shrink-0" />
           Recent Print Jobs
         </h2>
-
         <Link
           href="/print-history"
           className="text-[11px] font-bold text-[#6b7280] hover:text-[#111827] hover:bg-[#f3f5f8] transition-all px-[9px] py-1 rounded-[5px]"
@@ -87,26 +136,18 @@ export default function RecentPrintJobs() {
       </div>
 
       {loading && (
-        <div className="p-8 text-center text-[#6b7280] text-[13px]">
-          Loading...
-        </div>
+        <div className="p-8 text-center text-[#6b7280] text-[13px]">Loading...</div>
       )}
 
       {!loading && error && (
-        <div className="p-8 text-center text-red-600 text-[13px]">
-          {error}
-        </div>
+        <div className="p-8 text-center text-red-600 text-[13px]">{error}</div>
       )}
 
       {!loading && !error && jobs.length === 0 && (
         <div className="py-12 text-center">
           <span className="text-[40px] block mb-3 opacity-40">🖨️</span>
-          <p className="text-[15px] font-bold text-[#374151] mb-1">
-            No print jobs yet
-          </p>
-          <p className="text-[13px] text-[#6b7280]">
-            Your recent prints will appear here
-          </p>
+          <p className="text-[15px] font-bold text-[#374151] mb-1">No print jobs yet</p>
+          <p className="text-[13px] text-[#6b7280]">Your recent prints will appear here</p>
         </div>
       )}
 
@@ -130,10 +171,12 @@ export default function RecentPrintJobs() {
               {jobs.map((j) => {
                 const normalizedType = normalizeJobType(j?.job_type);
                 const typeStyle = typeConfig[normalizedType] || typeConfig.Passbook;
+                const rowId = j?.id ?? j?.print_job_id;
+                const isThisReprinting = reprintingId === rowId;
 
                 return (
                   <tr
-                    key={j?.id ?? j?.print_job_id ?? `${j?.account_number}-${j?.created_at}`}
+                    key={rowId ?? `${j?.account_number}-${j?.created_at}`}
                     className="border-b border-[#e5e7eb] last:border-0 hover:bg-[#fafbfc] transition-colors"
                   >
                     <td className="px-[14px] py-3 pl-5">
@@ -170,9 +213,17 @@ export default function RecentPrintJobs() {
                     <td className="px-[14px] py-3 pr-5">
                       <button
                         type="button"
-                        className="px-[9px] py-1 border-[1.5px] border-[#d1d5db] rounded-[5px] text-[11px] font-bold text-[#374151] bg-transparent hover:bg-[#f3f5f8] transition-colors whitespace-nowrap"
+                        onClick={() => handleReprint(j)}
+                        disabled={reprintingId !== null}
+                        className={`px-[9px] py-1 border-[1.5px] rounded-[5px] text-[11px] font-bold transition-colors whitespace-nowrap
+                          ${isThisReprinting
+                            ? 'border-[#0d8f72] text-[#0d8f72] bg-[#f0fdf4] cursor-wait'
+                            : reprintingId !== null
+                              ? 'border-[#d1d5db] text-[#9ca3af] bg-transparent cursor-not-allowed opacity-50'
+                              : 'border-[#d1d5db] text-[#374151] bg-transparent hover:bg-[#f3f5f8] cursor-pointer'
+                          }`}
                       >
-                        Reprint
+                        {isThisReprinting ? 'Printing...' : 'Reprint'}
                       </button>
                     </td>
                   </tr>
