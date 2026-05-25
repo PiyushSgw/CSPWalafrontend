@@ -9,19 +9,21 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/a
 export interface Customer {
   id: number;
   name: string;
+  mobile: string;
   account_number: string;
   account_type: string;
   ifsc: string;
-  mobile: string;
   opening_balance: string;
   photo_url: string;
+  aadhar_number: string;
+  address: string;
+  pin_code: string;
   created_at: string;
   bank_name: string;
   bank_code: string;
   branch_name: string | null;
 }
 
-// ── FIXED: added account_number and fetchedAt ──────────────────────────────
 export interface MappedCustomer {
   id: number;
   name: string;
@@ -51,13 +53,16 @@ export interface ApiResponse<T = any> {
 
 export interface CreateCustomerPayload {
   name: string;
-  account_number: string;
-  account_type: string;
-  ifsc: string;
-  bank_id: number;
-  branch_id: number;
   mobile: string;
-  opening_balance: number;
+  account_number?: string;
+  account_type?: string;
+  ifsc?: string;
+  bank_id?: number;
+  branch_id?: number;
+  opening_balance?: number;
+  aadhar_number?: string;
+  address?: string;
+  pin_code?: string;
 }
 
 export interface FetchCustomersParams {
@@ -69,13 +74,16 @@ export interface FetchCustomersParams {
 export interface UpdateCustomerPayload {
   id: number;
   name?: string;
+  mobile?: string;
   account_number?: string;
   account_type?: string;
   ifsc?: string;
   bank_id?: number;
   branch_id?: number;
-  mobile?: string;
   opening_balance?: number;
+  aadhar_number?: string;
+  address?: string;
+  pin_code?: string;
 }
 
 interface CustomersState {

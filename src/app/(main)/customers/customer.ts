@@ -15,6 +15,8 @@ export interface Customer {
 
 
 
+// This file defines the MappedCustomer interface that should be in your customer.ts or types file
+
 export interface MappedCustomer {
   id: number;
   name: string;
@@ -25,6 +27,12 @@ export interface MappedCustomer {
   type: "Savings" | "Current" | "Jan Dhan";
   lastPrint: string;
   fetchedAt: string;
+  // NEW FIELDS
+  aadhar_number?: string;
+  address?: string;
+  pin_code?: string;
+  ifsc?: string;
+  opening_balance?: number;
 }
 
 export interface ApiMeta {
