@@ -186,6 +186,7 @@ export default function ProfilePage() {
     <div className="profile-page">
       <PageHeaderSection
         onSave={handleSave}
+        onChangePassword={() => setActiveTab("pt-security")}
         saving={saving}
         loading={profileHook.loading}
       />

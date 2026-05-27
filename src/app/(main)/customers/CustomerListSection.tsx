@@ -1,6 +1,10 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+} from 'react'
 import CustomerRow from './CustomerRow'
 import { ApiMeta, MappedCustomer } from './customer'
 
@@ -11,6 +15,9 @@ interface Props {
   currentPage?: number
   onPageChange?: (page: number) => void
   onEdit: (customer: MappedCustomer) => void
+  onFilteredDataChange?: (
+    customers: MappedCustomer[]
+  ) => void
 }
 
 export const CustomerListSection: React.FC<Props> = ({
@@ -20,6 +27,7 @@ export const CustomerListSection: React.FC<Props> = ({
   currentPage = 1,
   onPageChange,
   onEdit,
+  onFilteredDataChange,
 }) => {
   const [search, setSearch] = useState('')
 
@@ -27,14 +35,20 @@ export const CustomerListSection: React.FC<Props> = ({
     const q = search.trim().toLowerCase()
     if (!q) return customers
     return customers.filter((cust) => {
-      const name    = cust.name?.toLowerCase() || ''
+      const name = cust.name?.toLowerCase() || ''
       const account = cust.accountShort?.toLowerCase() || cust.account_number?.toLowerCase() || ''
-      const mobile  = cust.mobile?.toLowerCase() || ''
+      const mobile = cust.mobile?.toLowerCase() || ''
       return name.includes(q) || account.includes(q) || mobile.includes(q)
     })
   }, [customers, search])
 
-  const totalPages  = meta?.totalPages || 1
+  useEffect(() => {
+    if (onFilteredDataChange) {
+      onFilteredDataChange(filteredCustomers)
+    }
+  }, [filteredCustomers, onFilteredDataChange])
+
+  const totalPages = meta?.totalPages || 1
   const hasPrevPage = currentPage > 1
   const hasNextPage = currentPage < totalPages
 
