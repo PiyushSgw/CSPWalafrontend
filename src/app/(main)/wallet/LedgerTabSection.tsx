@@ -1,6 +1,7 @@
 import { WalletTransaction } from "@/redux/slices/walletSlice"
 import { WalletCardSection } from "./WalletCardSection"
 import { WalletTransactionRow } from "./WalletTransactionRow"
+import { Totalvalue } from "./Totalvalue"
 
 export interface Props {
   balance: any
@@ -86,9 +87,12 @@ export const LedgerTabSection: React.FC<Props> = ({
   return (
     <div id="wt-ledger">
       {/* Rest of your existing JSX stays exactly same */}
-      <div className="col-1-2" style={{ gap: 16, marginBottom: 20, alignItems: "start" }}>
+      <div className="col-1-2" style={{ marginBottom: 20, alignItems: "start" }}>
         <WalletCardSection availableBalance={balance?.balance || 0} />
         {/* Your existing CardStat grid + button */}
+        <div className="">
+         <Totalvalue />
+        </div>
       </div>
       
       <div className="card">
