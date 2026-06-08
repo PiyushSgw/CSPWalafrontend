@@ -256,6 +256,7 @@ export const createApplication = createAsyncThunk<CreateApplicationResponse, Acc
 export const downloadApplicationPdf = createAsyncThunk<{ success: true; filename: string }, number | string, { rejectValue: string }>(
   'accountOpening/downloadApplicationPdf',
   async (applicationId, { rejectWithValue }) => {
+    debugger;
     try {
       const token = getAuthToken();
       if (!token) return rejectWithValue('No auth token found. Please login again.');

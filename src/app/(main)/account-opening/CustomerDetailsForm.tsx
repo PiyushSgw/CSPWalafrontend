@@ -150,15 +150,6 @@ export default function CustomerDetailsForm() {
     if (!customers.length) dispatch(fetchCustomers({ page: 1, limit: 1000 }));
   }, [dispatch, customers.length]);
 
-  useEffect(() => {
-    return () => {
-      if (formData.photo_url?.startsWith("blob:"))
-        URL.revokeObjectURL(formData.photo_url);
-      if (formData.signature_url?.startsWith("blob:"))
-        URL.revokeObjectURL(formData.signature_url);
-    };
-  }, []);
-
   const set = <K extends keyof typeof formData>(
     field: K,
     value: (typeof formData)[K],
@@ -238,17 +229,21 @@ export default function CustomerDetailsForm() {
     }
   };
 
-  const handleImageChange = (
-    e: ChangeEvent<HTMLInputElement>,
-    field: "photo_url" | "signature_url",
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    const cur = formData[field];
-    if (cur?.startsWith("blob:")) URL.revokeObjectURL(cur);
-    set(field, URL.createObjectURL(file));
-    e.target.value = "";
+ const handleImageChange = (
+  e: ChangeEvent<HTMLInputElement>,
+  field: "photo_url" | "signature_url",
+) => {
+  const file = e.target.files?.[0];
+  if (!file || !file.type.startsWith("image/")) return;
+
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    set(field, reader.result as string); // base64 data URI
   };
+  reader.readAsDataURL(file);
+
+  e.target.value = "";
+};
 
   const showPassportDates = PASSPORT_LIKE.includes(formData.proof_of_identity);
 
