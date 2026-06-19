@@ -53,6 +53,7 @@ export interface AccountOpeningFormData {
   nominee_mobile: string;
   nominee_relation: string;
   nominee_address: string;
+  nominee_address_same?: boolean;
   nominee_age: string;
   nominee_dob: string;
 
@@ -170,6 +171,7 @@ const initialState: AccountOpeningState = {
     nominee_mobile: '',
     nominee_relation: 'FATHER',
     nominee_address: '',
+    nominee_address_same: false,
     nominee_age: '',
     nominee_dob: '',
     ckyc_number: '',
@@ -256,7 +258,6 @@ export const createApplication = createAsyncThunk<CreateApplicationResponse, Acc
 export const downloadApplicationPdf = createAsyncThunk<{ success: true; filename: string }, number | string, { rejectValue: string }>(
   'accountOpening/downloadApplicationPdf',
   async (applicationId, { rejectWithValue }) => {
-    debugger;
     try {
       const token = getAuthToken();
       if (!token) return rejectWithValue('No auth token found. Please login again.');
@@ -318,6 +319,16 @@ const accountOpeningSlice = createSlice({
       state: AccountOpeningState,
       action: PayloadAction<{ field: K; value: AccountOpeningFormData[K] }>
     ) { state.formData[action.payload.field] = action.payload.value; },
+    // Bulk-update many formData fields at once in a single atomic action.
+    // Used by CustomerSearchBar to autofill several fields (name, mobile,
+    // account number, address, etc.) from a selected customer record
+    // without firing one dispatch per field.
+    applyCustomerToFormData(
+      state: AccountOpeningState,
+      action: PayloadAction<Partial<AccountOpeningFormData>>
+    ) {
+      state.formData = { ...state.formData, ...action.payload };
+    },
     resetSubmitState(state) { state.previewError = null; state.submitError = null; state.submitSuccess = null; state.pdfError = null; },
     resetCustomerLookup(state) { state.customerNotFound = false; state.formData.customer_id = null; },
     setCustomerLookupStatus(state, action: PayloadAction<boolean>) { state.customerNotFound = action.payload; },
@@ -361,6 +372,7 @@ export const {
   setCustomerNotFound, setCustomerId, setBankId, setBranchId,
   updateFormField, resetSubmitState, resetCustomerLookup,
   setCustomerLookupStatus, addHistoryItem, resetAccountOpeningState,
+  applyCustomerToFormData,
 } = accountOpeningSlice.actions;
 
 export default accountOpeningSlice.reducer;

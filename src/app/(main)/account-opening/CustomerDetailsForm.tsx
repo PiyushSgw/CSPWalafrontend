@@ -245,6 +245,14 @@ export default function CustomerDetailsForm() {
   e.target.value = "";
 };
 
+  // Toggle: copy applicant address into nominee address, or clear sync flag
+  const handleNomineeAddressSameToggle = (checked: boolean) => {
+    set("nominee_address_same" as any, checked as any);
+    if (checked) {
+      set("nominee_address", formData.address);
+    }
+  };
+
   const showPassportDates = PASSPORT_LIKE.includes(formData.proof_of_identity);
 
   return (
@@ -404,6 +412,27 @@ export default function CustomerDetailsForm() {
           width: 15px;
           height: 15px;
           accent-color: var(--teal);
+        }
+
+        /* ── Inline checkbox label (e.g. nominee address same) ── */
+        .cdf-inline-check-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #374151;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          cursor: pointer;
+          height: 100%;
+          padding-top: 18px;
+        }
+        .cdf-inline-checkbox {
+          width: 15px;
+          height: 15px;
+          accent-color: var(--teal);
+          cursor: pointer;
         }
 
         /* ── Image preview ── */
@@ -1074,10 +1103,27 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={formData.nominee_address}
+                  readOnly={!!formData.nominee_address_same}
                   onChange={(e) => set("nominee_address", e.target.value)}
                 />
               </div>
             </div>
+
+            {/* Same as Applicant Address checkbox */}
+            <div className="cdf-grid-1">
+              <label className="cdf-inline-check-label" style={{ paddingTop: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={!!formData.nominee_address_same}
+                  onChange={(e) =>
+                    handleNomineeAddressSameToggle(e.target.checked)
+                  }
+                  className="cdf-inline-checkbox"
+                />
+                Nominee address same as Applicant address
+              </label>
+            </div>
+
             <div className="cdf-grid-2-sm">
               <div className="cdf-group">
                 <label className="cdf-label">Nominee Age</label>
