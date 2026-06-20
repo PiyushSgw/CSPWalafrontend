@@ -19,6 +19,14 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 export function RequestHistorySection({ requests, loading, onDownload, onGenerate, pdfGenerating }: Props) {
+  const getServiceList = (req: any): string => {
+    const rd = req.request_data || {}
+    if (Array.isArray(rd.selectedServices)) {
+      return rd.selectedServices.join(', ')
+    }
+    return req.service_name || 'Service Request'
+  }
+
   return (
     <div className="bg-white rounded-xl border border-[#e5e7eb] p-6">
       <div className="flex items-center gap-2 mb-4">
@@ -44,7 +52,9 @@ export function RequestHistorySection({ requests, loading, onDownload, onGenerat
               className="flex items-center justify-between p-3 rounded-lg border border-[#f3f4f6] hover:border-[#e5e7eb] transition-colors"
             >
               <div className="min-w-0">
-                <p className="text-sm font-medium text-[#111827]">{req.service_name}</p>
+                <p className="text-sm font-medium text-[#111827] truncate max-w-[200px]">
+                  {getServiceList(req)}
+                </p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-[#9ca3af] font-mono">{req.bank_code}</span>
                   <span className="text-xs text-[#d1d5db]">|</span>

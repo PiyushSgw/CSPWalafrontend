@@ -12,7 +12,7 @@ export interface FormField {
   maxLength?: number
   options?: { value: string; label: string }[] | string[]
 }
-debugger;
+
 export interface FormConfig {
   serviceCode: string
   title: string
@@ -55,7 +55,7 @@ export interface ServiceRequest {
   user_id: number
   customer_id: number | null
   bank_id: number
-  service_id: number
+  service_id: number | null
   status: string
   request_data: Record<string, any>
   pdf_generated: boolean
@@ -65,8 +65,6 @@ export interface ServiceRequest {
   updated_at: string
   bank_name?: string
   bank_code?: string
-  service_name?: string
-  service_code?: string
   customer_name?: string
 }
 
@@ -84,7 +82,6 @@ interface ServiceRequestState {
   commonFormLoading: boolean
   serviceFormsLoading: boolean
   submitting: boolean
-  submitResults: { success: boolean; serviceName: string; error?: string }[]
   pdfGenerating: boolean
   error: string | null
   customerSearchResults: CustomerSearchResult[]
@@ -107,7 +104,6 @@ const initialState: ServiceRequestState = {
   commonFormLoading: false,
   serviceFormsLoading: false,
   submitting: false,
-  submitResults: [],
   pdfGenerating: false,
   error: null,
   customerSearchResults: [],
@@ -167,7 +163,7 @@ export const fetchFormConfig = createAsyncThunk(
 
 export const submitServiceRequest = createAsyncThunk(
   'serviceRequest/submitServiceRequest',
-  async (payload: { bankId: number; serviceId: number; customerId?: number; requestData: Record<string, any> }, { rejectWithValue }) => {
+  async (payload: { bankId: number; customerId?: number; requestData: Record<string, any> }, { rejectWithValue }) => {
     try {
       const res = await api.post(API_BASE, payload)
       return res.data?.data || null
@@ -239,7 +235,6 @@ const serviceRequestSlice = createSlice({
       state.serviceFormConfigs = {}
       state.services = []
       state.currentRequests = []
-      state.submitResults = []
       state.selectedCustomer = null
       state.customerSearchResults = []
     },
@@ -268,7 +263,6 @@ const serviceRequestSlice = createSlice({
       state.serviceFormConfigs = {}
       state.services = []
       state.currentRequests = []
-      state.submitResults = []
       state.selectedCustomer = null
       state.customerSearchResults = []
       state.step = 'bank'
@@ -321,7 +315,7 @@ const serviceRequestSlice = createSlice({
       .addCase(submitServiceRequest.pending, (state) => { state.submitting = true; state.error = null })
       .addCase(submitServiceRequest.fulfilled, (state, action) => {
         state.submitting = false
-        state.currentRequests.push(action.payload)
+        state.currentRequests = [action.payload]
       })
       .addCase(submitServiceRequest.rejected, (state, action) => {
         state.submitting = false

@@ -14,8 +14,10 @@ export interface CustomerSearchResult {
   account_type: string
   ifsc: string
   opening_balance: string
+  bank_id: number
   bank_name: string
   bank_code: string
+  branch_name: string
 }
 
 export interface DebitCardRequest {
@@ -151,7 +153,7 @@ const debitCardSlice = createSlice({
     selectCustomer(state, action: PayloadAction<CustomerSearchResult | null>) {
       state.selectedCustomer = action.payload
       if (action.payload) {
-        state.formData.branchName = action.payload.bank_name || ''
+        state.formData.branchName = action.payload.branch_name || ''
         state.formData.accountNumber = action.payload.account_number || ''
         state.formData.mobileNumber = action.payload.mobile || ''
       }

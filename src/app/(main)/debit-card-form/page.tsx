@@ -8,38 +8,17 @@ import { CustomerSearchSection } from '@/components/debit-card/CustomerSearchSec
 import { DebitCardFormSection } from '@/components/debit-card/DebitCardFormSection'
 import { ReviewSection } from '@/components/debit-card/ReviewSection'
 
-const UNION_BANK_SHORT_CODE = 'UBI'
-
 const STEP_LABELS = ['Customer', 'Form', 'Review', 'Done']
 const STEP_ORDER: ('customer' | 'form' | 'review' | 'done')[] = ['customer', 'form', 'review', 'done']
 
 export default function DebitCardFormPage() {
   const dc = useDebitCard()
-  const [unionBankId, setUnionBankId] = useState<number | null>(null)
   const [processing, setProcessing] = useState(false)
   const [pdfDownloadUrl, setPdfDownloadUrl] = useState<string | null>(null)
   const [pdfGenerated, setPdfGenerated] = useState(false)
 
   useEffect(() => {
     dc.loadRequests()
-  }, [])
-
-  useEffect(() => {
-    const fetchUnionBank = async () => {
-      try {
-        const res = await api.get('/public/banks')
-        const banks: any[] = res.data?.data || []
-        const union = banks.find(
-          (b: any) => b.short_code === UNION_BANK_SHORT_CODE || b.name?.toLowerCase().includes('union')
-        )
-        if (union) {
-          setUnionBankId(union.id)
-        }
-      } catch {
-        console.warn('Could not fetch Union Bank ID')
-      }
-    }
-    fetchUnionBank()
   }, [])
 
   const handleDownloadPdf = async () => {
@@ -76,14 +55,14 @@ export default function DebitCardFormPage() {
   }
 
   const handleSubmit = async () => {
-    if (!dc.selectedCustomer || !unionBankId) {
-      toast.error('Missing customer or bank information')
+    if (!dc.selectedCustomer) {
+      toast.error('Missing customer information')
       return
     }
     setProcessing(true)
     try {
       const result = await dc.submitRequest({
-        bankId: unionBankId,
+        bankId: dc.selectedCustomer.bank_id || 0,
         customerId: dc.selectedCustomer.id,
         requestData: dc.formData,
       })
@@ -151,7 +130,7 @@ export default function DebitCardFormPage() {
           <div>
             <h1 className="text-xl font-bold text-[#111827]">Debit Card Form</h1>
             <p className="text-sm text-[#6b7280]">
-              {unionBankId ? 'Union Bank of India' : 'Loading bank...'}
+              {dc.selectedCustomer?.bank_name || 'Debit Card Application'}
             </p>
           </div>
         </div>

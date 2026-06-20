@@ -10,7 +10,7 @@ interface Step {
 
 const STEPS: Step[] = [
   { id: 1, label: 'Select Bank', key: 'bank' },
-  { id: 2, label: 'Select Service', key: 'service' },
+  { id: 2, label: 'Select Services', key: 'service' },
   { id: 3, label: 'Select Customer', key: 'customer' },
   { id: 4, label: 'Fill Form', key: 'form' },
   { id: 5, label: 'Done', key: 'done' },

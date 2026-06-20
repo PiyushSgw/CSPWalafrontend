@@ -16,60 +16,6 @@ import { RequestHistorySection } from './RequestHistorySection'
 
 const DOWNLOAD_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'
 
-function buildOldValues(customer: any): Record<string, any> {
-  const old: Record<string, any> = {}
-  if (customer.address) old.address = customer.address
-  if (customer.mobile) old.mobile = customer.mobile
-  if (customer.email) old.email = customer.email
-  if (customer.pin_code) old.pin_code = customer.pin_code
-  if (customer.aadhar_number) old.aadhar_number = customer.aadhar_number
-  if (customer.name) old.name = customer.name
-  if (customer.account_number) old.account_number = customer.account_number
-  if (customer.ifsc) old.ifsc = customer.ifsc
-  return old
-}
-
-function buildFieldMappings(customer: any): Record<string, any> {
-  const map: Record<string, any> = {}
-  if (customer.id) {
-    map.customerId = String(customer.id)
-    map.customer_id = customer.id
-  }
-  if (customer.address) {
-    map.address = customer.address
-    map.currentAddress = customer.address
-    map.permanentAddress = customer.address
-    map.oldAddress = customer.address
-  }
-  if (customer.mobile) {
-    map.mobile = customer.mobile
-    map.phoneNo = customer.mobile
-    map.phone = customer.mobile
-  }
-  if (customer.email) map.email = customer.email
-  if (customer.pin_code) {
-    map.pin = customer.pin_code
-    map.pinCode = customer.pin_code
-    map.pincode = customer.pin_code
-  }
-  if (customer.aadhar_number) {
-    map.aadhar = customer.aadhar_number
-    map.aadharNumber = customer.aadhar_number
-  }
-  if (customer.name) {
-    map.customerName = customer.name
-    map.fullName = customer.name
-  }
-  if (customer.account_number) {
-    map.accountNumber = customer.account_number
-    map.account_number = customer.account_number
-  }
-  if (customer.ifsc) map.ifsc = customer.ifsc
-  if (customer.bank_name) map.bankName = customer.bank_name
-  if (customer.account_type) map.accountType = customer.account_type
-  return map
-}
-
 export default function ServiceRequestPage() {
   const sr = useServiceRequest()
 
@@ -77,7 +23,6 @@ export default function ServiceRequestPage() {
   const [serviceData, setServiceData] = useState<Record<string, Record<string, any>>>({})
   const [commonErrors, setCommonErrors] = useState<Record<string, string>>({})
   const [serviceErrors, setServiceErrors] = useState<Record<string, Record<string, string>>>({})
-  const [oldValues, setOldValues] = useState<Record<string, any>>({})
 
   useEffect(() => {
     sr.loadRequests()
@@ -89,21 +34,38 @@ export default function ServiceRequestPage() {
       setServiceData({})
       setCommonErrors({})
       setServiceErrors({})
-      setOldValues({})
     }
   }, [sr.step])
 
   useEffect(() => {
     if (sr.selectedCustomer) {
-      const mappings = buildFieldMappings(sr.selectedCustomer)
-      const old = buildOldValues(sr.selectedCustomer)
-      setOldValues(old)
+      const map: Record<string, any> = {}
+      if (sr.selectedCustomer.id) {
+        map.customerId = String(sr.selectedCustomer.id)
+      }
+      if (sr.selectedCustomer.name) {
+        map.fullName = sr.selectedCustomer.name
+        const nameParts = sr.selectedCustomer.name.trim().split(/\s+/)
+        map.firstName = nameParts[0] || ''
+        if (nameParts.length > 2) {
+          map.middleName = nameParts.slice(1, -1).join(' ')
+          map.lastName = nameParts[nameParts.length - 1]
+        } else if (nameParts.length === 2) {
+          map.lastName = nameParts[1]
+        }
+      }
+      if (sr.selectedCustomer.account_number) map.accountNumber = sr.selectedCustomer.account_number
+      if (sr.selectedCustomer.mobile) map.mobile = sr.selectedCustomer.mobile
+      if (sr.selectedCustomer.email) map.email = sr.selectedCustomer.email
+      if (sr.selectedCustomer.address) map.address = sr.selectedCustomer.address
+      if (sr.selectedCustomer.pin_code) map.pinCode = sr.selectedCustomer.pin_code
+      if (sr.selectedCustomer.aadhar_number) map.aadhaarNumber = sr.selectedCustomer.aadhar_number
 
       setCommonData((prev) => {
         const updated = { ...prev }
-        for (const [fieldKey, value] of Object.entries(mappings)) {
-          if (updated[fieldKey] === undefined || updated[fieldKey] === '' || updated[fieldKey] === null) {
-            updated[fieldKey] = value
+        for (const [k, v] of Object.entries(map)) {
+          if (updated[k] === undefined || updated[k] === '' || updated[k] === null) {
+            updated[k] = v
           }
         }
         return updated
@@ -115,9 +77,9 @@ export default function ServiceRequestPage() {
           updated[bsid] = { ...prev[bsid] }
         }
         for (const bsid of Object.keys(updated)) {
-          for (const [fieldKey, value] of Object.entries(mappings)) {
-            if (updated[bsid][fieldKey] === undefined || updated[bsid][fieldKey] === '' || updated[bsid][fieldKey] === null) {
-              updated[bsid][fieldKey] = value
+          for (const [k, v] of Object.entries(map)) {
+            if (updated[bsid][k] === undefined || updated[bsid][k] === '' || updated[bsid][k] === null) {
+              updated[bsid][k] = v
             }
           }
         }
@@ -172,15 +134,23 @@ export default function ServiceRequestPage() {
     })
   }
 
-  const buildNewValues = useCallback(() => {
-    const merged: Record<string, any> = {
+  const buildPayload = useCallback(() => {
+    const selectedServiceCodes = sr.selectedServices.map((s) => s.code)
+
+    const payload: Record<string, any> = {
       ...commonData,
+      selectedServices: selectedServiceCodes,
     }
+
     for (const svc of sr.selectedServices) {
       const svcData = serviceData[svc.bankServiceId] || {}
-      Object.assign(merged, svcData)
+      const camelCase = svc.code
+        .toLowerCase()
+        .replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+      payload[camelCase] = { ...svcData }
     }
-    return merged
+
+    return payload
   }, [commonData, serviceData, sr.selectedServices])
 
   const handleSubmitAll = async () => {
@@ -190,9 +160,7 @@ export default function ServiceRequestPage() {
       ? validateFormConfig(sr.commonFormConfig, commonData)
       : {}
     setCommonErrors(newCommonErrors)
-    if (Object.keys(newCommonErrors).length > 0) {
-      hasError = true
-    }
+    if (Object.keys(newCommonErrors).length > 0) hasError = true
 
     const newServiceErrors: Record<string, Record<string, string>> = {}
     sr.selectedServices.forEach((svc) => {
@@ -212,35 +180,17 @@ export default function ServiceRequestPage() {
       return
     }
 
-    const newValues = buildNewValues()
+    const requestData = buildPayload()
 
-    let allSuccess = true
-    for (const svc of sr.selectedServices) {
-      const requestData: Record<string, any> = {
-        ...newValues,
-      }
-
-      if (sr.selectedCustomer) {
-        requestData.customerId = sr.selectedCustomer.id
-        requestData.oldValues = { ...oldValues }
-        requestData.newValues = { ...newValues }
-      }
-
-      try {
-        await sr.submitRequest({
-          bankId: sr.selectedBankId!,
-          serviceId: svc.serviceId,
-          customerId: sr.selectedCustomer?.id,
-          requestData,
-        })
-      } catch {
-        allSuccess = false
-        toast.error(`Failed to submit ${svc.name}`)
-      }
-    }
-
-    if (allSuccess) {
-      toast.success('All service requests submitted successfully!')
+    try {
+      await sr.submitRequest({
+        bankId: sr.selectedBankId!,
+        customerId: sr.selectedCustomer?.id,
+        requestData,
+      })
+      toast.success('Service request submitted successfully!')
+    } catch {
+      toast.error('Failed to submit service request')
     }
 
     sr.loadRequests()
@@ -304,7 +254,6 @@ export default function ServiceRequestPage() {
 
   const selectedBank = sr.banks.find((b: any) => b.id === sr.selectedBankId)
 
-  const serviceFormConfigKeys = Object.keys(sr.serviceFormConfigs)
   const allFormsLoaded = sr.selectedServices.every(
     (svc) => sr.serviceFormConfigs[String(svc.bankServiceId)]
   )
@@ -390,7 +339,7 @@ export default function ServiceRequestPage() {
                           </span>
                         </div>
                         <div>
-                          <h2 className="text-lg font-semibold text-[#111827]">{cfg.title}</h2>
+                          <h2 className="text-lg font-semibold text-[#111827]">SECTION {sr.selectedServices.indexOf(svc) + 1}: {cfg.title}</h2>
                           {cfg.description && (
                             <p className="text-sm text-[#6b7280]">{cfg.description}</p>
                           )}
@@ -427,7 +376,7 @@ export default function ServiceRequestPage() {
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
-                      Submit {sr.selectedServices.length > 1 ? `All ${sr.selectedServices.length} Requests` : 'Request'}
+                      Submit Request
                     </>
                   )}
                 </button>
@@ -437,8 +386,9 @@ export default function ServiceRequestPage() {
 
           {sr.step === 'done' && (
             <DoneSection
-              requests={sr.currentRequests}
+              request={sr.currentRequests[0] || null}
               selectedServices={sr.selectedServices}
+              bankName={selectedBank?.name || ''}
               pdfGenerating={sr.pdfGenerating}
               onGeneratePDF={handleGeneratePDF}
               onDownloadPDF={handleDownloadPDF}

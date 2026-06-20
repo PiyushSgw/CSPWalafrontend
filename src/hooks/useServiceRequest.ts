@@ -34,7 +34,7 @@ export const useServiceRequest = () => {
     loadServices: (bankId: number) => dispatch(fetchServicesForBank(bankId)),
     loadCommonForm: (bankId: number) => dispatch(fetchCommonFormConfig(bankId)),
     loadForm: (bankServiceId: number) => dispatch(fetchFormConfig(bankServiceId)),
-    submitRequest: (data: { bankId: number; serviceId: number; customerId?: number; requestData: Record<string, any> }) =>
+    submitRequest: (data: { bankId: number; customerId?: number; requestData: Record<string, any> }) =>
       dispatch(submitServiceRequest(data)).unwrap(),
     updateRequest: (data: { id: string; requestData: Record<string, any> }) =>
       dispatch(updateServiceRequest(data)).unwrap(),
