@@ -39,6 +39,7 @@ export interface CustomerSearchResult {
   id: number
   name: string
   mobile: string
+  email?: string
   account_number: string
   aadhar_number: string
   address: string

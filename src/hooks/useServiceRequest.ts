@@ -38,7 +38,7 @@ export const useServiceRequest = () => {
       dispatch(submitServiceRequest(data)).unwrap(),
     updateRequest: (data: { id: string; requestData: Record<string, any> }) =>
       dispatch(updateServiceRequest(data)).unwrap(),
-    loadRequests: (params?: { status?: string }) => dispatch(fetchMyServiceRequests(params)),
+    loadRequests: (params?: { status?: string }) => dispatch(fetchMyServiceRequests(params ?? {})),
     generatePdf: (requestId: string) => dispatch(generatePDF(requestId)).unwrap(),
     searchCust: (query: string) => dispatch(searchCustomers(query)),
     goToStep: (step: 'bank' | 'service' | 'customer' | 'form' | 'done') => dispatch(setStep(step)),

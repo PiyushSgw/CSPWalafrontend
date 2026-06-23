@@ -57,4 +57,6 @@ const SRF1FormContainer: React.FC<SRF1FormContainerProps> = ({ onComplete }) => 
   );
 };
 
-export default SRF1FormContainer;
+export default function Page() {
+  return <SRF1FormContainer />;
+}
