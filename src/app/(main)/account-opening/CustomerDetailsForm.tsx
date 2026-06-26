@@ -666,14 +666,15 @@ export default function CustomerDetailsForm() {
             <input
               type="tel"
               maxLength={10}
-              className={`cdf-input${customerNotFound ? " error" : ""}`}
+              className="cdf-input"
               value={formData.mobile}
               onChange={(e) => handleMobileChange(e.target.value)}
               onBlur={handleMobileBlur}
             />
             {customerNotFound && (
-              <p className="cdf-error">
-                Customer not found. Please register first.
+              <p className="cdf-hint" style={{ color: "#b45309" }}>
+                New customer — they'll be registered automatically when you
+                submit this form.
               </p>
             )}
             {customersLoading && <p className="cdf-hint">Loading customers…</p>}

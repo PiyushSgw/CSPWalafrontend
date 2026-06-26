@@ -255,7 +255,21 @@ export const createApplication = createAsyncThunk<CreateApplicationResponse, Acc
   }
 );
 
-export const downloadApplicationPdf = createAsyncThunk<{ success: true; filename: string }, number | string, { rejectValue: string }>(
+export interface DownloadPdfResult {
+  success: true;
+  filename: string;
+  charge: number;
+  balance: number | null;
+  previousBalance: number | null;
+}
+
+const num = (v: unknown): number | null => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+export const downloadApplicationPdf = createAsyncThunk<DownloadPdfResult, number | string, { rejectValue: string }>(
   'accountOpening/downloadApplicationPdf',
   async (applicationId, { rejectWithValue }) => {
     try {
@@ -274,8 +288,23 @@ export const downloadApplicationPdf = createAsyncThunk<{ success: true; filename
       link.href = fileURL; link.download = filename;
       document.body.appendChild(link); link.click(); link.remove();
       window.URL.revokeObjectURL(fileURL);
-      return { success: true, filename };
+      return {
+        success: true,
+        filename,
+        charge: num(response.headers['x-print-charge']) ?? 0,
+        balance: num(response.headers['x-wallet-balance']),
+        previousBalance: num(response.headers['x-wallet-previous']),
+      };
     } catch (error: any) {
+      // Error responses also arrive as a Blob (responseType: 'blob'); read the
+      // JSON body out of it so messages like "insufficient balance" surface.
+      const data = error?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const parsed = JSON.parse(await data.text());
+          if (parsed?.message) return rejectWithValue(parsed.message);
+        } catch { /* fall through to status-based messages */ }
+      }
       if (error?.response?.status === 401) return rejectWithValue('Unauthorized. Token missing or invalid.');
       if (error?.response?.status === 403) return rejectWithValue('Forbidden. You do not have access.');
       if (error?.response?.status === 404) return rejectWithValue('Application PDF not found.');
