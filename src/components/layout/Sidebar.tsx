@@ -73,7 +73,7 @@ export default function Sidebar() {
   // ✅ Auth check — same as 1st code
   useEffect(() => {
     if (mounted && !isAuthenticated) {
-      router.push('/login');
+      router.push('/user');
     }
   }, [mounted, isAuthenticated, router]);
 
@@ -85,10 +85,10 @@ export default function Sidebar() {
   // ✅ Logout handler
   const handleLogout = async () => {
     console.log('🔐 Sidebar logout: Starting logout process...');
-    
-    // Navigate to login first to prevent blank screen
-    router.push('/login');
-    
+
+    // CSP users return to the public landing page; admins to the admin login.
+    router.push(isAdmin ? '/login' : '/user');
+
     // Then clear tokens and update state
     try {
       if (isAdmin) {
@@ -99,6 +99,7 @@ export default function Sidebar() {
         console.log('🔐 Sidebar logout: Clearing CSP tokens...');
         localStorage.removeItem('csp_access_token');
         localStorage.removeItem('csp_refresh_token');
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         dispatch({ type: 'auth/logoutCSP/fulfilled', payload: null });
       }
       console.log('✅ Sidebar logout: Completed successfully');

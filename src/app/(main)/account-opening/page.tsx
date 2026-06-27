@@ -8,7 +8,6 @@ import AccountTypeSelector from './AccountTypeSelector';
 import CustomerDetailsForm from './CustomerDetailsForm';
 import PrintOptions from './PrintOption';
 import FormHistory from './FormHistory';
-import AccountOpeningPdfTemplate from './AccountOpeningPdfTemplate';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import {
   createApplication,
@@ -51,6 +50,15 @@ export default function AccountFormPage() {
   } = useAppSelector((state) => state.accountOpening);
 
   const customerCreating = useAppSelector((state) => state.customers.creating);
+  const authUser = useAppSelector((state) => state.auth.user);
+
+  // Pre-fill BC Name from the logged-in CSP (editable; the PDF falls back to
+  // the CSP's profile BC name/number when these are left blank).
+  useEffect(() => {
+    if (authUser?.name && !formData.bc_name) {
+      dispatch(updateFormField({ field: 'bc_name', value: authUser.name }));
+    }
+  }, [authUser, formData.bc_name, dispatch]);
 
   useEffect(() => {
     if (submitSuccess) {
@@ -244,7 +252,7 @@ export default function AccountFormPage() {
           )}
 
           {step === 2 && (
-            <div className="grid grid-cols-[1fr_340px] items-start gap-5">
+            <div className="items-start gap-5">
               <div className="space-y-4">
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
                   <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
@@ -295,12 +303,6 @@ export default function AccountFormPage() {
                   </button>
                 </div>
               </div>
-
-              <AccountOpeningPdfTemplate
-                selectedBank={selectedBank}
-                selectedType={selectedType}
-                formData={formData}
-              />
             </div>
           )}
         </div>
