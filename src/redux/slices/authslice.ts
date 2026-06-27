@@ -37,16 +37,27 @@ interface AuthState {
   resetStep: 'send' | 'verify' | 'done'
 }
 
-// CSP Login (existing)
+// CSP Login — accepts CSP code + mobile (public site) OR email (legacy).
+export interface LoginCSPPayload {
+  csp_code?: string
+  mobile?: string
+  email?: string
+  password: string
+  remember_me?: boolean
+}
+
 export const loginCSP = createAsyncThunk(
   'auth/loginCSP',
-  async (data: { email: string; password: string; remember_me?: boolean }, { rejectWithValue }) => {
+  async (data: LoginCSPPayload, { rejectWithValue }) => {
     try {
       const res = await api.post('/auth/login', data)
       const { access_token, refresh_token, user } = res.data.data
       localStorage.setItem('csp_access_token', access_token)
       localStorage.setItem('csp_refresh_token', refresh_token)
-      console.log(access_token);
+      // Middleware gates /dashboard on this cookie, so set it on every login.
+      if (typeof document !== 'undefined') {
+        document.cookie = `token=${access_token}; path=/; max-age=${60 * 60 * 24 * 7}`
+      }
       return user as User
     } catch (e: any) {
       return rejectWithValue(e.response?.data?.message || 'CSP Login failed')
@@ -118,6 +129,9 @@ export const logoutCSP = createAsyncThunk('auth/logoutCSP', async () => {
   } catch {}
   localStorage.removeItem('csp_access_token')
   localStorage.removeItem('csp_refresh_token')
+  if (typeof document !== 'undefined') {
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  }
 })
 
 export const initializeAuth = createAsyncThunk(

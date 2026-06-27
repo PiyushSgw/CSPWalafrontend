@@ -70,15 +70,15 @@ export default function Header() {
 
   const handleLogout = async () => {
     console.log('🔐 Starting logout process...');
-    
-    // Navigate to login first to prevent blank screen
-    router.push('/login');
-    
+
+    const isAdmin = !!authState.admin;
+    // CSP users return to the public landing page; admins to the admin login.
+    router.push(isAdmin ? '/login' : '/user');
+
     // Then clear tokens and update state
     try {
-      const isAdmin = !!authState.admin;
       console.log('🔐 User type:', isAdmin ? 'Admin' : 'CSP');
-      
+
       // Clear tokens immediately
       if (isAdmin) {
         console.log('🔐 Clearing admin tokens...');
@@ -89,6 +89,7 @@ export default function Header() {
         console.log('🔐 Clearing CSP tokens...');
         localStorage.removeItem('csp_access_token');
         localStorage.removeItem('csp_refresh_token');
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         // Also clear Redux state
         dispatch({ type: 'auth/logoutCSP/fulfilled', payload: null });
       }

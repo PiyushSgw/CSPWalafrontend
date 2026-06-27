@@ -22,11 +22,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     dispatch(initializeAuth());
   }, [dispatch]);
 
-  // ✅ Redirect if not authenticated (after 1s delay)
+  // ✅ Redirect to the public landing page if not authenticated (after 1s delay)
   useEffect(() => {
     if (!isAuthenticated) {
       const timer = setTimeout(() => {
-        router.push('/login');
+        router.push('/user');
       }, 1000);
       return () => clearTimeout(timer);
     }

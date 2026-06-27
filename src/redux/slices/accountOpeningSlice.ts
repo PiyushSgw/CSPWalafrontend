@@ -18,6 +18,9 @@ export interface AccountOpeningFormData {
   full_name: string;
   marital_status: string;
   father_name: string;
+  father_first_name: string;
+  father_middle_name: string;
+  father_last_name: string;
   mother_name: string;
   dob: string;
   gender: string;
@@ -50,6 +53,9 @@ export interface AccountOpeningFormData {
 
   // Nomination
   nominee_name: string;
+  nominee_first_name: string;
+  nominee_middle_name: string;
+  nominee_last_name: string;
   nominee_mobile: string;
   nominee_relation: string;
   nominee_address: string;
@@ -80,6 +86,9 @@ export interface AccountOpeningFormData {
   account_number: string;
   branch_name: string;
   place: string;
+  cif: string;
+  bc_name: string;
+  bc_code: string;
 
   // Media
   include_passbook: boolean;
@@ -142,6 +151,9 @@ const initialState: AccountOpeningState = {
     full_name: '',
     marital_status: '',
     father_name: '',
+    father_first_name: '',
+    father_middle_name: '',
+    father_last_name: '',
     mother_name: '',
     dob: '',
     gender: '',
@@ -168,6 +180,9 @@ const initialState: AccountOpeningState = {
     country: 'India',
     address: '',
     nominee_name: '',
+    nominee_first_name: '',
+    nominee_middle_name: '',
+    nominee_last_name: '',
     nominee_mobile: '',
     nominee_relation: 'FATHER',
     nominee_address: '',
@@ -192,6 +207,9 @@ const initialState: AccountOpeningState = {
     account_number: '',
     branch_name: '',
     place: '',
+    cif: '',
+    bc_name: '',
+    bc_code: '',
     include_passbook: false,
     status: 'pending',
     photo_url: '',
