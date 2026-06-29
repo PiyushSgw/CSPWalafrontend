@@ -33,6 +33,7 @@ export default function RegisterPage() {
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [cspCode, setCspCode] = useState('');
   const [bankId, setBankId] = useState('');
   const [otherBankName, setOtherBankName] = useState('');
   const [branchId, setBranchId] = useState('');
@@ -51,8 +52,9 @@ export default function RegisterPage() {
       const registrationData: any = {
         name,
         mobile,
-        email: email || undefined,
+        email,
         password,
+        csp_code: cspCode,
         bank_id: parseInt(bankId),
         branch_id: branchId ? parseInt(branchId) : undefined,
         location: location || undefined,
@@ -72,19 +74,21 @@ export default function RegisterPage() {
       toast.success('Registration successful! Please verify OTP sent to your mobile.');
       router.push('/verify-otp');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || error.response?.data?.error || 'Registration failed');
+      const errMsg = error.response?.data?.errors?.join('. ') || error.response?.data?.message || error.response?.data?.error || 'Registration failed';
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
   };
 
   const passwordChecks = [
-    { label: 'At least 6 characters', valid: password.length >= 6 },
+    { label: 'At least 8 characters', valid: password.length >= 8 },
+    { label: 'Contains uppercase & lowercase', valid: /[a-z]/.test(password) && /[A-Z]/.test(password) },
     { label: 'Contains a number', valid: /\d/.test(password) },
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-4">
+    <div className="h-screen flex items-start justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-4 py-6 overflow-y-auto">
       <div className="w-full max-w-5xl grid md:grid-cols-2 bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden">
         {/* LEFT SIDE */}
         <div className="hidden md:flex flex-col justify-center items-center text-white p-10 space-y-6">
@@ -122,13 +126,14 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label className="text-sm font-medium text-gray-600">Email (optional)</label>
+              <label className="text-sm font-medium text-gray-600">Email <span className="text-red-500">*</span></label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
+                required
               />
             </div>
 
@@ -142,6 +147,18 @@ export default function RegisterPage() {
                 className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
                 required
                 maxLength={10}
+              />
+            </div>
+
+            {/* CSP Code */}
+            <div>
+              <label className="text-sm font-medium text-gray-600">CSP Code <span className="text-red-500">*</span></label>
+              <input
+                value={cspCode}
+                onChange={(e) => setCspCode(e.target.value.toUpperCase())}
+                placeholder="CSPA7K2M9"
+                className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none uppercase"
+                required
               />
             </div>
 
