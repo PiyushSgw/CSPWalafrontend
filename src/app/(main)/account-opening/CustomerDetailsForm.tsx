@@ -144,7 +144,7 @@ export default function CustomerDetailsForm() {
 
   const [nominationOpen, setNominationOpen] = useState(true);
   const [optionalOpen, setOptionalOpen] = useState(false);
-  const [bankUseOpen, setBankUseOpen] = useState(false);
+  const [bankUseOpen, setBankUseOpen] = useState(true);
 
   useEffect(() => {
     if (!customers.length) dispatch(fetchCustomers({ page: 1, limit: 1000 }));
@@ -158,8 +158,21 @@ export default function CustomerDetailsForm() {
   const syncFullName = (first: string, middle: string, last: string) =>
     set("full_name", [first, middle, last].filter(Boolean).join(" "));
 
+  // Father's & nominee's names are entered in three columns but stored as a
+  // single combined string (the PDF splits it back into First/Middle/Last).
+  const syncFatherName = (first: string, middle: string, last: string) =>
+    set("father_name", [first, middle, last].filter(Boolean).join(" "));
+  const syncNomineeName = (first: string, middle: string, last: string) =>
+    set("nominee_name", [first, middle, last].filter(Boolean).join(" "));
+
   const fillCustomer = (c: Customer) => {
     dispatch(setCustomerId(c.id as number));
+    const splitName = (v?: string) => {
+      const parts = String(v ?? "").trim().split(/\s+/).filter(Boolean);
+      return { first: parts[0] ?? "", middle: parts.length > 2 ? parts[1] : "", last: parts.length > 1 ? parts.slice(parts.length > 2 ? 2 : 1).join(" ") : "" };
+    };
+    const fatherParts = splitName(c.father_name);
+    const nomineeParts = splitName(c.nominee_name);
     const fields: Partial<typeof formData> = {
       customer_id: c.id as number,
       full_name: c.full_name ?? "",
@@ -167,6 +180,9 @@ export default function CustomerDetailsForm() {
       middle_name: c.middle_name ?? "",
       last_name: c.last_name ?? "",
       father_name: c.father_name ?? "",
+      father_first_name: fatherParts.first,
+      father_middle_name: fatherParts.middle,
+      father_last_name: fatherParts.last,
       mother_name: c.mother_name ?? "",
       dob: c.dob ?? "",
       gender: c.gender ?? "",
@@ -187,6 +203,9 @@ export default function CustomerDetailsForm() {
       annual_income: c.annual_income ?? "",
       net_worth: c.net_worth ?? "",
       nominee_name: c.nominee_name ?? "",
+      nominee_first_name: nomineeParts.first,
+      nominee_middle_name: nomineeParts.middle,
+      nominee_last_name: nomineeParts.last,
       nominee_relation: c.nominee_relation ?? "FATHER",
       nominee_dob: c.nominee_dob ?? "",
       nominee_mobile: c.nominee_mobile ?? "",
@@ -518,15 +537,40 @@ export default function CustomerDetailsForm() {
           </div>
         </div>
 
-        <div className="cdf-grid-2">
+        <div className="cdf-grid-4">
           <div className="cdf-group">
             <label className="cdf-label">
-              Father Name <span className="req">*</span>
+              Father First Name <span className="req">*</span>
             </label>
             <input
               className="cdf-input"
-              value={formData.father_name}
-              onChange={(e) => set("father_name", e.target.value)}
+              value={formData.father_first_name}
+              onChange={(e) => {
+                set("father_first_name", e.target.value);
+                syncFatherName(e.target.value, formData.father_middle_name, formData.father_last_name);
+              }}
+            />
+          </div>
+          <div className="cdf-group">
+            <label className="cdf-label">Father Middle Name</label>
+            <input
+              className="cdf-input"
+              value={formData.father_middle_name}
+              onChange={(e) => {
+                set("father_middle_name", e.target.value);
+                syncFatherName(formData.father_first_name, e.target.value, formData.father_last_name);
+              }}
+            />
+          </div>
+          <div className="cdf-group">
+            <label className="cdf-label">Father Last Name</label>
+            <input
+              className="cdf-input"
+              value={formData.father_last_name}
+              onChange={(e) => {
+                set("father_last_name", e.target.value);
+                syncFatherName(formData.father_first_name, formData.father_middle_name, e.target.value);
+              }}
             />
           </div>
           <div className="cdf-group">
@@ -649,9 +693,7 @@ export default function CustomerDetailsForm() {
 
         <div className="cdf-grid-2">
           <div className="cdf-group">
-            <label className="cdf-label">
-              Email Address <span className="req">*</span>
-            </label>
+            <label className="cdf-label">Email Address (Optional)</label>
             <input
               type="email"
               className="cdf-input"
@@ -666,14 +708,15 @@ export default function CustomerDetailsForm() {
             <input
               type="tel"
               maxLength={10}
-              className={`cdf-input${customerNotFound ? " error" : ""}`}
+              className="cdf-input"
               value={formData.mobile}
               onChange={(e) => handleMobileChange(e.target.value)}
               onBlur={handleMobileBlur}
             />
             {customerNotFound && (
-              <p className="cdf-error">
-                Customer not found. Please register first.
+              <p className="cdf-hint" style={{ color: "#b45309" }}>
+                New customer — they'll be registered automatically when you
+                submit this form.
               </p>
             )}
             {customersLoading && <p className="cdf-hint">Loading customers…</p>}
@@ -1061,15 +1104,43 @@ export default function CustomerDetailsForm() {
 
         {nominationOpen && (
           <>
-            <div className="cdf-grid-4">
+            <div className="cdf-grid-3">
               <div className="cdf-group">
-                <label className="cdf-label">Nominee Name</label>
+                <label className="cdf-label">Nominee First Name</label>
                 <input
                   className="cdf-input"
-                  value={formData.nominee_name}
-                  onChange={(e) => set("nominee_name", e.target.value)}
+                  value={formData.nominee_first_name}
+                  onChange={(e) => {
+                    set("nominee_first_name", e.target.value);
+                    syncNomineeName(e.target.value, formData.nominee_middle_name, formData.nominee_last_name);
+                  }}
                 />
               </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Nominee Middle Name</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_middle_name}
+                  onChange={(e) => {
+                    set("nominee_middle_name", e.target.value);
+                    syncNomineeName(formData.nominee_first_name, e.target.value, formData.nominee_last_name);
+                  }}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Nominee Last Name</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_last_name}
+                  onChange={(e) => {
+                    set("nominee_last_name", e.target.value);
+                    syncNomineeName(formData.nominee_first_name, formData.nominee_middle_name, e.target.value);
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-3">
               <div className="cdf-group">
                 <label className="cdf-label">Mobile Number</label>
                 <input
@@ -1345,6 +1416,44 @@ export default function CustomerDetailsForm() {
           <>
             <div className="cdf-grid-4">
               <div className="cdf-group">
+                <label className="cdf-label">Customer ID / CIF</label>
+                <input
+                  className="cdf-input"
+                  placeholder="Bank customer / CIF number"
+                  value={formData.cif}
+                  onChange={(e) => set("cif", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Branch Name</label>
+                <input
+                  className="cdf-input"
+                  value={formData.branch_name}
+                  onChange={(e) => set("branch_name", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">BC Name</label>
+                <input
+                  className="cdf-input"
+                  placeholder="BC / BF name"
+                  value={formData.bc_name}
+                  onChange={(e) => set("bc_name", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">BC Code</label>
+                <input
+                  className="cdf-input"
+                  placeholder="BC / BF number"
+                  value={formData.bc_code}
+                  onChange={(e) => set("bc_code", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-4">
+              <div className="cdf-group">
                 <label className="cdf-label">Branch Code</label>
                 <input
                   className="cdf-input"
@@ -1384,29 +1493,13 @@ export default function CustomerDetailsForm() {
               </div>
             </div>
 
-            <div className="cdf-grid-4">
-              <div className="cdf-group">
-                <label className="cdf-label">Customer ID</label>
-                <input
-                  className="cdf-input"
-                  value={formData.customer_id ?? ""}
-                  readOnly
-                />
-              </div>
+            <div className="cdf-grid-2">
               <div className="cdf-group">
                 <label className="cdf-label">Account Number</label>
                 <input
                   className="cdf-input"
                   value={formData.account_number}
                   onChange={(e) => set("account_number", e.target.value)}
-                />
-              </div>
-              <div className="cdf-group">
-                <label className="cdf-label">Branch Name</label>
-                <input
-                  className="cdf-input"
-                  value={formData.branch_name}
-                  onChange={(e) => set("branch_name", e.target.value)}
                 />
               </div>
               <div className="cdf-group">

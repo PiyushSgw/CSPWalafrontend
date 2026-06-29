@@ -7,21 +7,27 @@ import BankSelector from './BankSelector';
 import AccountTypeSelector from './AccountTypeSelector';
 import CustomerDetailsForm from './CustomerDetailsForm';
 import PrintOptions from './PrintOption';
-import LiveFormPreview from './LiveFormPreview';
-import ConfirmPrint from './ConfirmPrint';
 import FormHistory from './FormHistory';
-import AccountOpeningPdfTemplate from './AccountOpeningPdfTemplate';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import {
   createApplication,
   downloadApplicationPdf,
   resetSubmitState,
   setActiveTab,
+  setCustomerId,
+  setCustomerLookupStatus,
   setSelectedBank,
   setSelectedType,
   setStep,
   updateFormField,
 } from '@/redux/slices/accountOpeningSlice';
+import { createCustomer } from '@/redux/slices/customersSlice';
+import { fetchWalletBalance } from '@/redux/slices/walletSlice';
+
+// account_type values accepted by the customers table enum. The form's
+// "minor" option is intentionally excluded so we fall back to the DB default
+// rather than triggering an invalid-enum error during inline registration.
+const CUSTOMER_ACCOUNT_TYPES = ['savings', 'current', 'jan_dhan', 'recurring', 'fixed'];
 
 export default function AccountFormPage() {
   const dispatch = useAppDispatch();
@@ -43,7 +49,16 @@ export default function AccountFormPage() {
     pdfError,
   } = useAppSelector((state) => state.accountOpening);
 
-  const walletBalance = 485;
+  const customerCreating = useAppSelector((state) => state.customers.creating);
+  const authUser = useAppSelector((state) => state.auth.user);
+
+  // Pre-fill BC Name from the logged-in CSP (editable; the PDF falls back to
+  // the CSP's profile BC name/number when these are left blank).
+  useEffect(() => {
+    if (authUser?.name && !formData.bc_name) {
+      dispatch(updateFormField({ field: 'bc_name', value: authUser.name }));
+    }
+  }, [authUser, formData.bc_name, dispatch]);
 
   useEffect(() => {
     if (submitSuccess) {
@@ -76,7 +91,6 @@ export default function AccountFormPage() {
   const validateForm = () => {
     if (!selectedBank) return 'Bank is required';
     if (!selectedType) return 'Account type is required';
-    if (!formData.customer_id) return 'Customer ID is required';
     if (!formData.full_name.trim()) return 'Full name is required';
     if (!formData.father_name.trim()) return 'Father / Husband name is required';
     if (!formData.dob) return 'Date of birth is required';
@@ -92,8 +106,10 @@ export default function AccountFormPage() {
     return null;
   };
 
-  const isPreviewBlocked =
-    customerNotFound || !formData.customer_id || previewLoading || submitLoading;
+  // A missing customer no longer blocks the form — when there is no matched
+  // customer we register one inline on submit (see handleGenerate).
+  const isGenerating =
+    previewLoading || submitLoading || customerCreating || pdfLoading;
 
   const handleNextStep = () => {
     if (!selectedBank) {
@@ -109,17 +125,26 @@ export default function AccountFormPage() {
     dispatch(setStep(2));
   };
 
-  const handlePreviewForm = async () => {
-    if (customerNotFound) {
-      toast.error('Customer not found');
-      return;
-    }
+  const buildCustomerPayload = () => ({
+    name: formData.full_name.trim(),
+    mobile: formData.mobile.trim(),
+    account_number: formData.account_number.trim() || undefined,
+    account_type: CUSTOMER_ACCOUNT_TYPES.includes(formData.account_type)
+      ? formData.account_type
+      : undefined,
+    bank_id: formData.bank_id ?? undefined,
+    branch_id: formData.branch_id ?? undefined,
+    // DB CHECK constraints require exactly 12 / 6 digits; omit otherwise so the
+    // customer still saves and the full value is captured on the application.
+    aadhar_number: /^\d{12}$/.test(formData.aadhaar) ? formData.aadhaar : undefined,
+    pin_code: /^\d{6}$/.test(formData.pin) ? formData.pin : undefined,
+    address: formData.address.trim() || undefined,
+    opening_balance: 0,
+  });
 
-    if (!formData.customer_id) {
-      toast.error('Please load a valid customer first');
-      return;
-    }
-
+  // Single-shot flow: register the customer if new → save the application →
+  // generate & download the PDF → surface the wallet movement as toasts.
+  const handleGenerate = async () => {
     const error = validateForm();
     if (error) {
       toast.error(error);
@@ -127,33 +152,46 @@ export default function AccountFormPage() {
     }
 
     try {
-      await dispatch(createApplication(formData)).unwrap();
-      dispatch(setStep(3));
-    } catch {
-      toast.error('Failed to save form');
-    }
-  };
+      let customerId = formData.customer_id;
 
-  const handleConfirm = async () => {
-    const error = validateForm();
-    if (error) {
-      toast.error(error);
-      return;
-    }
+      // No matched customer → register one inline before saving the application.
+      if (!customerId) {
+        const result = await dispatch(
+          createCustomer(buildCustomerPayload())
+        ).unwrap();
+        customerId = result.data.id;
+        dispatch(setCustomerId(customerId));
+        dispatch(updateFormField({ field: 'customer_id', value: customerId }));
+        dispatch(setCustomerLookupStatus(false));
+        toast.success('New customer registered');
+      }
 
-    const latestApplicationId = history?.[0]?.id;
+      const appRes = await dispatch(
+        createApplication({ ...formData, customer_id: customerId })
+      ).unwrap();
 
-    if (!latestApplicationId) {
-      toast.error('Application ID not found. Please save the form again.');
-      return;
-    }
+      const applicationId = appRes?.data?.id ?? history?.[0]?.id;
+      if (!applicationId) {
+        toast.error('Application could not be saved. Please try again.');
+        return;
+      }
 
-    try {
-      const charge = formData.include_passbook ? 13 : 10;
-      await dispatch(downloadApplicationPdf(latestApplicationId)).unwrap();
-      toast.success(`PDF generated successfully! ₹${charge} deducted.`);
-    } catch (error: any) {
-      toast.error(error || 'PDF generation failed');
+      const result = await dispatch(
+        downloadApplicationPdf(applicationId)
+      ).unwrap();
+
+      // Notify the user of exactly what happened to their wallet.
+      toast.success(`PDF generated & printed for ₹${result.charge}`);
+      if (result.balance !== null) {
+        toast(`₹${result.charge} deducted • Wallet balance: ₹${result.balance}`, {
+          icon: '💸',
+        });
+      }
+
+      // Refresh the wallet widget elsewhere in the app.
+      dispatch(fetchWalletBalance());
+    } catch (err: any) {
+      toast.error(typeof err === 'string' ? err : 'Failed to generate PDF');
     }
   };
 
@@ -214,7 +252,7 @@ export default function AccountFormPage() {
           )}
 
           {step === 2 && (
-            <div className="grid grid-cols-[1fr_340px] items-start gap-5">
+            <div className="items-start gap-5">
               <div className="space-y-4">
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
                   <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
@@ -249,34 +287,23 @@ export default function AccountFormPage() {
                   </button>
 
                   <button
-                    onClick={handlePreviewForm}
-                    disabled={isPreviewBlocked}
+                    onClick={handleGenerate}
+                    disabled={isGenerating}
                     className="rounded-lg bg-teal-600 px-5 py-2.5 text-[13px] font-bold text-white transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {submitLoading ? 'Saving...' : 'Preview Form →'}
+                    {customerCreating
+                      ? 'Registering customer...'
+                      : submitLoading
+                        ? 'Saving form...'
+                        : pdfLoading
+                          ? 'Generating PDF...'
+                          : customerNotFound || !formData.customer_id
+                            ? '🖨️ Register & Generate PDF'
+                            : '🖨️ Generate & Print PDF'}
                   </button>
                 </div>
               </div>
-
-              <AccountOpeningPdfTemplate
-                selectedBank={selectedBank}
-                selectedType={selectedType}
-                formData={formData}
-              />
             </div>
-          )}
-
-          {step === 3 && (
-            <ConfirmPrint
-              bank={selectedBank}
-              accountType={selectedType}
-              customerName={formData.full_name}
-              includePassbook={formData.include_passbook}
-              walletBalance={walletBalance}
-              onBack={() => dispatch(setStep(2))}
-              onConfirm={handleConfirm}
-              loading={pdfLoading}
-            />
           )}
         </div>
       )}

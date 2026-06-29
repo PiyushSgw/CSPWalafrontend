@@ -18,6 +18,9 @@ export interface AccountOpeningFormData {
   full_name: string;
   marital_status: string;
   father_name: string;
+  father_first_name: string;
+  father_middle_name: string;
+  father_last_name: string;
   mother_name: string;
   dob: string;
   gender: string;
@@ -50,6 +53,9 @@ export interface AccountOpeningFormData {
 
   // Nomination
   nominee_name: string;
+  nominee_first_name: string;
+  nominee_middle_name: string;
+  nominee_last_name: string;
   nominee_mobile: string;
   nominee_relation: string;
   nominee_address: string;
@@ -80,6 +86,9 @@ export interface AccountOpeningFormData {
   account_number: string;
   branch_name: string;
   place: string;
+  cif: string;
+  bc_name: string;
+  bc_code: string;
 
   // Media
   include_passbook: boolean;
@@ -142,6 +151,9 @@ const initialState: AccountOpeningState = {
     full_name: '',
     marital_status: '',
     father_name: '',
+    father_first_name: '',
+    father_middle_name: '',
+    father_last_name: '',
     mother_name: '',
     dob: '',
     gender: '',
@@ -168,6 +180,9 @@ const initialState: AccountOpeningState = {
     country: 'India',
     address: '',
     nominee_name: '',
+    nominee_first_name: '',
+    nominee_middle_name: '',
+    nominee_last_name: '',
     nominee_mobile: '',
     nominee_relation: 'FATHER',
     nominee_address: '',
@@ -192,6 +207,9 @@ const initialState: AccountOpeningState = {
     account_number: '',
     branch_name: '',
     place: '',
+    cif: '',
+    bc_name: '',
+    bc_code: '',
     include_passbook: false,
     status: 'pending',
     photo_url: '',
@@ -255,7 +273,21 @@ export const createApplication = createAsyncThunk<CreateApplicationResponse, Acc
   }
 );
 
-export const downloadApplicationPdf = createAsyncThunk<{ success: true; filename: string }, number | string, { rejectValue: string }>(
+export interface DownloadPdfResult {
+  success: true;
+  filename: string;
+  charge: number;
+  balance: number | null;
+  previousBalance: number | null;
+}
+
+const num = (v: unknown): number | null => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+export const downloadApplicationPdf = createAsyncThunk<DownloadPdfResult, number | string, { rejectValue: string }>(
   'accountOpening/downloadApplicationPdf',
   async (applicationId, { rejectWithValue }) => {
     try {
@@ -274,8 +306,23 @@ export const downloadApplicationPdf = createAsyncThunk<{ success: true; filename
       link.href = fileURL; link.download = filename;
       document.body.appendChild(link); link.click(); link.remove();
       window.URL.revokeObjectURL(fileURL);
-      return { success: true, filename };
+      return {
+        success: true,
+        filename,
+        charge: num(response.headers['x-print-charge']) ?? 0,
+        balance: num(response.headers['x-wallet-balance']),
+        previousBalance: num(response.headers['x-wallet-previous']),
+      };
     } catch (error: any) {
+      // Error responses also arrive as a Blob (responseType: 'blob'); read the
+      // JSON body out of it so messages like "insufficient balance" surface.
+      const data = error?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const parsed = JSON.parse(await data.text());
+          if (parsed?.message) return rejectWithValue(parsed.message);
+        } catch { /* fall through to status-based messages */ }
+      }
       if (error?.response?.status === 401) return rejectWithValue('Unauthorized. Token missing or invalid.');
       if (error?.response?.status === 403) return rejectWithValue('Forbidden. You do not have access.');
       if (error?.response?.status === 404) return rejectWithValue('Application PDF not found.');
