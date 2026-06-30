@@ -52,10 +52,10 @@ export const PassbookPreviewSection = () => {
   const dispatch = useAppDispatch()
   const { selectedCustomer, transactions, preview, previewLoading, printing, printError } =
     useAppSelector((s) => s.passbook)
-  const { balance } = useAppSelector((s) => s.wallet)
+  const { balance: walletData } = useAppSelector((s) => s.wallet)
 
-  const printCharge = preview?.print_charge || 10
-  const walletBalance = Number(balance) || 0
+  const printCharge = walletData?.print_charge || preview?.print_charge || 10
+  const walletBalance = Number(walletData?.balance) || 0
   const canPrint = walletBalance >= printCharge
   const txns = Array.isArray(transactions) ? transactions : []
 

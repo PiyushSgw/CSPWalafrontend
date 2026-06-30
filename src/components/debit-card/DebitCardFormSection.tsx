@@ -12,6 +12,7 @@ interface DebitCardFormData {
   atmUsage: string
   posUsage: string
   mobileNumber: string
+  place: string
 }
 
 interface Props {
@@ -220,6 +221,17 @@ export function DebitCardFormSection({ formData, onChange, onContinue, onBack }:
           onChange={(e) => onChange({ mobileNumber: e.target.value })}
           className="w-full px-3 py-2 text-sm border border-[#d1d5db] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(13,143,114,0.12)] focus:border-[#0d8f72]"
           placeholder="Mobile number"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-[#374151] mb-1.5">Place</label>
+        <input
+          type="text"
+          value={formData.place}
+          onChange={(e) => onChange({ place: e.target.value })}
+          className="w-full px-3 py-2 text-sm border border-[#d1d5db] rounded-lg bg-[#f9fafb] focus:outline-none focus:ring-2 focus:ring-[rgba(13,143,114,0.12)] focus:border-[#0d8f72]"
+          placeholder="Auto-filled from address"
         />
       </div>
 

@@ -49,6 +49,7 @@ export interface DebitCardFormData {
   atmUsage: string
   posUsage: string
   mobileNumber: string
+  place: string
 }
 
 interface DebitCardState {
@@ -77,6 +78,18 @@ const initialFormData: DebitCardFormData = {
   atmUsage: '',
   posUsage: '',
   mobileNumber: '',
+  place: '',
+}
+
+const extractPlaceFromAddress = (address: string): string => {
+  if (!address) return ''
+  const parts = address.split(',').map(p => p.trim()).filter(Boolean)
+  if (parts.length === 0) return ''
+  if (parts.length === 1) return parts[0]
+  // Typical format: "House, Street, Area, City, State Pincode"
+  // City is the second-to-last part
+  if (parts.length >= 3) return parts[parts.length - 2]
+  return parts[0]
 }
 
 const initialState: DebitCardState = {
@@ -156,6 +169,7 @@ const debitCardSlice = createSlice({
         state.formData.branchName = action.payload.branch_name || ''
         state.formData.accountNumber = action.payload.account_number || ''
         state.formData.mobileNumber = action.payload.mobile || ''
+        state.formData.place = extractPlaceFromAddress(action.payload.address || '')
       }
     },
     clearCustomerSearch(state) {

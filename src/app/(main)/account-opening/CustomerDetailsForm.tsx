@@ -175,6 +175,7 @@ export default function CustomerDetailsForm() {
     const nomineeParts = splitName(c.nominee_name);
     const fields: Partial<typeof formData> = {
       customer_id: c.id as number,
+      cif: (c as any).cif ?? "",
       full_name: c.full_name ?? "",
       first_name: c.first_name ?? "",
       middle_name: c.middle_name ?? "",
@@ -269,6 +270,12 @@ export default function CustomerDetailsForm() {
     set("nominee_address_same" as any, checked as any);
     if (checked) {
       set("nominee_address", formData.address);
+      set("nominee_house_no", formData.address_line1);
+      set("nominee_street", formData.address_line2);
+      set("nominee_city", formData.city);
+      set("nominee_district", formData.district);
+      set("nominee_state", formData.state);
+      set("nominee_pin", formData.pin);
     }
   };
 
@@ -471,6 +478,20 @@ export default function CustomerDetailsForm() {
         <div className="cdf-section-banner">Personal Details</div>
 
         <div className="cdf-grid-4">
+          <div className="cdf-group">
+            <label className="cdf-label">Title</label>
+            <select
+              className="cdf-select"
+              value={formData.title}
+              onChange={(e) => set("title", e.target.value)}
+            >
+              <option value="">SELECT</option>
+              <option value="MR.">MR.</option>
+              <option value="MRS.">MRS.</option>
+              <option value="MS.">MS.</option>
+              <option value="DR.">DR.</option>
+            </select>
+          </div>
           <div className="cdf-group">
             <label className="cdf-label">
               First Name <span className="req">*</span>
@@ -1170,12 +1191,11 @@ export default function CustomerDetailsForm() {
                 </select>
               </div>
               <div className="cdf-group">
-                <label className="cdf-label">Nominee Address</label>
+                <label className="cdf-label">Phone No.</label>
                 <input
                   className="cdf-input"
-                  value={formData.nominee_address}
-                  readOnly={!!formData.nominee_address_same}
-                  onChange={(e) => set("nominee_address", e.target.value)}
+                  value={formData.nominee_phone}
+                  onChange={(e) => set("nominee_phone", e.target.value)}
                 />
               </div>
             </div>
@@ -1193,6 +1213,90 @@ export default function CustomerDetailsForm() {
                 />
                 Nominee address same as Applicant address
               </label>
+            </div>
+
+            <p className="cdf-sub-heading" style={{ marginTop: 8 }}>
+              Nominee Address
+            </p>
+
+            <div className="cdf-grid-2">
+              <div className="cdf-group">
+                <label className="cdf-label">House No.</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_house_no}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_house_no", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Street</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_street}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_street", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-2">
+              <div className="cdf-group">
+                <label className="cdf-label">Landmark</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_landmark}
+                  onChange={(e) => set("nominee_landmark", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">City / Village</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_city}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_city", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-2">
+              <div className="cdf-group">
+                <label className="cdf-label">District</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_district}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_district", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">State</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_state}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_state", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-2-sm">
+              <div className="cdf-group">
+                <label className="cdf-label">Pin</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_pin}
+                  maxLength={6}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) =>
+                    set(
+                      "nominee_pin",
+                      e.target.value.replace(/\D/g, "").slice(0, 6),
+                    )
+                  }
+                />
+              </div>
             </div>
 
             <div className="cdf-grid-2-sm">
@@ -1423,6 +1527,9 @@ export default function CustomerDetailsForm() {
                   value={formData.cif}
                   onChange={(e) => set("cif", e.target.value)}
                 />
+                <p className="cdf-hint" style={{ color: "#6b7280", fontSize: "10px", lineHeight: 1.3 }}>
+                  Customer ID is generated automatically. If you need to change it, you may enter the new Customer ID here.
+                </p>
               </div>
               <div className="cdf-group">
                 <label className="cdf-label">Branch Name</label>

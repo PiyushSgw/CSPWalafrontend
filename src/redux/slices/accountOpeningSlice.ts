@@ -12,6 +12,7 @@ export interface AccountOpeningFormData {
   account_type: string;
 
   // Personal Details
+  title: string;
   first_name: string;
   middle_name: string;
   last_name: string;
@@ -62,6 +63,14 @@ export interface AccountOpeningFormData {
   nominee_address_same?: boolean;
   nominee_age: string;
   nominee_dob: string;
+  nominee_house_no: string;
+  nominee_street: string;
+  nominee_landmark: string;
+  nominee_city: string;
+  nominee_district: string;
+  nominee_state: string;
+  nominee_pin: string;
+  nominee_phone: string;
 
   // Optional Details
   ckyc_number: string;
@@ -145,6 +154,7 @@ const initialState: AccountOpeningState = {
     bank_id: null,
     branch_id: null,
     account_type: '',
+    title: '',
     first_name: '',
     middle_name: '',
     last_name: '',
@@ -189,6 +199,14 @@ const initialState: AccountOpeningState = {
     nominee_address_same: false,
     nominee_age: '',
     nominee_dob: '',
+    nominee_house_no: '',
+    nominee_street: '',
+    nominee_landmark: '',
+    nominee_city: '',
+    nominee_district: '',
+    nominee_state: '',
+    nominee_pin: '',
+    nominee_phone: '',
     ckyc_number: '',
     date: new Date().toISOString().split('T')[0],
     permanent_address_type: 'RESIDENTIAL/BUSINESS',

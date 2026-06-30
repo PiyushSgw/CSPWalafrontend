@@ -30,6 +30,7 @@ export function ReviewSection({ customer, formData, submitting, onSubmit, onBack
     { label: 'ATM Usage', value: formData.atmUsage, icon: <CreditCard className="w-4 h-4" /> },
     { label: 'POS Usage', value: formData.posUsage, icon: <CreditCard className="w-4 h-4" /> },
     { label: 'Mobile Number', value: formData.mobileNumber, icon: <Smartphone className="w-4 h-4" /> },
+    { label: 'Place', value: formData.place || 'N/A', icon: <MapPin className="w-4 h-4" /> },
   )
 
   return (
