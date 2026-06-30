@@ -8,7 +8,11 @@ import { useEffect, useState, useRef } from 'react';
 import api from '../../utils/axios';
 import AdminHeader from '../admin/AdminHeader';
 
-export default function Header() {
+interface HeaderProps {
+  onMenuToggle?: () => void;
+}
+
+export default function Header({ onMenuToggle }: HeaderProps) {
   const authState = useSelector((state: RootState) => state.auth);
   const user      = authState.user || authState.admin;
   const isAdmin   = !!authState.admin;
@@ -18,7 +22,7 @@ export default function Header() {
 
   // ✅ If admin is logged in and accessing admin routes, show admin header
   if (isAdmin && pathname?.startsWith('/admin')) {
-    return <AdminHeader />
+    return <AdminHeader onMenuToggle={onMenuToggle} />
   }
 
   const [walletBalance, setWalletBalance]         = useState<number>(0);
@@ -114,6 +118,13 @@ export default function Header() {
 
   return (
     <header className="topbar flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3">
+      <button
+        onClick={onMenuToggle}
+        className="lg:hidden p-2 -ml-2 mr-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+        aria-label="Open menu"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+      </button>
       <div className="topbar-title min-w-0 flex-1 md:flex-none">
         {getPageName()} <span className="hidden sm:inline">/ Dashboard Home</span>
       </div>

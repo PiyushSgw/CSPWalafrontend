@@ -6,7 +6,11 @@ import { logoutAdmin } from "../../redux/slices/authslice";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 
-export default function AdminHeader() {
+interface AdminHeaderProps {
+  onMenuToggle?: () => void;
+}
+
+export default function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
   const admin = useSelector((s: RootState) => s.auth.admin);
   const pendingCount = useSelector((s: RootState) => s.admin.pendingCount);
   const dispatch = useDispatch();
@@ -46,6 +50,13 @@ export default function AdminHeader() {
 
   return (
     <header className="topbar flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3">
+      <button
+        onClick={onMenuToggle}
+        className="lg:hidden p-2 -ml-2 mr-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+        aria-label="Open menu"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+      </button>
       <div className="topbar-title min-w-0 flex-1 md:flex-none">
         {getPageName()} <span className="hidden sm:inline">/ Admin Portal</span>
       </div>

@@ -40,7 +40,12 @@ const navGroups = [
   },
 ];
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  mobileOpen?: boolean;
+  onToggleMobile?: () => void;
+}
+
+export default function AdminSidebar({ mobileOpen = false, onToggleMobile }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useDispatch();
@@ -51,6 +56,12 @@ export default function AdminSidebar() {
   useEffect(() => { setMounted(true) }, []);
   if (!mounted) return <aside className="w-[260px] bg-[#0f2744] animate-pulse flex-shrink-0" />;
 
+  // Auto-close mobile sidebar on route change
+  useEffect(() => {
+    if (mobileOpen && onToggleMobile) onToggleMobile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   const initial = admin?.name?.[0]?.toUpperCase() || 'A';
   const handleLogout = async () => {
     try { await (dispatch as any)(logoutAdmin()) } catch {}
@@ -58,16 +69,37 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="flex flex-col w-[260px] min-w-[260px] h-screen bg-[#0f2744] overflow-hidden">
-      <nav className="flex-1 overflow-x-hidden py-[14px]">
-        {/* Brand */}
-        <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-white/[0.08] flex-shrink-0">
-          <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[8px] flex items-center justify-center font-extrabold text-white text-[18px] flex-shrink-0">A</div>
-          <div>
-            <p className="text-white font-extrabold text-[16px] tracking-[-0.3px] leading-tight">CSPWala</p>
-            <p className="text-white/40 text-[10px] font-semibold tracking-[0.5px] uppercase mt-0.5">Admin Portal</p>
+    <>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onToggleMobile}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`flex flex-col h-screen bg-[#0f2744] overflow-hidden z-50 transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 w-[260px] lg:relative lg:translate-x-0 lg:w-[260px] lg:min-w-[260px]
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {/* Mobile close button */}
+        <button
+          onClick={onToggleMobile}
+          className="absolute top-3 right-3 p-1.5 text-white/50 hover:text-white lg:hidden z-10"
+          aria-label="Close menu"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <nav className="flex-1 overflow-x-hidden overflow-y-auto py-[14px]">
+          {/* Brand */}
+          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-white/[0.08] flex-shrink-0">
+            <div className="w-9 h-9 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[8px] flex items-center justify-center font-extrabold text-white text-[18px] flex-shrink-0">A</div>
+            <div>
+              <p className="text-white font-extrabold text-[16px] tracking-[-0.3px] leading-tight">CSPWala</p>
+              <p className="text-white/40 text-[10px] font-semibold tracking-[0.5px] uppercase mt-0.5">Admin Portal</p>
+            </div>
           </div>
-        </div>
 
         {/* User Card */}
         <div className="mx-[14px] mt-[14px] bg-white/5 border border-white/10 rounded-[10px] px-[14px] py-3">
@@ -118,5 +150,6 @@ export default function AdminSidebar() {
         </div>
       </nav>
     </aside>
+    </>
   );
 }

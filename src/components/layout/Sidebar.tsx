@@ -46,7 +46,12 @@ const navGroups = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onToggleMobile?: () => void;
+}
+
+export default function Sidebar({ mobileOpen = false, onToggleMobile }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const dispatch = useDispatch();
@@ -59,7 +64,7 @@ export default function Sidebar() {
 
   // ✅ If admin is logged in and accessing admin routes, show admin sidebar
   if (isAdmin && pathname?.startsWith('/admin')) {
-    return <AdminSidebar />
+    return <AdminSidebar mobileOpen={mobileOpen} onToggleMobile={onToggleMobile} />
   }
 
   const [mounted, setMounted] = useState(false);
@@ -69,6 +74,12 @@ export default function Sidebar() {
   const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Auto-close mobile sidebar on route change
+  useEffect(() => {
+    if (mobileOpen && onToggleMobile) onToggleMobile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   // ✅ Auth check — same as 1st code
   useEffect(() => {
@@ -111,12 +122,34 @@ export default function Sidebar() {
   const initial = user?.name?.[0]?.toUpperCase() || 'U';
 
   return (
-    <aside className="flex flex-col w-[260px] min-w-[260px] h-screen bg-[#0f2744] overflow-hidden">
-
-      {/* ✅ Scrollable Nav */}
-      <nav
-        className="flex-1 overflow-x-hidden py-[14px]"
+    <>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onToggleMobile}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`flex flex-col h-screen bg-[#0f2744] overflow-hidden z-50 transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 w-[260px] lg:relative lg:translate-x-0 lg:w-[260px] lg:min-w-[260px]
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
       >
+
+        {/* Mobile close button */}
+        <button
+          onClick={onToggleMobile}
+          className="absolute top-3 right-3 p-1.5 text-white/50 hover:text-white lg:hidden z-10"
+          aria-label="Close menu"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+
+        {/* ✅ Scrollable Nav */}
+        <nav
+          className="flex-1 overflow-x-hidden overflow-y-auto py-[14px]"
+        >
 
         {/* ✅ Brand Logo */}
         <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-white/[0.08] flex-shrink-0">
@@ -246,5 +279,6 @@ export default function Sidebar() {
         </div>
       </nav>
     </aside>
+    </>
   );
 }

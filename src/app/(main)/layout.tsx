@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import AuthProvider from "@/components/auth/AuthProvider";
@@ -5,15 +8,16 @@ import AuthProvider from "@/components/auth/AuthProvider";
 import "../styles.css";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+
   return (
      <AuthProvider>
     <div className="flex h-screen  overflow-hidden bg-slate-50">
-      <Sidebar />
+      <Sidebar mobileOpen={mobileSidebarOpen} onToggleMobile={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
       <div className="flex flex-col flex-1 min-w-0  main-scroll overflow-x-hidden main-scrollbar">
-        <Header />
+        <Header onMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
         <main className="flex-1 main-scroll  ">
-          <div className="p-6 flex flex-col gap-5 pb-6">
+          <div className="p-4 md:p-6 flex flex-col gap-5 pb-6">
             {children}
           </div>
         </main>

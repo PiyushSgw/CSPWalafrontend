@@ -813,6 +813,28 @@ body {
   .topbar { padding: 0 16px; }
   .topbar-title span { display: none; }
 }
+
+/* Extra-small screens */
+@media (max-width: 480px) {
+  .stat-row { grid-template-columns: 1fr; }
+  .quick-actions { grid-template-columns: 1fr; }
+  .bank-grid { grid-template-columns: 1fr; }
+  .two-col, .three-col, .col-2-1, .col-1-2 { grid-template-columns: 1fr; }
+  .page-header { flex-direction: column; }
+  .page-header-actions { width: 100%; }
+  .profile-header { flex-direction: column; text-align: center; align-items: center; }
+  .info-grid { grid-template-columns: 1fr; }
+  .info-row:nth-child(odd) { padding-right: 0; }
+  .info-row:nth-child(even) { padding-left: 0; border-left: none; }
+  .data-table th, .data-table td { padding: 8px 10px; font-size: 12px; }
+}
+
+/* Scrollable main content area */
+main.main-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .header_scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
