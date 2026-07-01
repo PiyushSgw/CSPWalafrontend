@@ -1,9 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppSelector } from '@/redux/hooks'
-import { TrendingUp } from 'lucide-react'
 
 export const RightSidebarSection = () => {
   const router = useRouter()
@@ -16,13 +14,6 @@ export const RightSidebarSection = () => {
   const canPrint = currentWallet >= printCharge
 
   const safeTxns = Array.isArray(transactions) ? transactions : []
-
-  const closingBalance = useMemo(() => {
-    const opening = Number(selectedCustomer?.opening_balance || 0)
-    const totalDebits = safeTxns.reduce((s, t) => s + Number(t.debit || 0), 0)
-    const totalCredits = safeTxns.reduce((s, t) => s + Number(t.credit || 0), 0)
-    return opening - totalDebits + totalCredits
-  }, [selectedCustomer, safeTxns])
 
   return (
     <div className="space-y-4">
@@ -65,10 +56,6 @@ export const RightSidebarSection = () => {
                   ['Branch', selectedCustomer.branch_name || selectedCustomer.branch || '—'],
                   ['IFSC', selectedCustomer.ifsc_code || selectedCustomer.ifsc || '—'],
                   ['Mobile', selectedCustomer.mobile_number || selectedCustomer.mobile || '—'],
-                  [
-                    'Opening Bal',
-                    `₹${Number(selectedCustomer.opening_balance || 0).toFixed(2)}`,
-                  ],
                 ].map(([label, value]) => (
                   <div key={label} className="flex justify-between gap-3">
                     <span className="shrink-0 text-slate-400">{label}</span>

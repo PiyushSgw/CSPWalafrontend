@@ -33,6 +33,10 @@ export function ReviewSection({ customer, formData, submitting, onSubmit, onBack
     { label: 'Place', value: formData.place || 'N/A', icon: <MapPin className="w-4 h-4" /> },
   )
 
+  if (formData.readyKit && formData.readyKitCardNumber) {
+    rows.push({ label: 'Ready Kit Card Number', value: formData.readyKitCardNumber, icon: <CreditCard className="w-4 h-4" /> })
+  }
+
   return (
     <div className="space-y-5">
       <div className="bg-white rounded-xl border border-[#e5e7eb] p-6">

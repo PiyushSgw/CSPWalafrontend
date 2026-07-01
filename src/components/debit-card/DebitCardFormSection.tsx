@@ -13,6 +13,8 @@ interface DebitCardFormData {
   posUsage: string
   mobileNumber: string
   place: string
+  readyKit: boolean
+  readyKitCardNumber: string
 }
 
 interface Props {
@@ -24,6 +26,7 @@ interface Props {
 
 export function DebitCardFormSection({ formData, onChange, onContinue, onBack }: Props) {
   const isPersonalized = formData.cardRequestType === 'Personalized Card'
+  const isReadyKitChecked = formData.readyKit
 
   const canContinue = () => {
     if (!formData.cardRequestType) return false
@@ -34,6 +37,7 @@ export function DebitCardFormSection({ formData, onChange, onContinue, onBack }:
     if (!formData.atmUsage) return false
     if (!formData.posUsage) return false
     if (!formData.mobileNumber.trim()) return false
+    if (isReadyKitChecked && formData.readyKitCardNumber.trim().length !== 16) return false
     return true
   }
 
@@ -124,6 +128,45 @@ export function DebitCardFormSection({ formData, onChange, onContinue, onBack }:
           </div>
         </div>
       )}
+
+      <div className="border border-[#e5e7eb] rounded-lg p-4 space-y-4">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={formData.readyKit}
+            onChange={(e) => onChange({ readyKit: e.target.checked, readyKitCardNumber: e.target.checked ? formData.readyKitCardNumber : '' })}
+            className="w-4 h-4 accent-[#0d8f72]"
+          />
+          <div>
+            <span className="text-sm font-medium text-[#374151]">Ready Kit (Issued by Branch)</span>
+            <p className="text-xs text-[#6b7280] mt-0.5">Check this if a physical Ready Kit debit card has already been issued by the branch</p>
+          </div>
+        </label>
+
+        {formData.readyKit && (
+          <div>
+            <label className="block text-sm font-medium text-[#374151] mb-1.5">
+              Ready Kit Card Number
+              <span className="text-[#9ca3af] ml-1">(16 digits)</span>
+            </label>
+            <input
+              type="text"
+              value={formData.readyKitCardNumber}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 16)
+                onChange({ readyKitCardNumber: val })
+              }}
+              className="w-full px-3 py-2 text-sm border border-[#d1d5db] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(13,143,114,0.12)] focus:border-[#0d8f72]"
+              placeholder="Enter 16-digit Ready Kit card number"
+              maxLength={16}
+              inputMode="numeric"
+            />
+            {formData.readyKitCardNumber.length > 0 && formData.readyKitCardNumber.length < 16 && (
+              <p className="text-xs text-[#ef4444] mt-1">Must be 16 digits ({formData.readyKitCardNumber.length}/16)</p>
+            )}
+          </div>
+        )}
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-[#374151] mb-1.5">

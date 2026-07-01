@@ -50,6 +50,8 @@ export interface DebitCardFormData {
   posUsage: string
   mobileNumber: string
   place: string
+  readyKit: boolean
+  readyKitCardNumber: string
 }
 
 interface DebitCardState {
@@ -79,6 +81,8 @@ const initialFormData: DebitCardFormData = {
   posUsage: '',
   mobileNumber: '',
   place: '',
+  readyKit: false,
+  readyKitCardNumber: '',
 }
 
 const extractPlaceFromAddress = (address: string): string => {

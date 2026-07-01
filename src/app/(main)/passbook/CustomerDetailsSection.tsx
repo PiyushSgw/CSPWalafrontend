@@ -39,7 +39,6 @@ type FormState = {
   ifsc: string
   bank_id: string
   mobile: string
-  opening_balance: string
   customer_photo: File | null
 }
 
@@ -50,7 +49,6 @@ const initialForm: FormState = {
   ifsc: '',
   bank_id: '',
   mobile: '',
-  opening_balance: '0',
   customer_photo: null,
 }
 
@@ -78,7 +76,6 @@ export const CustomerDetailsSection = () => {
     ifsc: c.ifsc || c.ifsc_code || c.ifscCode || '',
     bank_id: String(c.bank_id || c.bankId || ''),
     mobile: c.mobile || c.mobile_number || c.mobileNumber || '',
-    opening_balance: String(c.opening_balance ?? c.openingBalance ?? 0),
     customer_photo: null,
   })
 
@@ -177,7 +174,6 @@ export const CustomerDetailsSection = () => {
         ifsc: form.ifsc.toUpperCase(),
         bank_id: Number(form.bank_id),
         mobile: form.mobile || undefined,
-        opening_balance: parseFloat(form.opening_balance) || 0,
       }
       const result = await dispatch(createCustomer(payload))
       if (createCustomer.fulfilled.match(result)) {
@@ -315,11 +311,6 @@ export const CustomerDetailsSection = () => {
           <div className="flex flex-col gap-[5px]">
             <label className={labelCls}>Mobile Number</label>
             <input type="tel" value={form.mobile} onChange={(e) => updateField('mobile', e.target.value)} placeholder="9876543210" maxLength={10} className={inputCls} />
-          </div>
-
-          <div className="flex flex-col gap-[5px]">
-            <label className={labelCls}>Opening Balance (₹) <span className="text-red-500">*</span></label>
-            <input type="number" min="0" step="0.01" value={form.opening_balance} onChange={(e) => updateField('opening_balance', e.target.value)} className={`${inputCls} font-mono`} />
           </div>
 
           <div className="flex flex-col gap-[5px]">

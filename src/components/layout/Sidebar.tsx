@@ -19,8 +19,8 @@ const navGroups = [
     section: 'SERVICES',
     items: [
       { href: '/passbook',        label: 'Passbook Print',       emoji: '\u{1F4D6}', iconBg: 'bg-white/5', badge: undefined, badgeStyle: undefined },
-      { href: '/service-request', label: 'Service Requests',     emoji: '\u{1F4CB}', iconBg: 'bg-white/5', badge: 'NEW',     badgeStyle: 'yellow' },
       { href: '/account-opening', label: 'Account Opening Form', emoji: '\u{1F4CB}', iconBg: 'bg-white/5', badge: 'NEW',     badgeStyle: 'yellow' },
+      { href: '/service-request', label: 'Service Requests',     emoji: '\u{1F4CB}', iconBg: 'bg-white/5', badge: 'NEW',     badgeStyle: 'yellow' },
       { href: '/debit-card-form', label: 'Debit Card Form',     emoji: '\u{1F4B3}', iconBg: 'bg-white/5', badge: 'NEW',     badgeStyle: 'yellow' },
     ],
   },
