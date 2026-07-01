@@ -82,6 +82,8 @@ export interface AccountOpeningFormData {
   politically_exposed: string;
   printer_type: string;
   place_of_birth: string;
+  witness_name: string;
+  witness_address: string;
 
   // Services
   cheque_book: boolean;
@@ -216,6 +218,8 @@ const initialState: AccountOpeningState = {
     politically_exposed: 'NONE',
     printer_type: '',
     place_of_birth: '',
+    witness_name: '',
+    witness_address: '',
     cheque_book: false,
     atm_card_required: false,
     branch_code: '',

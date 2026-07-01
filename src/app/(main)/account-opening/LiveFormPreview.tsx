@@ -392,6 +392,16 @@ export default function LiveFormPreview() {
               value={formData.place_of_birth}
               placeholder="Not entered"
             />
+            <PreviewField
+              label="Witness Name"
+              value={formData.witness_name}
+              placeholder="Not entered"
+            />
+            <PreviewField
+              label="Witness Address"
+              value={formData.witness_address}
+              placeholder="Not entered"
+            />
           </div>
 
           <SectionBanner>Service Required</SectionBanner>

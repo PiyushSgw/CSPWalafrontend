@@ -1447,7 +1447,7 @@ export default function CustomerDetailsForm() {
               </div>
             </div>
 
-            <div className="cdf-grid-2">
+            <div className="cdf-grid-3">
               <div className="cdf-group">
                 <label className="cdf-label">Printer Type</label>
                 <select
@@ -1468,6 +1468,22 @@ export default function CustomerDetailsForm() {
                   className="cdf-input"
                   value={formData.place_of_birth}
                   onChange={(e) => set("place_of_birth", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Witness Name</label>
+                <input
+                  className="cdf-input"
+                  value={formData.witness_name}
+                  onChange={(e) => set("witness_name", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Witness Address</label>
+                <input
+                  className="cdf-input"
+                  value={formData.witness_address}
+                  onChange={(e) => set("witness_address", e.target.value)}
                 />
               </div>
             </div>

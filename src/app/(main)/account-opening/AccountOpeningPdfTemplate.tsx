@@ -57,6 +57,8 @@ interface AccountOpeningPdfTemplateProps {
     politically_exposed?: string;
     printer_type?: string;
     place_of_birth?: string;
+    witness_name?: string;
+    witness_address?: string;
     account_type?: string;
     cheque_book?: boolean;
     atm_card_required?: boolean;
@@ -398,6 +400,16 @@ export default function AccountOpeningPdfTemplate({
             <PreviewField
               label="Place of Birth"
               value={formData.place_of_birth}
+              placeholder="Not entered"
+            />
+            <PreviewField
+              label="Witness Name"
+              value={formData.witness_name}
+              placeholder="Not entered"
+            />
+            <PreviewField
+              label="Witness Address"
+              value={formData.witness_address}
               placeholder="Not entered"
             />
           </div>
