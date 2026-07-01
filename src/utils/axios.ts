@@ -59,7 +59,7 @@ api.interceptors.response.use(
       processQueue(new Error('No refresh token'), null)
       if (typeof window !== 'undefined') {
         localStorage.clear()
-        window.location.href = '/login'
+        window.location.href = '/user'
       }
       return Promise.reject(error)
     }
@@ -79,6 +79,8 @@ api.interceptors.response.use(
       localStorage.setItem('csp_access_token', access)
       if (refresh) localStorage.setItem('csp_refresh_token', refresh)
 
+      document.cookie = `token=${access}; path=/; max-age=${60 * 60 * 24 * 7}`
+
       api.defaults.headers.common.Authorization = `Bearer ${access}`
       processQueue(null, access)
 
@@ -90,7 +92,7 @@ api.interceptors.response.use(
       processQueue(err, null)
       if (typeof window !== 'undefined') {
         localStorage.clear()
-        window.location.href = '/login'
+        window.location.href = '/user'
       }
       return Promise.reject(err)
     } finally {

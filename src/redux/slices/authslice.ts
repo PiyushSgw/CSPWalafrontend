@@ -136,17 +136,10 @@ export const logoutCSP = createAsyncThunk('auth/logoutCSP', async () => {
 
 export const initializeAuth = createAsyncThunk(
   'auth/initializeAuth',
-  async (_, { dispatch, getState }) => {    
-    const state = getState() as { auth: RootState['auth'] };
+  async (_, { dispatch }) => {
     const adminToken = localStorage.getItem('admin_token');
     const cspToken = localStorage.getItem('csp_access_token');
-    console.log('Initializing auth with tokens:', { adminToken, cspToken });
-    
-    // Skip if already authenticated
-    if (state.auth.isAuthenticated || state.auth.isAdminAuthenticated) {
-      return;
-    }
-    
+
     if (adminToken) {
       await dispatch(fetchAdminProfile());
     } else if (cspToken) {
