@@ -42,12 +42,14 @@ interface AccountOpeningPdfTemplateProps {
     country?: string;
     address?: string;
     aadhaar?: string;
+    nominee_title?: string;
     nominee_name?: string;
     nominee_relation?: string;
     nominee_dob?: string;
     nominee_mobile?: string;
     nominee_address?: string;
     nominee_age?: string;
+    cif?: string;
     ckyc_number?: string;
     date?: string;
     permanent_address_type?: string;
