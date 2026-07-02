@@ -331,6 +331,11 @@ export default function AccountOpeningPdfTemplate({
           {/* Nomination */}
           <SectionHeader checked>Nomination Required</SectionHeader>
           <div className="pdf-grid-4">
+            <PreviewField
+              label="Nominee Title"
+              value={formData.nominee_title}
+              placeholder="Not selected"
+            />
             <PreviewField label="Nominee Name" value={formData.nominee_name} />
             <PreviewField
               label="Mobile"
@@ -342,13 +347,13 @@ export default function AccountOpeningPdfTemplate({
               value={formData.nominee_relation}
               placeholder="Not entered"
             />
+          </div>
+          <div className="pdf-grid">
             <PreviewField
               label="Nominee Address"
               value={formData.nominee_address}
               placeholder="Not entered"
             />
-          </div>
-          <div className="pdf-grid">
             <PreviewField
               label="Nominee Age"
               value={formData.nominee_age}
@@ -460,7 +465,7 @@ export default function AccountOpeningPdfTemplate({
             />
           </div>
           <div className="pdf-grid-4">
-            <PreviewField label="Customer ID" value={formData.customer_id} />
+            <PreviewField label="Customer ID / CIF" value={formData.cif} placeholder="Not entered" />
             <PreviewField
               label="Account Number"
               value={formData.account_number}

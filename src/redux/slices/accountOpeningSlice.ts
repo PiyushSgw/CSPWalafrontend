@@ -54,6 +54,7 @@ export interface AccountOpeningFormData {
 
   // Nomination
   nominee_name: string;
+  nominee_title: string;
   nominee_first_name: string;
   nominee_middle_name: string;
   nominee_last_name: string;
@@ -192,6 +193,7 @@ const initialState: AccountOpeningState = {
     country: 'India',
     address: '',
     nominee_name: '',
+    nominee_title: '',
     nominee_first_name: '',
     nominee_middle_name: '',
     nominee_last_name: '',

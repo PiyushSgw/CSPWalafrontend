@@ -61,6 +61,12 @@ export default function AccountFormPage() {
   }, [authUser, formData.bc_name, dispatch]);
 
   useEffect(() => {
+    if (authUser?.csp_code && !formData.bc_code) {
+      dispatch(updateFormField({ field: 'bc_code', value: authUser.csp_code }));
+    }
+  }, [authUser, formData.bc_code, dispatch]);
+
+  useEffect(() => {
     if (submitSuccess) {
       toast.success(submitSuccess);
       dispatch(resetSubmitState());

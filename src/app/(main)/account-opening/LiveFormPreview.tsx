@@ -324,6 +324,11 @@ export default function LiveFormPreview() {
 
           <SectionBanner>Nomination Required</SectionBanner>
           <div className="lpv-grid">
+            <PreviewField
+              label="Nominee Title"
+              value={formData.nominee_title}
+              placeholder="Not selected"
+            />
             <PreviewField label="Nominee Name" value={formData.nominee_name} />
             <PreviewField
               label="Mobile"
@@ -440,7 +445,7 @@ export default function LiveFormPreview() {
               value={formData.designation}
               placeholder="Not selected"
             />
-            <PreviewField label="Customer ID" value={formData.customer_id} />
+            <PreviewField label="Customer ID / CIF" value={formData.cif} placeholder="Not entered" />
             <PreviewField
               label="Account Number"
               value={formData.account_number}

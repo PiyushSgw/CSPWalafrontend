@@ -115,6 +115,7 @@ type Customer = {
   pan?: string;
   occupation?: string;
   nominee_name?: string;
+  nominee_title?: string;
   nominee_relation?: string;
   nominee_dob?: string;
   nominee_mobile?: string;
@@ -175,7 +176,7 @@ export default function CustomerDetailsForm() {
     const nomineeParts = splitName(c.nominee_name);
     const fields: Partial<typeof formData> = {
       customer_id: c.id as number,
-      cif: (c as any).cif ?? "",
+      cif: "",
       full_name: c.full_name ?? "",
       first_name: c.first_name ?? "",
       middle_name: c.middle_name ?? "",
@@ -204,6 +205,7 @@ export default function CustomerDetailsForm() {
       annual_income: c.annual_income ?? "",
       net_worth: c.net_worth ?? "",
       nominee_name: c.nominee_name ?? "",
+      nominee_title: c.nominee_title ?? "",
       nominee_first_name: nomineeParts.first,
       nominee_middle_name: nomineeParts.middle,
       nominee_last_name: nomineeParts.last,
@@ -1125,7 +1127,22 @@ export default function CustomerDetailsForm() {
 
         {nominationOpen && (
           <>
-            <div className="cdf-grid-3">
+            <div className="cdf-grid-4">
+              <div className="cdf-group">
+                <label className="cdf-label">Nominee Title</label>
+                <select
+                  className="cdf-select"
+                  value={formData.nominee_title}
+                  onChange={(e) => set("nominee_title", e.target.value)}
+                >
+                  <option value="">SELECT</option>
+                  <option value="MR.">MR.</option>
+                  <option value="MRS.">MRS.</option>
+                  <option value="MS.">MS.</option>
+                  <option value="MISS">MISS</option>
+                  <option value="DR.">DR.</option>
+                </select>
+              </div>
               <div className="cdf-group">
                 <label className="cdf-label">Nominee First Name</label>
                 <input
@@ -1544,7 +1561,7 @@ export default function CustomerDetailsForm() {
                   onChange={(e) => set("cif", e.target.value)}
                 />
                 <p className="cdf-hint" style={{ color: "#6b7280", fontSize: "10px", lineHeight: 1.3 }}>
-                  Customer ID is generated automatically. If you need to change it, you may enter the new Customer ID here.
+                  Enter the bank customer / CIF number manually. Leave blank if not available.
                 </p>
               </div>
               <div className="cdf-group">
