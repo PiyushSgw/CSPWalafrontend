@@ -1,39 +1,49 @@
-'use client';
-
-import type { OpenAuth } from './types';
+import type { OpenAuth } from '../data';
 
 export default function LandingFooter({ openAuth }: { openAuth: OpenAuth }) {
   return (
-    <footer id="contact">
-      <div className="footer-wrap">
-        <div style={{ maxWidth: 320 }}>
-          <div className="f-logo">BcUnion<span style={{ color: 'var(--gold)' }}>.in</span></div>
-          <p>Union Bank of India च्या BC एजंट्स आणि CSP ऑपरेटर्ससाठी फॉर्म व पासबुक प्रिंटिंग प्लॅटफॉर्म.</p>
+    <footer>
+      <div className="ft-inner">
+        <div className="ft-brand">
+          <div className="ft-logo">
+            <div className="ft-logo-mark">BC</div>
+            BcUnion<span style={{ color: '#4B8FE8' }}>.in</span>
+          </div>
+          <p>सर्व राष्ट्रीयीकृत बँकांच्या BC एजंट्स व CSP ऑपरेटर्ससाठी AOF फॉर्म व सामाजिक सुरक्षा योजना पोर्टल.</p>
         </div>
-        <div className="f-col">
-          <h4>फॉर्म्स</h4>
+        <div className="ft-col">
+          <h4>मुख्य सेवा</h4>
           <a href="#forms">Account Opening Form</a>
-          <a href="#forms">Nomination (DA-1)</a>
+          <a href="#forms">Nomination · DA-1</a>
           <a href="#forms">FATCA Annexure</a>
-          <a href="#forms">Integrity Pledge</a>
-          <a href="#forms">Debit Card Request</a>
-          <a href="#forms">AEPS Activation</a>
-          <a href="#forms">Account Transfer</a>
+          <a href="#forms">APY · PMJJBY · PMSBY</a>
         </div>
-        <div className="f-col">
-          <h4>सरकारी योजना</h4>
-          <a href="#schemes">APY – अटल पेन्शन</a>
-          <a href="#schemes">PMJJBY – जीवन ज्योती</a>
-          <a href="#schemes">PMSBY – सुरक्षा विमा</a>
+        <div className="ft-col">
+          <h4>लवकरच</h4>
+          <a href="#coming">Passbook Print <span className="soon">SOON</span></a>
+          <a href="#coming">RTGS / NEFT <span className="soon">SOON</span></a>
+          <a href="#coming">Cash Deposit Slip <span className="soon">SOON</span></a>
+          <a href="#coming">Cheque Print <span className="soon">SOON</span></a>
         </div>
-        <div className="f-col">
-          <h4>सेवा</h4>
-          <a href="#passbook">पासबुक प्रिंट</a>
-          <a href="#how">कसं चालतं</a>
-          <a onClick={() => openAuth('login')} style={{ cursor: 'pointer' }}>लॉगिन</a>
+        <div className="ft-col">
+          <h4>बँका</h4>
+          <a href="#banks">Union Bank · SBI · BOB</a>
+          <a href="#banks">BOM · PNB · Canara</a>
+          <a href="#banks">BOI · PSB · IOB</a>
+          <a href="#banks">CBI · Indian · UCO</a>
+        </div>
+        <div className="ft-col">
+          <h4>खाते</h4>
+          <a href="javascript:void(0)" onClick={() => openAuth('login')}>लॉगिन</a>
+          <a href="javascript:void(0)" onClick={() => openAuth('register')}>मोफत नोंदणी</a>
+          <a href="#">Terms & Conditions</a>
+          <a href="#">Privacy Policy</a>
         </div>
       </div>
-      <div className="footer-bottom">© 2026 BcUnion.in — Shiv Infotech / Alpha Vision Labs</div>
+      <div className="ft-bottom">
+        <span>© 2026 BcUnion.in — Shiv Infotech / Alpha Vision Labs, Mahagaon, Yavatmal</span>
+        <span>IT Act 2000 · DPDPA 2023 · RBI BC Guidelines</span>
+      </div>
     </footer>
   );
 }

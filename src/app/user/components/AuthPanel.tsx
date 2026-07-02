@@ -15,9 +15,6 @@ interface Props {
   onTab: (tab: Tab) => void;
 }
 
-// Email + password login is kept in code but hidden for now (toggle to re-enable).
-const SHOW_EMAIL_LOGIN = false;
-
 const onlyDigits = (v: string, max = 10) => v.replace(/\D/g, '').slice(0, max);
 
 export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
@@ -25,22 +22,13 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const router = useRouter();
 
   const [busy, setBusy] = useState(false);
-  // 'form' shows login/register; 'otp' shows the OTP step after registering.
   const [view, setView] = useState<'form' | 'otp'>('form');
 
-  const [login, setLogin] = useState({ csp_code: '', mobile: '', password: '', email: '', remember_me: false });
+  const [login, setLogin] = useState({ csp_code: '', mobile: '', password: '', remember_me: false });
   const [reg, setReg] = useState({ name: '', csp_code: '', mobile: '', location: '', password: '' });
   const [otp, setOtp] = useState({ mobile: '', code: '' });
 
   const isLogin = tab === 'login';
-
-  const title = view === 'otp' ? 'OTP पडताळणी' : isLogin ? 'BC एजंट लॉगिन' : 'नवीन नोंदणी';
-  const subtitle =
-    view === 'otp'
-      ? 'तुमच्या मोबाईलवर आलेला OTP टाका'
-      : isLogin
-        ? 'तुमच्या CSP खात्याने लॉगिन करा'
-        : 'काही मिनिटांत खाते तयार करा';
 
   const switchTab = (t: Tab) => {
     setView('form');
@@ -116,22 +104,30 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     }
   };
 
+  const title = view === 'otp' ? 'OTP पडताळणी' : isLogin ? 'BC एजंट लॉगिन' : 'नवीन नोंदणी';
+  const subtitle =
+    view === 'otp'
+      ? 'तुमच्या मोबाईलवर आलेला OTP टाका'
+      : isLogin
+        ? 'तुमच्या CSP खात्याने लॉगिन करा'
+        : 'काही मिनिटांत खाते तयार करा';
+
   return (
     <>
       <div className={`overlay${open ? ' active' : ''}`} onClick={onClose} />
       <div className={`login-panel${open ? ' active' : ''}`}>
-        <div className="login-cover">
-          <div className="close-btn" onClick={onClose}>✕</div>
-          <div className="seal-big mono">BC</div>
+        <div className="p-cover">
+          <div className="p-close" onClick={onClose}>✕</div>
+          <div className="p-icon">BC</div>
           <h2>{title}</h2>
           <p>{subtitle}</p>
         </div>
 
-        <div className="login-body">
+        <div className="p-body">
           {view === 'form' && (
-            <div className="tabbar">
-              <button className={isLogin ? 'active' : ''} onClick={() => switchTab('login')}>लॉगिन</button>
-              <button className={!isLogin ? 'active' : ''} onClick={() => switchTab('register')}>नोंदणी</button>
+            <div className="p-tabs">
+              <button className={isLogin ? 'on' : ''} onClick={() => switchTab('login')}>लॉगिन</button>
+              <button className={!isLogin ? 'on' : ''} onClick={() => switchTab('register')}>नोंदणी</button>
             </div>
           )}
 
@@ -145,6 +141,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   placeholder="उदा. CSP0421"
                   value={login.csp_code}
                   onChange={(e) => setLogin({ ...login, csp_code: e.target.value })}
+                  required
                 />
               </div>
               <div className="field">
@@ -155,19 +152,9 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   maxLength={10}
                   value={login.mobile}
                   onChange={(e) => setLogin({ ...login, mobile: onlyDigits(e.target.value) })}
+                  required
                 />
               </div>
-              {SHOW_EMAIL_LOGIN && (
-                <div className="field">
-                  <label>ईमेल</label>
-                  <input
-                    type="email"
-                    placeholder="email@example.com"
-                    value={login.email}
-                    onChange={(e) => setLogin({ ...login, email: e.target.value })}
-                  />
-                </div>
-              )}
               <div className="field">
                 <label>पासवर्ड</label>
                 <input
@@ -175,26 +162,27 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   placeholder="••••••••"
                   value={login.password}
                   onChange={(e) => setLogin({ ...login, password: e.target.value })}
+                  required
                 />
               </div>
-              <div className="row-between">
-                <label style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'var(--ink-soft)' }}>
+              <div className="row-sb">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--soft)', fontSize: '.82rem' }}>
                   <input
                     type="checkbox"
                     style={{ width: 'auto' }}
                     checked={login.remember_me}
                     onChange={(e) => setLogin({ ...login, remember_me: e.target.checked })}
-                  />{' '}
+                  />
                   लक्षात ठेवा
                 </label>
-                <a onClick={() => toast('लवकरच उपलब्ध', { icon: 'ℹ️' })}>पासवर्ड विसरलात?</a>
+                <a href="javascript:void(0)" onClick={() => toast('लवकरच उपलब्ध', { icon: 'ℹ️' })}>पासवर्ड विसरलात?</a>
               </div>
-              <button className="login-submit" type="submit" disabled={busy}>
+              <button className="p-submit" type="submit" disabled={busy}>
                 {busy ? 'लॉगिन होत आहे...' : 'लॉगिन करा'}
               </button>
-              <div className="divider-or">किंवा</div>
-              <p className="register-cta">
-                खाते नाही? <a onClick={() => switchTab('register')}>इथे नोंदणी करा</a>
+              <div className="or">किंवा</div>
+              <p className="p-link-cta">
+                खाते नाही? <a href="javascript:void(0)" onClick={() => switchTab('register')}>इथे नोंदणी करा</a>
               </p>
             </form>
           )}
@@ -203,31 +191,34 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
           {view === 'form' && !isLogin && (
             <form onSubmit={handleRegister}>
               <div className="field">
-                <label>पूर्ण नाव</label>
+                <label>पूर्ण नाव <span style={{ color: '#E53E3E' }}>*</span></label>
                 <input
                   type="text"
                   placeholder="तुमचे पूर्ण नाव"
                   value={reg.name}
                   onChange={(e) => setReg({ ...reg, name: e.target.value })}
+                  required
                 />
               </div>
               <div className="field">
-                <label>CSP कोड</label>
+                <label>CSP कोड <span style={{ color: '#E53E3E' }}>*</span></label>
                 <input
                   type="text"
                   placeholder="उदा. CSP0421"
                   value={reg.csp_code}
                   onChange={(e) => setReg({ ...reg, csp_code: e.target.value })}
+                  required
                 />
               </div>
               <div className="field">
-                <label>मोबाईल नंबर</label>
+                <label>मोबाईल नंबर <span style={{ color: '#E53E3E' }}>*</span></label>
                 <input
                   type="tel"
                   placeholder="10 अंकी मोबाईल नंबर"
                   maxLength={10}
                   value={reg.mobile}
                   onChange={(e) => setReg({ ...reg, mobile: onlyDigits(e.target.value) })}
+                  required
                 />
                 <div className="hint">OTP याच नंबरवर पाठवला जाईल</div>
               </div>
@@ -241,20 +232,27 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                 />
               </div>
               <div className="field">
-                <label>नवीन पासवर्ड</label>
+                <label>नवीन पासवर्ड <span style={{ color: '#E53E3E' }}>*</span></label>
                 <input
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="किमान 6 अक्षरे"
                   value={reg.password}
                   onChange={(e) => setReg({ ...reg, password: e.target.value })}
+                  required
                 />
                 <div className="hint">किमान 6 अक्षरे</div>
               </div>
-              <button className="login-submit" type="submit" disabled={busy}>
+              <div className="tc-row" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--blue-pale)', border: '1px solid rgba(27,84,216,.15)', borderRadius: 8, padding: 12, marginTop: 4 }}>
+                <input type="checkbox" id="tcChk" required style={{ width: 'auto', marginTop: 2 }} />
+                <label htmlFor="tcChk" style={{ fontSize: '.78rem', color: 'var(--soft)', lineHeight: 1.5 }}>
+                  मी <a href="#" style={{ color: 'var(--blue)' }}>Terms & Conditions</a> आणि <a href="#" style={{ color: 'var(--blue)' }}>Privacy Policy</a> वाचली असून मान्य आहे.
+                </label>
+              </div>
+              <button className="p-submit" type="submit" disabled={busy} style={{ marginTop: 14 }}>
                 {busy ? 'नोंदणी होत आहे...' : 'नोंदणी करा'}
               </button>
-              <p className="register-cta" style={{ marginTop: 18 }}>
-                आधीच खाते आहे? <a onClick={() => switchTab('login')}>लॉगिन करा</a>
+              <p className="p-link-cta" style={{ marginTop: 16 }}>
+                आधीच खाते आहे? <a href="javascript:void(0)" onClick={() => switchTab('login')}>लॉगिन करा</a>
               </p>
             </form>
           )}
@@ -270,14 +268,15 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   maxLength={8}
                   value={otp.code}
                   onChange={(e) => setOtp({ ...otp, code: onlyDigits(e.target.value, 8) })}
+                  required
                 />
                 <div className="hint">{otp.mobile} वर पाठवलेला OTP टाका</div>
               </div>
-              <button className="login-submit" type="submit" disabled={busy}>
+              <button className="p-submit" type="submit" disabled={busy}>
                 {busy ? 'पडताळणी होत आहे...' : 'OTP पडताळा'}
               </button>
-              <p className="register-cta" style={{ marginTop: 18 }}>
-                <a onClick={() => switchTab('register')}>← नोंदणीकडे परत जा</a>
+              <p className="p-link-cta" style={{ marginTop: 18 }}>
+                <a href="javascript:void(0)" onClick={() => switchTab('register')}>← नोंदणीकडे परत जा</a>
               </p>
             </form>
           )}

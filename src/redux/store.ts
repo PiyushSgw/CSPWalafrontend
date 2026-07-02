@@ -12,7 +12,7 @@ import accountOpeningReducer from './slices/accountOpeningSlice';
 import adminReducer from './slices/adminSlice';
 import serviceRequestReducer from './slices/serviceRequestSlice';
 import debitCardReducer from './slices/debitCardSlice';
-
+import apyReducer from './slices/apySlice';
 
 import storage from 'redux-persist/lib/storage'; // localStorage
 
@@ -38,6 +38,7 @@ export const store = configureStore({
      admin: adminReducer,
      serviceRequest: serviceRequestReducer,
      debitCard: debitCardReducer,
+     apy: apyReducer,
 
   },
   middleware: (getDefault) => getDefault({ serializableCheck: false }),

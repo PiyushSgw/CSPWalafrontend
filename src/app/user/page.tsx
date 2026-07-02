@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import './user.css';
 import LandingHeader from './components/LandingHeader';
-import Hero from './components/Hero';
-import FormsSection from './components/FormsSection';
-import PassbookSection from './components/PassbookSection';
+import HeroSection from './components/HeroSection';
+import BanksSection from './components/BanksSection';
+import ServicesSection from './components/ServicesSection';
 import HowItWorks from './components/HowItWorks';
-import SchemesSection from './components/SchemesSection';
+import WhySection from './components/WhySection';
+import PricingSection from './components/PricingSection';
+import ComingSoonSection from './components/ComingSoonSection';
 import LandingFooter from './components/LandingFooter';
 import AuthPanel from './components/AuthPanel';
 import type { OpenAuth } from './components/types';
@@ -59,11 +61,13 @@ export default function UserLandingPage() {
     <div className="bc-landing">
       <LandingHeader openAuth={openAuth} />
       <main>
-        <Hero openAuth={openAuth} />
-        <FormsSection />
-        <PassbookSection openAuth={openAuth} />
+        <HeroSection openAuth={openAuth} />
+        <BanksSection />
+        <ServicesSection openAuth={openAuth} />
         <HowItWorks />
-        <SchemesSection openAuth={openAuth} />
+        <WhySection />
+        <PricingSection openAuth={openAuth} />
+        <ComingSoonSection openAuth={openAuth} />
       </main>
       <LandingFooter openAuth={openAuth} />
 
