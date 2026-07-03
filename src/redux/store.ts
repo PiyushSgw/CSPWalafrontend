@@ -13,6 +13,7 @@ import adminReducer from './slices/adminSlice';
 import serviceRequestReducer from './slices/serviceRequestSlice';
 import debitCardReducer from './slices/debitCardSlice';
 import apyReducer from './slices/apySlice';
+import locationReducer from './slices/locationSlice';
 
 import storage from 'redux-persist/lib/storage'; // localStorage
 
@@ -39,6 +40,7 @@ export const store = configureStore({
      serviceRequest: serviceRequestReducer,
      debitCard: debitCardReducer,
      apy: apyReducer,
+     location: locationReducer,
 
   },
   middleware: (getDefault) => getDefault({ serializableCheck: false }),

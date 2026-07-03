@@ -60,7 +60,10 @@ export const loginCSP = createAsyncThunk(
       }
       return user as User
     } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'CSP Login failed')
+      const msg = e.response?.data?.message || 'CSP Login failed';
+      const errs = e.response?.data?.errors;
+      const fullMsg = errs?.length ? `${msg}: ${errs.join(', ')}` : msg;
+      return rejectWithValue(fullMsg);
     }
   }
 )
@@ -170,7 +173,10 @@ export const registerCSP = createAsyncThunk(
       const res = await api.post('/auth/register', data)
       return res.data
     } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Registration failed')
+      const msg = e.response?.data?.message || 'Registration failed';
+      const errs = e.response?.data?.errors;
+      const fullMsg = errs?.length ? `${msg}: ${errs.join(', ')}` : msg;
+      return rejectWithValue(fullMsg);
     }
   }
 )

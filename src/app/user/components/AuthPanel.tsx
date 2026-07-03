@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { useAppDispatch } from '@/redux/hooks';
 import { loginCSP, registerCSP, verifyOTP } from '@/redux/slices/authslice';
+import api from '@/utils/axios';
 
 type Tab = 'login' | 'register';
 
@@ -17,18 +18,99 @@ interface Props {
 
 const onlyDigits = (v: string, max = 10) => v.replace(/\D/g, '').slice(0, max);
 
+interface LocationItem { name: string }
+
 export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const dispatch = useAppDispatch();
   const router = useRouter();
 
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<'form' | 'otp'>('form');
+  const [showPassword, setShowPassword] = useState(false);
 
   const [login, setLogin] = useState({ csp_code: '', mobile: '', password: '', remember_me: false });
-  const [reg, setReg] = useState({ name: '', csp_code: '', mobile: '', location: '', password: '' });
+  const [reg, setReg] = useState({
+    name: '', csp_code: '', mobile: '', email: '',
+    password: '',
+    state: '', district: '', taluka: '', village_city: '',
+  });
   const [otp, setOtp] = useState({ mobile: '', code: '' });
 
+  // Location dropdown options
+  const [states, setStates] = useState<LocationItem[]>([]);
+  const [districts, setDistricts] = useState<LocationItem[]>([]);
+  const [talukas, setTalukas] = useState<LocationItem[]>([]);
+  const [villages, setVillages] = useState<LocationItem[]>([]);
+  const [statesLoading, setStatesLoading] = useState(false);
+  const [districtsLoading, setDistrictsLoading] = useState(false);
+  const [talukasLoading, setTalukasLoading] = useState(false);
+  const [villagesLoading, setVillagesLoading] = useState(false);
+
   const isLogin = tab === 'login';
+
+  useEffect(() => {
+    if (!isLogin) loadStates();
+  }, [tab]);
+
+  const loadStates = async () => {
+    setStatesLoading(true);
+    try {
+      const res = await api.get('/locations/states');
+      setStates(res.data.data);
+    } catch {
+      toast.error('राज्ये लोड करताना त्रुटी');
+    } finally {
+      setStatesLoading(false);
+    }
+  };
+
+  const handleStateChange = async (stateVal: string) => {
+    setReg({ ...reg, state: stateVal, district: '', taluka: '', village_city: '' });
+    setDistricts([]);
+    setTalukas([]);
+    setVillages([]);
+    if (!stateVal) return;
+    setDistrictsLoading(true);
+    try {
+      const res = await api.get(`/locations/states/${encodeURIComponent(stateVal)}/districts`);
+      setDistricts(res.data.data);
+    } catch {
+      toast.error('जिल्हे लोड करताना त्रुटी');
+    } finally {
+      setDistrictsLoading(false);
+    }
+  };
+
+  const handleDistrictChange = async (districtVal: string) => {
+    setReg({ ...reg, district: districtVal, taluka: '', village_city: '' });
+    setTalukas([]);
+    setVillages([]);
+    if (!districtVal || !reg.state) return;
+    setTalukasLoading(true);
+    try {
+      const res = await api.get(`/locations/states/${encodeURIComponent(reg.state)}/districts/${encodeURIComponent(districtVal)}/talukas`);
+      setTalukas(res.data.data);
+    } catch {
+      toast.error('तालुके लोड करताना त्रुटी');
+    } finally {
+      setTalukasLoading(false);
+    }
+  };
+
+  const handleTalukaChange = async (talukaVal: string) => {
+    setReg({ ...reg, taluka: talukaVal, village_city: '' });
+    setVillages([]);
+    if (!talukaVal || !reg.state || !reg.district) return;
+    setVillagesLoading(true);
+    try {
+      const res = await api.get(`/locations/states/${encodeURIComponent(reg.state)}/districts/${encodeURIComponent(reg.district)}/talukas/${encodeURIComponent(talukaVal)}/villages`);
+      setVillages(res.data.data);
+    } catch {
+      toast.error('गावे लोड करताना त्रुटी');
+    } finally {
+      setVillagesLoading(false);
+    }
+  };
 
   const switchTab = (t: Tab) => {
     setView('form');
@@ -61,7 +143,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reg.name.trim() || !reg.csp_code.trim() || !reg.mobile.trim() || !reg.password) {
+    if (!reg.name.trim() || !reg.csp_code.trim() || !reg.mobile.trim() || !reg.email.trim() || !reg.password) {
       toast.error('कृपया सर्व आवश्यक माहिती भरा');
       return;
     }
@@ -71,8 +153,12 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
         name: reg.name.trim(),
         csp_code: reg.csp_code.trim(),
         mobile: reg.mobile.trim(),
-        location: reg.location.trim() || undefined,
+        email: reg.email.trim(),
         password: reg.password,
+        state: reg.state.trim(),
+        district: reg.district.trim(),
+        taluka: reg.taluka.trim(),
+        village_city: reg.village_city.trim(),
       })
     );
     setBusy(false);
@@ -157,13 +243,18 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
               </div>
               <div className="field">
                 <label>पासवर्ड</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={login.password}
-                  onChange={(e) => setLogin({ ...login, password: e.target.value })}
-                  required
-                />
+                <div className="pw-wrap">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={login.password}
+                    onChange={(e) => setLogin({ ...login, password: e.target.value })}
+                    required
+                  />
+                  <button type="button" className="pw-eye" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
               </div>
               <div className="row-sb">
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--soft)', fontSize: '.82rem' }}>
@@ -191,7 +282,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
           {view === 'form' && !isLogin && (
             <form onSubmit={handleRegister}>
               <div className="field">
-                <label>पूर्ण नाव <span style={{ color: '#E53E3E' }}>*</span></label>
+                <label>पूर्ण नाव <span className="req">*</span></label>
                 <input
                   type="text"
                   placeholder="तुमचे पूर्ण नाव"
@@ -201,7 +292,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                 />
               </div>
               <div className="field">
-                <label>CSP कोड <span style={{ color: '#E53E3E' }}>*</span></label>
+                <label>CSP कोड <span className="req">*</span></label>
                 <input
                   type="text"
                   placeholder="उदा. CSP0421"
@@ -211,7 +302,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                 />
               </div>
               <div className="field">
-                <label>मोबाईल नंबर <span style={{ color: '#E53E3E' }}>*</span></label>
+                <label>मोबाईल नंबर <span className="req">*</span></label>
                 <input
                   type="tel"
                   placeholder="10 अंकी मोबाईल नंबर"
@@ -223,26 +314,81 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                 <div className="hint">OTP याच नंबरवर पाठवला जाईल</div>
               </div>
               <div className="field">
-                <label>गाव / तालुका</label>
+                <label>ईमेल / Email <span className="req">*</span></label>
                 <input
-                  type="text"
-                  placeholder="उदा. कळी दौ, महागाव"
-                  value={reg.location}
-                  onChange={(e) => setReg({ ...reg, location: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label>नवीन पासवर्ड <span style={{ color: '#E53E3E' }}>*</span></label>
-                <input
-                  type="password"
-                  placeholder="किमान 6 अक्षरे"
-                  value={reg.password}
-                  onChange={(e) => setReg({ ...reg, password: e.target.value })}
+                  type="email"
+                  placeholder="yourname@gmail.com"
+                  value={reg.email}
+                  onChange={(e) => setReg({ ...reg, email: e.target.value })}
                   required
                 />
-                <div className="hint">किमान 6 अक्षरे</div>
               </div>
-              <div className="tc-row" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--blue-pale)', border: '1px solid rgba(27,84,216,.15)', borderRadius: 8, padding: 12, marginTop: 4 }}>
+
+              {/* Location Section */}
+              <div className="loc-label">📍 तुमचे ठिकाण <span className="req">*</span></div>
+              <div className="loc-grid">
+                <select
+                  value={reg.state}
+                  onChange={(e) => handleStateChange(e.target.value)}
+                  required
+                >
+                  <option value="">{statesLoading ? 'लोड होत आहे...' : 'राज्य / State'}</option>
+                  {states.map((s) => (
+                    <option key={s.name} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={reg.district}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
+                  disabled={!reg.state}
+                  required
+                >
+                  <option value="">{districtsLoading ? 'लोड होत आहे...' : 'जिल्हा / District'}</option>
+                  {districts.map((d) => (
+                    <option key={d.name} value={d.name}>{d.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={reg.taluka}
+                  onChange={(e) => handleTalukaChange(e.target.value)}
+                  disabled={!reg.district}
+                  required
+                >
+                  <option value="">{talukasLoading ? 'लोड होत आहे...' : 'तालुका / Taluka'}</option>
+                  {talukas.map((t) => (
+                    <option key={t.name} value={t.name}>{t.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={reg.village_city}
+                  onChange={(e) => setReg({ ...reg, village_city: e.target.value })}
+                  disabled={!reg.taluka}
+                  required
+                >
+                  <option value="">{villagesLoading ? 'लोड होत आहे...' : 'गाव / Village'}</option>
+                  {villages.map((v) => (
+                    <option key={v.name} value={v.name}>{v.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label>नवीन पासवर्ड <span className="req">*</span></label>
+                <div className="pw-wrap">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="किमान 8 अक्षरे"
+                    value={reg.password}
+                    onChange={(e) => setReg({ ...reg, password: e.target.value })}
+                    required
+                  />
+                  <button type="button" className="pw-eye" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
+                <div className="hint">किमान 8 अक्षरे</div>
+              </div>
+              <div className="tc-row">
                 <input type="checkbox" id="tcChk" required style={{ width: 'auto', marginTop: 2 }} />
                 <label htmlFor="tcChk" style={{ fontSize: '.78rem', color: 'var(--soft)', lineHeight: 1.5 }}>
                   मी <a href="#" style={{ color: 'var(--blue)' }}>Terms & Conditions</a> आणि <a href="#" style={{ color: 'var(--blue)' }}>Privacy Policy</a> वाचली असून मान्य आहे.
