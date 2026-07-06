@@ -54,13 +54,14 @@ export default function AdminSidebar({ mobileOpen = false, onToggleMobile }: Adm
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true) }, []);
-  if (!mounted) return <aside className="w-[260px] bg-[#0f2744] animate-pulse flex-shrink-0" />;
 
   // Auto-close mobile sidebar on route change
   useEffect(() => {
     if (mobileOpen && onToggleMobile) onToggleMobile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  if (!mounted) return <aside className="w-[260px] bg-[#0f2744] animate-pulse flex-shrink-0" />;
 
   const initial = admin?.name?.[0]?.toUpperCase() || 'A';
   const handleLogout = async () => {

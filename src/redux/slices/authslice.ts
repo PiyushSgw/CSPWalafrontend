@@ -112,7 +112,7 @@ export const fetchAdminProfile = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('admin_token')
-      const res = await fetch(`${API_BASE_URL}/admin/profile`, {
+      const res = await fetch(`${API_BASE_URL}/admin/auth/me`, {
         headers: { 'Authorization': `Bearer ${token!}` }
       })
       if (!res.ok) throw new Error('Failed to fetch profile')

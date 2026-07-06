@@ -30,7 +30,9 @@ function ApyPageInner() {
   }
 
   const handleFormContinue = () => {
+    console.log('[APY] handleFormContinue called, current step=', apy.step)
     apy.goToStep('review')
+    console.log('[APY] after goToStep review, step now=', apy.step)
   }
 
   const handleSubmit = useCallback(async () => {

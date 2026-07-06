@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import TabBar from './TopBar';
 import BankSelector from './BankSelector';
@@ -23,14 +24,31 @@ import {
 } from '@/redux/slices/accountOpeningSlice';
 import { createCustomer } from '@/redux/slices/customersSlice';
 import { fetchWalletBalance } from '@/redux/slices/walletSlice';
+import {
+  updateFormData as updateApyFormData,
+  setStep as setApyStep,
+} from '@/redux/slices/apySlice';
 
 // account_type values accepted by the customers table enum. The form's
 // "minor" option is intentionally excluded so we fall back to the DB default
 // rather than triggering an invalid-enum error during inline registration.
 const CUSTOMER_ACCOUNT_TYPES = ['savings', 'current', 'jan_dhan', 'recurring', 'fixed'];
 
+const calculateAge = (dob: string): string => {
+  if (!dob) return '';
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return String(age);
+};
+
 export default function AccountFormPage() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
   const {
     activeTab,
@@ -196,6 +214,26 @@ export default function AccountFormPage() {
 
       // Refresh the wallet widget elsewhere in the app.
       dispatch(fetchWalletBalance());
+
+      // If APY enrollment is also requested, pre-fill the APY form from
+      // the account-opening data and navigate the user to complete it.
+      if (formData.include_apy) {
+        dispatch(updateApyFormData({
+          customerId,
+          title: formData.title || 'Shri',
+          fullName: formData.full_name,
+          dateOfBirth: formData.dob,
+          age: calculateAge(formData.dob),
+          mobile: formData.mobile,
+          email: formData.email,
+          aadhaar: formData.aadhaar,
+          nomineeName: formData.nominee_name,
+          nomineeRelation: formData.nominee_relation,
+          nomineeDob: formData.nominee_dob,
+        }));
+        dispatch(setApyStep('form'));
+        router.push('/apy');
+      }
     } catch (err: any) {
       toast.error(typeof err === 'string' ? err : 'Failed to generate PDF');
     }
@@ -274,10 +312,19 @@ export default function AccountFormPage() {
 
                 <PrintOptions
                   includePassbook={formData.include_passbook}
-                  onToggle={(value) =>
+                  includeApy={formData.include_apy}
+                  onTogglePassbook={(value) =>
                     dispatch(
                       updateFormField({
                         field: 'include_passbook',
+                        value,
+                      })
+                    )
+                  }
+                  onToggleAPY={(value) =>
+                    dispatch(
+                      updateFormField({
+                        field: 'include_apy',
                         value,
                       })
                     )

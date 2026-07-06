@@ -23,6 +23,7 @@ interface RecentJob {
   charge: number
   is_reprint: boolean
   created_at: string
+  job_type?: string
 }
 
 interface DashboardState {

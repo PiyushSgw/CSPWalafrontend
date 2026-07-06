@@ -104,6 +104,7 @@ export interface AccountOpeningFormData {
 
   // Media
   include_passbook: boolean;
+  include_apy: boolean;
   status: string;
   photo_url: string;
   signature_url: string;
@@ -235,6 +236,7 @@ const initialState: AccountOpeningState = {
     bc_name: '',
     bc_code: '',
     include_passbook: false,
+    include_apy: false,
     status: 'pending',
     photo_url: '',
     signature_url: '',

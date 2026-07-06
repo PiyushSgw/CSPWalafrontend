@@ -15,17 +15,21 @@ const NOMINEE_RELATIONS = ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Bro
 const FREQUENCY_OPTIONS = ['Monthly', 'Quarterly', 'Half-yearly', 'Yearly']
 
 export function ApyFormSection({ formData, onChange, onContinue, onBack }: Props) {
+  const val = (v: any) => typeof v === 'string' ? v.trim() : ''
   const canContinue = () => {
-    if (!formData.title) return false
-    if (!formData.fullName.trim()) return false
-    if (!formData.mobile.trim()) return false
-    if (!formData.aadhaar.trim()) return false
-    if (!formData.nomineeName.trim()) return false
-    if (!formData.nomineeRelation) return false
-    if (!formData.contributionFrequency) return false
-    if (!formData.pensionAmount) return false
-    if (formData.isMarried && !formData.spouseName.trim()) return false
-    return true
+    const missing: string[] = []
+    if (!formData.title) missing.push('title')
+    if (!val(formData.fullName)) missing.push('fullName')
+    if (!val(formData.mobile)) missing.push('mobile')
+    if (!val(formData.aadhaar)) missing.push('aadhaar')
+    if (!val(formData.nomineeName)) missing.push('nomineeName')
+    if (!formData.nomineeRelation) missing.push('nomineeRelation')
+    if (!formData.contributionFrequency) missing.push('contributionFrequency')
+    if (!formData.pensionAmount) missing.push('pensionAmount')
+    if (formData.isMarried && !val(formData.spouseName)) missing.push('spouseName')
+    if (missing.length > 0) console.log('[APY] canContinue=false, missing fields:', missing, { formData })
+    else console.log('[APY] canContinue=true, all required fields filled')
+    return missing.length === 0
   }
 
   const inputClass = (val?: string) =>
