@@ -23,10 +23,26 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push('/login')
+      router.push('/user')
       return
     }
   }, [isAuthenticated, router])
+
+   // Fetch dashboard data
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    console.log('🔍 Dashboard useEffect - isAuthenticated:', isAuthenticated)
+    console.log('🔍 Dashboard useEffect - authState:', authState)
+
+    dispatch(fetchDashboardStats())
+  }, [dispatch, isAuthenticated])
+
+  // Debug logs
+  useEffect(() => {
+    console.log('🔍 Dashboard State:', { stats, loading })
+    console.log('🔍 Wallet Balance from stats:', stats?.walletBalance)
+  }, [stats, loading])
 
   if (!isAuthenticated) {
     return (
@@ -41,17 +57,6 @@ export default function DashboardPage() {
       </div>
     )
   }
-
-  useEffect(() => {
-    console.log('🔍 Dashboard useEffect - isAuthenticated:', isAuthenticated)
-    console.log('🔍 Dashboard useEffect - authState:', authState)
-    dispatch(fetchDashboardStats())
-  }, [dispatch, isAuthenticated, authState])
-
-  useEffect(() => {
-    console.log('🔍 Dashboard State:', { stats, loading })
-    console.log('🔍 Wallet Balance from stats:', stats?.walletBalance)
-  }, [stats, loading])
 
   const getGreeting = () => {
     const h = new Date().getHours()

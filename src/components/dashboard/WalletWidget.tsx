@@ -50,7 +50,7 @@ export default function WalletWidget() {
       }
     : null;
 
-  // Show only recharge transactions, fallback to print history if no recharges
+  // Show recharge transactions from ledger
   const rechargeTransactions = walletState.ledger
     .filter((tx: any) => tx.type === 'Credit' && (tx.desc?.toLowerCase().includes('recharge') || tx.desc?.toLowerCase().includes('credit')))
     .slice(0, 5)
@@ -61,7 +61,7 @@ export default function WalletWidget() {
       time: tx.dateTime
     }));
 
-  // If no recharge transactions, show recent print history
+  // Show recent print history
   const printHistoryTransactions = printHistoryState.mappedList
     .slice(0, 5)
     .map((job: any) => ({
@@ -71,7 +71,8 @@ export default function WalletWidget() {
       time: job.dateTime
     }));
 
-  const transactions = rechargeTransactions.length > 0 ? rechargeTransactions : printHistoryTransactions;
+  // Combine both recharge and print history transactions
+  const transactions = [...rechargeTransactions, ...printHistoryTransactions];
 
   const loading = walletState.loading || printHistoryState.loading;
   const error = walletState.error || printHistoryState.error;

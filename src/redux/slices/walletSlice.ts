@@ -10,7 +10,7 @@ interface RawWalletBalance {
 
 interface RawWalletTransaction {
   id: string | number
-  description?: string
+  narrative?: string
   type: 'credit' | 'debit'
   amount: number
   balance_after?: number
@@ -201,7 +201,7 @@ const walletSlice = createSlice({
             hour: '2-digit',
             minute: '2-digit'
           }),
-          desc: tx.description || 'Transaction',
+          desc: tx.narrative || 'Transaction',
           type: tx.type === 'credit' ? 'Credit' : 'Debit',
           amount: tx.type === 'credit' ? `+₹${Number(tx.amount).toFixed(2)}` : `-₹${Number(tx.amount).toFixed(2)}`,
           balanceAfter: `₹${Number(tx.balance_after || 0).toFixed(2)}`,

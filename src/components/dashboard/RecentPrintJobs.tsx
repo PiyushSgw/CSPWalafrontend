@@ -40,6 +40,14 @@ const formatDateTime = (value?: string) => {
   });
 };
 
+const maskAccountNumber = (accountNumber?: string | null): string => {
+  if (!accountNumber) return '--';
+  const str = String(accountNumber);
+  if (str.length <= 3) return str;
+  const lastThree = str.slice(-3);
+  return 'X'.repeat(str.length - 3) + lastThree;
+};
+
 const normalizeJobType = (jobType?: string) => {
   if (!jobType) return 'Passbook';
   const value = jobType.trim().toLowerCase();
@@ -184,7 +192,7 @@ export default function RecentPrintJobs() {
                         {j?.customer_name || 'N/A'}
                       </p>
                       <p className="text-[11px] text-[#6b7280] font-mono mt-0.5">
-                        A/C: {j?.account_number || '—'}
+                        A/C: {maskAccountNumber(j?.account_number)}
                       </p>
                     </td>
 
