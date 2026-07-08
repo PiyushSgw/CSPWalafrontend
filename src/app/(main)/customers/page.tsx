@@ -32,6 +32,8 @@ export default function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] =
     useState<MappedCustomer | null>(null);
 
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+
   // Fetch Customers
   useEffect(() => {
     dispatch(
@@ -182,6 +184,9 @@ export default function CustomersPage() {
 
     setSelectedCustomer(null);
 
+    setUpdateSuccess(true);
+    setTimeout(() => setUpdateSuccess(false), 3000);
+
     dispatch(
       fetchCustomers({
         page: currentPage,
@@ -220,6 +225,22 @@ export default function CustomersPage() {
           }}
         >
           {error}
+        </div>
+      )}
+
+      {/* Update Success */}
+      {updateSuccess && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "12px 16px",
+            borderRadius: 8,
+            background: "#dcfce7",
+            color: "#166534",
+            fontSize: 14,
+          }}
+        >
+          Customer updated successfully.
         </div>
       )}
 

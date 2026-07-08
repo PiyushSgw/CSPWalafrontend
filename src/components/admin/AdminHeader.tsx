@@ -38,6 +38,7 @@ export default function AdminHeader({ onMenuToggle }: AdminHeaderProps) {
       '/admin/csp-approval': 'CSP Approval',
       '/admin/csp-list': 'CSP List',
       '/admin/banks': 'Bank Master',
+      '/admin/branch-requests': 'Branch Requests',
       '/admin/wallet-approval': 'Wallet Approval',
       '/admin/customers': 'Customers',
       '/admin/print-jobs': 'Print Jobs',

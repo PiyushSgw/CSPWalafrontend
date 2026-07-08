@@ -7,6 +7,8 @@ const initialState = {
   banks: [] as any[], branches: [] as any[],
   rechargeRequests: [] as any[], rechargeTotal: 0,
   customers: [] as any[], customerTotal: 0,
+  branchRequests: [] as any[], branchRequestTotal: 0, branchRequestLoading: false,
+  branchRequestDetail: null as any,
   loading: false, error: null as string | null,
 }
 
@@ -69,6 +71,21 @@ export const fetchAllCustomers = createAsyncThunk('admin/fetchAllCustomers', asy
   return { rows: r.data.data.rows || r.data.data, total: r.data.data.total || 0 }
 })
 
+// ── Branch Requests ──
+export const fetchBranchRequests = createAsyncThunk('admin/fetchBranchRequests', async (p: any = {}) => {
+  const q = new URLSearchParams(p).toString(); const r = await adminApi.get(`/admin/branch-requests${q ? '?' + q : ''}`)
+  return { rows: r.data.data.rows || r.data.data, total: r.data.data.total || 0 }
+})
+export const fetchBranchRequestDetail = createAsyncThunk('admin/branchRequestDetail', async (id: number) => {
+  const r = await adminApi.get(`/admin/branch-requests/${id}`); return r.data.data
+})
+export const approveBranchRequest = createAsyncThunk('admin/approveBranchRequest', async (id: number) => {
+  await adminApi.put(`/admin/branch-requests/${id}/approve`); return id
+})
+export const rejectBranchRequest = createAsyncThunk('admin/rejectBranchRequest', async ({ id, reason }: any) => {
+  await adminApi.put(`/admin/branch-requests/${id}/reject`, { reason }); return id
+})
+
 const adminSlice = createSlice({
   name: 'admin', initialState,
   reducers: { clearAdminError: (s) => { s.error = null } },
@@ -102,6 +119,14 @@ const adminSlice = createSlice({
       .addCase(fetchAllCustomers.pending, (s) => { s.loading = true })
       .addCase(fetchAllCustomers.fulfilled, (s, a) => { s.loading = false; s.customers = a.payload.rows; s.customerTotal = a.payload.total })
       .addCase(fetchAllCustomers.rejected, (s) => { s.loading = false })
+      .addCase(fetchBranchRequests.pending, (s) => { s.branchRequestLoading = true })
+      .addCase(fetchBranchRequests.fulfilled, (s, a) => { s.branchRequestLoading = false; s.branchRequests = a.payload.rows; s.branchRequestTotal = a.payload.total })
+      .addCase(fetchBranchRequests.rejected, (s) => { s.branchRequestLoading = false })
+      .addCase(fetchBranchRequestDetail.pending, (s) => { s.loading = true })
+      .addCase(fetchBranchRequestDetail.fulfilled, (s, a) => { s.loading = false; s.branchRequestDetail = a.payload })
+      .addCase(fetchBranchRequestDetail.rejected, (s) => { s.loading = false })
+      .addCase(approveBranchRequest.fulfilled, (s, a) => { s.branchRequests = s.branchRequests.filter(r => r.id !== a.payload) })
+      .addCase(rejectBranchRequest.fulfilled, (s, a) => { s.branchRequests = s.branchRequests.filter(r => r.id !== a.payload) })
   },
 })
 

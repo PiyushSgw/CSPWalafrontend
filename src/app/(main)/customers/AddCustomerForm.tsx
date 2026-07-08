@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "../../../redux/hooks";
-import { createCustomer, clearError } from "../../../redux/slices/customersSlice";
+import { createCustomer, clearError, fetchBranchesByBankId } from "../../../redux/slices/customersSlice";
+import type { Branch } from "../../../redux/slices/customersSlice";
 import { isAuthError } from "../../../utils/authError";
 
 const EMPTY_FORM = {
   name: "",
   mobile: "",
   account_number: "",
-  account_type: "savings",
+  account_type: "",
   ifsc: "",
   opening_balance: 0,
-  bank_id: 1,
+  bank_id: "",
   branch_id: "",
   aadhar_number: "",
   address: "",
@@ -33,53 +34,38 @@ const BANK_OPTIONS = [
   { id: 10, name: "Indian Overseas Bank", shortCode: "IOB" },
 ];
 
-// Branch data mapped by bank_id
-const BRANCHES_BY_BANK: { [key: number]: { id: number; name: string }[] } = {
-  1: [
-    { id: 1, name: "Main Branch Delhi" },
-  ],
-  2: [
-    { id: 2, name: "Branch Mumbai" },
-    { id: 3, name: "Indore" },
-    { id: 4, name: "Bank of Baroda Indore" },
-    { id: 5, name: "Bank of Baroda Bhopal" },
-  ],
-  3: [
-    { id: 6, name: "PNB Jaipur Main" },
-    { id: 7, name: "PNB Lucknow" },
-  ],
-  4: [
-    { id: 8, name: "Canara Bank Pune" },
-    { id: 9, name: "Canara Bank Chennai" },
-  ],
-  5: [
-    { id: 10, name: "Union Bank Hyderabad" },
-  ],
-  6: [
-    { id: 11, name: "Bank of India Surat" },
-  ],
-  7: [
-    { id: 12, name: "Indian Bank Nagpur" },
-  ],
-  8: [
-    { id: 13, name: "Central Bank Patna" },
-  ],
-  9: [],
-  10: [],
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+
+const getAuthToken = () => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("csp_access_token");
 };
 
 export const AddCustomerForm: React.FC = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { creating, createError } = useAppSelector((s) => s.customers);
+  const { creating, createError, branches, branchesLoading } = useAppSelector((s) => s.customers);
 
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [success, setSuccess] = useState(false);
+  const [branchRequestOpen, setBranchRequestOpen] = useState(false);
+  const [branchReqName, setBranchReqName] = useState("");
+  const [branchReqIfsc, setBranchReqIfsc] = useState("");
+  const [branchReqCity, setBranchReqCity] = useState("");
+  const [branchReqRemarks, setBranchReqRemarks] = useState("");
+  const [branchReqSubmitting, setBranchReqSubmitting] = useState(false);
+  const [branchReqSuccess, setBranchReqSuccess] = useState(false);
+  const [branchReqError, setBranchReqError] = useState("");
+
+  useEffect(() => {
+    if (formData.bank_id) {
+      dispatch(fetchBranchesByBankId(Number(formData.bank_id)));
+    }
+  }, [formData.bank_id, dispatch]);
 
   const set = (k: keyof typeof EMPTY_FORM, v: string | number) => {
     setFormData((prev) => {
       const updated = { ...prev, [k]: v };
-      // Reset branch_id when bank changes
       if (k === "bank_id") {
         updated.branch_id = "";
       }
@@ -127,14 +113,62 @@ export const AddCustomerForm: React.FC = () => {
     }
   };
 
+  const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+
+  const handleRequestBranch = async () => {
+    if (!branchReqName.trim() || !branchReqIfsc.trim()) return;
+    if (!IFSC_REGEX.test(branchReqIfsc.trim())) {
+      setBranchReqError("Invalid IFSC format — expected 4 letters, then 0, then 6 alphanumeric characters (e.g. SBIN0004521)");
+      return;
+    }
+    setBranchReqSubmitting(true);
+    setBranchReqError("");
+
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        setBranchReqError("Authentication required. Please log in again.");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/csp/branch-requests`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bank_id: Number(formData.bank_id),
+          branch_name: branchReqName.trim(),
+          ifsc: branchReqIfsc.trim(),
+          city: branchReqCity.trim() || undefined,
+          remarks: branchReqRemarks.trim() || undefined,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || data.success === false) throw new Error(data.message || `HTTP ${response.status}`);
+
+      setBranchReqSuccess(true);
+      setBranchReqName("");
+      setBranchReqIfsc("");
+      setBranchReqCity("");
+      setBranchReqRemarks("");
+      setTimeout(() => {
+        setBranchRequestOpen(false);
+        setBranchReqSuccess(false);
+      }, 2000);
+    } catch (err: any) {
+      setBranchReqError(err.message || "Failed to submit branch request");
+    } finally {
+      setBranchReqSubmitting(false);
+    }
+  };
+
   const errorMsg = createError
     ? isAuthError(createError)
       ? "Session expired — please log in again."
       : createError
     : null;
 
-  // Get branches for selected bank
-  const availableBranches = BRANCHES_BY_BANK[formData.bank_id as number] || [];
+  const selectedBank = BANK_OPTIONS.find((b) => b.id === Number(formData.bank_id));
 
   return (
     <div className="card">
@@ -274,7 +308,7 @@ export const AddCustomerForm: React.FC = () => {
             <select
               className="form-select"
               value={formData.bank_id}
-              onChange={(e) => set("bank_id", Number(e.target.value))}
+              onChange={(e) => set("bank_id", e.target.value ? Number(e.target.value) : "")}
             >
               <option value="">Select Bank</option>
               {BANK_OPTIONS.map((bank) => (
@@ -291,21 +325,33 @@ export const AddCustomerForm: React.FC = () => {
               className="form-select"
               value={formData.branch_id}
               onChange={(e) => set("branch_id", e.target.value ? Number(e.target.value) : "")}
-              disabled={!formData.bank_id || availableBranches.length === 0}
+              disabled={!formData.bank_id}
             >
               <option value="">
                 {!formData.bank_id
                   ? "Select a bank first"
-                  : availableBranches.length === 0
+                  : branchesLoading
+                  ? "Loading branches..."
+                  : branches.length === 0
                   ? "No branches available"
                   : "Select Branch"}
               </option>
-              {availableBranches.map((branch) => (
+              {branches.map((branch: Branch) => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
               ))}
             </select>
+            {formData.bank_id && !branchesLoading && branches.length === 0 && (
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ marginTop: 8, fontSize: 13, padding: "6px 14px" }}
+                onClick={() => setBranchRequestOpen(true)}
+              >
+                Request Branch
+              </button>
+            )}
           </div>
 
           <div className="form-group" style={{ marginBottom: 12 }}>
@@ -353,6 +399,130 @@ export const AddCustomerForm: React.FC = () => {
           </div>
         </div>
       </form>
+
+      {branchRequestOpen && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setBranchRequestOpen(false);
+              setBranchReqError("");
+              setBranchReqSuccess(false);
+            }
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+        >
+          <div className="bg-white w-full max-w-[480px] rounded-[14px] shadow-xl border border-[#e5e7eb] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e5e7eb]">
+              <h2 className="text-[15px] font-bold text-[#111827]">Request New Branch</h2>
+              <button
+                onClick={() => {
+                  setBranchRequestOpen(false);
+                  setBranchReqError("");
+                  setBranchReqSuccess(false);
+                }}
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#f3f4f6] text-[#6b7280] text-[18px] leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="px-5 py-5 flex flex-col gap-4">
+              {branchReqSuccess ? (
+                <div style={{ padding: "10px 14px", borderRadius: 8, fontSize: 13, background: "var(--color-background-success)", color: "var(--color-text-success)" }}>
+                  Branch request submitted successfully! The admin will review and add the branch.
+                </div>
+              ) : (
+                <>
+                  {branchReqError && (
+                    <div style={{ padding: "10px 14px", borderRadius: 8, fontSize: 13, background: "var(--color-background-danger)", color: "var(--color-text-danger)", marginBottom: 8 }}>
+                      {branchReqError}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[12px] font-semibold text-[#374151]">Bank</label>
+                    <input
+                      type="text"
+                      className="h-[40px] px-3 rounded-[8px] border border-[#d1d5db] text-[13px] text-[#6b7280] bg-[#f9fafb] cursor-not-allowed w-full"
+                      value={selectedBank ? `${selectedBank.name} (${selectedBank.shortCode})` : ""}
+                      disabled
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[12px] font-semibold text-[#374151]">
+                      Branch Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="h-[40px] px-3 rounded-[8px] border border-[#d1d5db] text-[13px] text-[#111827] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#0d8f72] focus:ring-1 focus:ring-[#0d8f72] transition-all bg-white w-full"
+                      placeholder="Enter branch name"
+                      value={branchReqName}
+                      onChange={(e) => setBranchReqName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[12px] font-semibold text-[#374151]">
+                      IFSC Code <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="h-[40px] px-3 rounded-[8px] border border-[#d1d5db] text-[13px] text-[#111827] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#0d8f72] focus:ring-1 focus:ring-[#0d8f72] transition-all bg-white w-full"
+                      placeholder="e.g. SBIN0004521"
+                      maxLength={11}
+                      value={branchReqIfsc}
+                      onChange={(e) => setBranchReqIfsc(e.target.value.toUpperCase())}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[12px] font-semibold text-[#374151]">City (Optional)</label>
+                    <input
+                      type="text"
+                      className="h-[40px] px-3 rounded-[8px] border border-[#d1d5db] text-[13px] text-[#111827] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#0d8f72] focus:ring-1 focus:ring-[#0d8f72] transition-all bg-white w-full"
+                      placeholder="Enter city"
+                      value={branchReqCity}
+                      onChange={(e) => setBranchReqCity(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[12px] font-semibold text-[#374151]">Remarks (Optional)</label>
+                    <textarea
+                      className="h-[80px] px-3 py-2 rounded-[8px] border border-[#d1d5db] text-[13px] text-[#111827] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#0d8f72] focus:ring-1 focus:ring-[#0d8f72] transition-all bg-white w-full resize-none"
+                      placeholder="Any additional details"
+                      value={branchReqRemarks}
+                      onChange={(e) => setBranchReqRemarks(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {!branchReqSuccess && (
+              <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#e5e7eb] bg-[#f9fafb]">
+                <button
+                  onClick={() => {
+                    setBranchRequestOpen(false);
+                    setBranchReqError("");
+                  }}
+                  className="h-[36px] px-4 rounded-[8px] border border-[#d1d5db] text-[13px] font-semibold text-[#374151] hover:bg-[#f3f4f6] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRequestBranch}
+                  disabled={branchReqSubmitting || !branchReqName.trim() || !branchReqIfsc.trim()}
+                  className="h-[36px] px-5 rounded-[8px] bg-[#0d8f72] hover:bg-[#0b7a62] text-white text-[13px] font-bold transition-colors disabled:opacity-50"
+                >
+                  {branchReqSubmitting ? "Submitting..." : "Submit Request"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

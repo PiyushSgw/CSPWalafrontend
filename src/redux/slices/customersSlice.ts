@@ -51,6 +51,14 @@ export interface ApiResponse<T = any> {
   errors?: any[];
 }
 
+export interface Branch {
+  id: number;
+  name: string;
+  ifsc?: string;
+  city?: string;
+  state?: string;
+}
+
 export interface CreateCustomerPayload {
   name: string;
   mobile: string;
@@ -95,6 +103,9 @@ interface CustomersState {
   error: string | null;
   creating: boolean;
   createError: string | null;
+  branches: Branch[];
+  branchesLoading: boolean;
+  branchesError: string | null;
 }
 
 const initialState: CustomersState = {
@@ -106,6 +117,9 @@ const initialState: CustomersState = {
   error: null,
   creating: false,
   createError: null,
+  branches: [],
+  branchesLoading: false,
+  branchesError: null,
 };
 
 const getAuthToken = () => {
@@ -172,6 +186,25 @@ export const createCustomer = createAsyncThunk<
     return data;
   } catch (error: any) {
     return rejectWithValue(error.message || "Failed to create customer");
+  }
+});
+
+export const fetchBranchesByBankId = createAsyncThunk<
+  Branch[],
+  number,
+  { rejectValue: string }
+>("customers/fetchBranches", async (bankId, { rejectWithValue }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/public/banks/${bankId}/branches`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data: ApiResponse<Branch[]> = await response.json();
+    if (!response.ok || data.success === false) throw new Error(data.message || `HTTP ${response.status}`);
+    return data.data;
+  } catch (error: any) {
+    return rejectWithValue(error.message || "Failed to fetch branches");
   }
 });
 
@@ -249,6 +282,20 @@ const customersSlice = createSlice({
       .addCase(createCustomer.rejected, (state, action) => {
         state.creating = false;
         state.createError = action.payload || "Failed to create customer";
+      })
+      .addCase(fetchBranchesByBankId.pending, (state) => {
+        state.branches = [];
+        state.branchesLoading = true;
+        state.branchesError = null;
+      })
+      .addCase(fetchBranchesByBankId.fulfilled, (state, action: PayloadAction<Branch[]>) => {
+        state.branchesLoading = false;
+        state.branches = action.payload;
+        state.branchesError = null;
+      })
+      .addCase(fetchBranchesByBankId.rejected, (state, action) => {
+        state.branchesLoading = false;
+        state.branchesError = action.payload || "Failed to fetch branches";
       })
       .addCase(updateCustomer.fulfilled, (state, action: PayloadAction<ApiResponse<Customer>>) => {
         const updated = action.payload.data;

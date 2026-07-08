@@ -7,7 +7,7 @@ import { RootState } from "../../redux/store";
 import { logoutAdmin } from "../../redux/slices/authslice";
 import {
   LayoutDashboard, Users, CheckSquare, Building2,
-  Wallet, FileText, UserCheck, LogOut
+  Wallet, FileText, UserCheck, LogOut, GitBranch
 } from "lucide-react";
 
 const navGroups = [
@@ -28,6 +28,7 @@ const navGroups = [
     section: "SETTINGS",
     items: [
       { href: "/admin/banks", label: "Bank Master", icon: Building2, iconBg: "bg-sky-500/20", iconColor: "text-sky-400" },
+      { href: "/admin/branch-requests", label: "Branch Requests", icon: GitBranch, iconBg: "bg-cyan-500/20", iconColor: "text-cyan-400" },
       { href: "/admin/wallet-approval", label: "Wallet Approval", icon: Wallet, iconBg: "bg-violet-500/20", iconColor: "text-violet-400" },
     ],
   },

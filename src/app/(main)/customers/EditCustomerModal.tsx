@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { MappedCustomer } from "./customer";
+import { useAppDispatch, useAppSelector } from "../../../redux/hooks";
+import { fetchBranchesByBankId } from "../../../redux/slices/customersSlice";
+import type { Branch } from "../../../redux/slices/customersSlice";
 
 interface Props {
   isOpen: boolean;
@@ -25,42 +28,10 @@ const BANK_OPTIONS = [
   { id: 10, name: "Indian Overseas Bank", shortCode: "IOB" },
 ];
 
-// Branch data mapped by bank_id
-const BRANCHES_BY_BANK: { [key: number]: { id: number; name: string }[] } = {
-  1: [
-    { id: 1, name: "Main Branch Delhi" },
-  ],
-  2: [
-    { id: 2, name: "Branch Mumbai" },
-    { id: 3, name: "Indore" },
-    { id: 4, name: "Bank of Baroda Indore" },
-    { id: 5, name: "Bank of Baroda Bhopal" },
-  ],
-  3: [
-    { id: 6, name: "PNB Jaipur Main" },
-    { id: 7, name: "PNB Lucknow" },
-  ],
-  4: [
-    { id: 8, name: "Canara Bank Pune" },
-    { id: 9, name: "Canara Bank Chennai" },
-  ],
-  5: [
-    { id: 10, name: "Union Bank Hyderabad" },
-  ],
-  6: [
-    { id: 11, name: "Bank of India Surat" },
-  ],
-  7: [
-    { id: 12, name: "Indian Bank Nagpur" },
-  ],
-  8: [
-    { id: 13, name: "Central Bank Patna" },
-  ],
-  9: [],
-  10: [],
-};
-
 const EditCustomerModal: React.FC<Props> = ({ isOpen, onClose, editData, onUpdate }) => {
+  const dispatch = useAppDispatch();
+  const { branches, branchesLoading } = useAppSelector((s) => s.customers);
+
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
@@ -99,6 +70,12 @@ const EditCustomerModal: React.FC<Props> = ({ isOpen, onClose, editData, onUpdat
     }
   }, [editData]);
 
+  useEffect(() => {
+    if (formData.bank_id) {
+      dispatch(fetchBranchesByBankId(Number(formData.bank_id)));
+    }
+  }, [formData.bank_id, dispatch]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
@@ -128,9 +105,6 @@ const EditCustomerModal: React.FC<Props> = ({ isOpen, onClose, editData, onUpdat
   };
 
   if (!isOpen) return null;
-
-  // Get branches for selected bank
-  const availableBranches = BRANCHES_BY_BANK[formData.bank_id as number] || [];
 
   return (
     <div
@@ -265,17 +239,19 @@ const EditCustomerModal: React.FC<Props> = ({ isOpen, onClose, editData, onUpdat
               name="branch_id"
               value={formData.branch_id}
               onChange={handleChange}
-              disabled={!formData.bank_id || availableBranches.length === 0}
+              disabled={!formData.bank_id}
               className={fieldCls}
             >
               <option value="">
                 {!formData.bank_id
                   ? "Select a bank first"
-                  : availableBranches.length === 0
+                  : branchesLoading
+                  ? "Loading branches..."
+                  : branches.length === 0
                   ? "No branches available"
                   : "Select Branch"}
               </option>
-              {availableBranches.map((branch) => (
+              {branches.map((branch: Branch) => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
