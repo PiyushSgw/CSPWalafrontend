@@ -28,6 +28,7 @@ export const useProfile = () => {
     updatePersonalInfo: (data: {
       name?: string;
       mobile?: string;
+      email?: string;
       location?: string;
     }) => dispatch(updateProfile(data)).unwrap(),
 

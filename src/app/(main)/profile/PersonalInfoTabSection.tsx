@@ -74,6 +74,7 @@ export const PersonalInfoTabSection: React.FC<PersonalInfoTabSectionProps> = ({
                 <input
                   className="form-input"
                   value={form.mobile}
+                  maxLength={10}
                   onChange={(e) => updateForm("mobile", e.target.value)}
                 />
                 <div className="form-hint">✅ Verified · OTP sent for changes</div>
@@ -84,7 +85,8 @@ export const PersonalInfoTabSection: React.FC<PersonalInfoTabSectionProps> = ({
                 <input
                   className="form-input"
                   value={form.email}
-                  readOnly
+                  // readOnly
+                  onChange={(e) => updateForm("email", e.target.value)}
                 />
               </div>
             </div>

@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { ArrowRight, ArrowLeft, User, Users, ShieldCheck, FileSignature } from 'lucide-react'
 import type { ApyFormData } from '@/redux/slices/apySlice'
 
@@ -31,6 +31,21 @@ export function ApyFormSection({ formData, onChange, onContinue, onBack }: Props
     else console.log('[APY] canContinue=true, all required fields filled')
     return missing.length === 0
   }
+
+  useEffect(() => {
+    if (formData.nomineeRelation === 'Spouse') {
+      const updates: Partial<ApyFormData> = {}
+      if (formData.nomineeName !== formData.spouseName) {
+        updates.spouseName = formData.nomineeName
+      }
+      if (formData.nomineeAadhaar !== formData.spouseAadhaar) {
+        updates.spouseAadhaar = formData.nomineeAadhaar
+      }
+      if (Object.keys(updates).length > 0) {
+        onChange(updates)
+      }
+    }
+  }, [formData.nomineeRelation, formData.nomineeName, formData.nomineeAadhaar, onChange])
 
   const inputClass = (val?: string) =>
     `w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(13,143,114,0.12)] focus:border-[#0d8f72] ${

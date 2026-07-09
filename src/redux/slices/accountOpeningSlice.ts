@@ -298,7 +298,6 @@ export const createApplication = createAsyncThunk<CreateApplicationResponse, Acc
     }
   }
 );
-
 export interface DownloadPdfResult {
   success: true;
   filename: string;

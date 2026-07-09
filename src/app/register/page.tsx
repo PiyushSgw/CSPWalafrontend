@@ -32,7 +32,7 @@ export default function RegisterPage() {
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [cspCode, setCspCode] = useState('');
+
   const [bankId, setBankId] = useState('');
   const [otherBankName, setOtherBankName] = useState('');
   const [branchId, setBranchId] = useState('');
@@ -135,7 +135,6 @@ export default function RegisterPage() {
         mobile,
         email,
         password,
-        csp_code: cspCode,
         bank_id: parseInt(bankId),
         branch_id: branchId ? parseInt(branchId) : undefined,
         state: selectedState,
@@ -227,18 +226,6 @@ export default function RegisterPage() {
                 className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
                 required
                 maxLength={10}
-              />
-            </div>
-
-            {/* CSP Code */}
-            <div>
-              <label className="text-sm font-medium text-gray-600">CSP Code <span className="text-red-500">*</span></label>
-              <input
-                value={cspCode}
-                onChange={(e) => setCspCode(e.target.value.toUpperCase())}
-                placeholder="CSPA7K2M9"
-                className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none uppercase"
-                required
               />
             </div>
 

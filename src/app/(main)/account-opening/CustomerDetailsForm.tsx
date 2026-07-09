@@ -889,6 +889,7 @@ export default function CustomerDetailsForm() {
             <input
               className="cdf-input"
               value={formData.address_line1}
+              maxLength={20}
               onChange={(e) => {
                 set("address_line1", e.target.value);
                 set(
@@ -905,6 +906,7 @@ export default function CustomerDetailsForm() {
             <input
               className="cdf-input"
               value={formData.address_line2}
+              maxLength={20}
               onChange={(e) => {
                 set("address_line2", e.target.value);
                 set(
@@ -921,6 +923,7 @@ export default function CustomerDetailsForm() {
             <input
               className="cdf-input"
               value={formData.city}
+              maxLength={25}
               onChange={(e) => set("city", e.target.value)}
             />
           </div>
@@ -943,6 +946,7 @@ export default function CustomerDetailsForm() {
             <input
               className="cdf-input"
               value={formData.district}
+              maxLength={25}
               onChange={(e) => set("district", e.target.value)}
             />
           </div>
@@ -951,6 +955,7 @@ export default function CustomerDetailsForm() {
             <input
               className="cdf-input"
               value={formData.state}
+              maxLength={20}
               onChange={(e) => set("state", e.target.value)}
             />
           </div>
@@ -993,6 +998,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={(formData as any).current_address_line1 ?? ""}
+                  maxLength={20}
                   onChange={(e) =>
                     set("current_address_line1" as any, e.target.value)
                   }
@@ -1003,6 +1009,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={(formData as any).current_address_line2 ?? ""}
+                  maxLength={20}
                   onChange={(e) =>
                     set("current_address_line2" as any, e.target.value)
                   }
@@ -1013,6 +1020,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={(formData as any).current_city ?? ""}
+                  maxLength={25}
                   onChange={(e) => set("current_city" as any, e.target.value)}
                 />
               </div>
@@ -1037,6 +1045,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={(formData as any).current_district ?? ""}
+                  maxLength={25}
                   onChange={(e) =>
                     set("current_district" as any, e.target.value)
                   }
@@ -1047,6 +1056,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={(formData as any).current_state ?? ""}
+                  maxLength={20}
                   onChange={(e) => set("current_state" as any, e.target.value)}
                 />
               </div>
@@ -1212,6 +1222,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={formData.nominee_phone}
+                  maxLength={20}
                   onChange={(e) => set("nominee_phone", e.target.value)}
                 />
               </div>
@@ -1242,6 +1253,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={formData.nominee_house_no}
+                  maxLength={20}
                   readOnly={!!formData.nominee_address_same}
                   onChange={(e) => set("nominee_house_no", e.target.value)}
                 />
@@ -1251,6 +1263,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={formData.nominee_street}
+                  maxLength={20}
                   readOnly={!!formData.nominee_address_same}
                   onChange={(e) => set("nominee_street", e.target.value)}
                 />
@@ -1263,6 +1276,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={formData.nominee_landmark}
+                  maxLength={20}
                   onChange={(e) => set("nominee_landmark", e.target.value)}
                 />
               </div>
@@ -1271,6 +1285,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={formData.nominee_city}
+                  maxLength={25}
                   readOnly={!!formData.nominee_address_same}
                   onChange={(e) => set("nominee_city", e.target.value)}
                 />
@@ -1283,6 +1298,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={formData.nominee_district}
+                  maxLength={25}
                   readOnly={!!formData.nominee_address_same}
                   onChange={(e) => set("nominee_district", e.target.value)}
                 />
@@ -1292,6 +1308,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={formData.nominee_state}
+                  maxLength={20}
                   readOnly={!!formData.nominee_address_same}
                   onChange={(e) => set("nominee_state", e.target.value)}
                 />

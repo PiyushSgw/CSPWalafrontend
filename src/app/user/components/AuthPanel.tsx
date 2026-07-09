@@ -28,9 +28,9 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const [view, setView] = useState<'form' | 'otp'>('form');
   const [showPassword, setShowPassword] = useState(false);
 
-  const [login, setLogin] = useState({ csp_code: '', mobile: '', password: '', remember_me: false });
+  const [login, setLogin] = useState({ email: '', mobile: '', password: '', remember_me: false });
   const [reg, setReg] = useState({
-    name: '', csp_code: '', mobile: '', email: '',
+    name: '', mobile: '', email: '',
     password: '',
     state: '', district: '', taluka: '', village_city: '',
   });
@@ -119,15 +119,15 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!login.csp_code.trim() || !login.mobile.trim() || !login.password) {
-      toast.error('CSP कोड, मोबाईल आणि पासवर्ड आवश्यक आहे');
+    if ((!login.mobile.trim() && !login.email.trim()) || !login.password) {
+      toast.error('मोबाईल/ईमेल आणि पासवर्ड आवश्यक आहे');
       return;
     }
     setBusy(true);
     const res = await dispatch(
       loginCSP({
-        csp_code: login.csp_code.trim(),
-        mobile: login.mobile.trim(),
+        ...(login.email.trim() && { email: login.email.trim() }),
+        ...(login.mobile.trim() && { mobile: login.mobile.trim() }),
         password: login.password,
         remember_me: login.remember_me,
       })
@@ -143,7 +143,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reg.name.trim() || !reg.csp_code.trim() || !reg.mobile.trim() || !reg.email.trim() || !reg.password) {
+    if (!reg.name.trim() || !reg.mobile.trim() || !reg.email.trim() || !reg.password) {
       toast.error('कृपया सर्व आवश्यक माहिती भरा');
       return;
     }
@@ -151,7 +151,6 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     const res = await dispatch(
       registerCSP({
         name: reg.name.trim(),
-        csp_code: reg.csp_code.trim(),
         mobile: reg.mobile.trim(),
         email: reg.email.trim(),
         password: reg.password,
@@ -182,7 +181,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     setBusy(false);
     if (verifyOTP.fulfilled.match(res)) {
       toast.success('मोबाईल सत्यापित! आता लॉगिन करा.');
-      setLogin((p) => ({ ...p, csp_code: reg.csp_code, mobile: reg.mobile }));
+      setLogin((p) => ({ ...p, mobile: reg.mobile }));
       setView('form');
       onTab('login');
     } else {
@@ -221,16 +220,6 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
           {view === 'form' && isLogin && (
             <form onSubmit={handleLogin}>
               <div className="field">
-                <label>CSP कोड</label>
-                <input
-                  type="text"
-                  placeholder="उदा. CSP0421"
-                  value={login.csp_code}
-                  onChange={(e) => setLogin({ ...login, csp_code: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="field">
                 <label>मोबाईल नंबर</label>
                 <input
                   type="tel"
@@ -238,7 +227,15 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   maxLength={10}
                   value={login.mobile}
                   onChange={(e) => setLogin({ ...login, mobile: onlyDigits(e.target.value) })}
-                  required
+                />
+              </div>
+              <div className="field">
+                <label>ईमेल / Email</label>
+                <input
+                  type="email"
+                  placeholder="yourname@gmail.com"
+                  value={login.email}
+                  onChange={(e) => setLogin({ ...login, email: e.target.value })}
                 />
               </div>
               <div className="field">
@@ -292,16 +289,6 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                 />
               </div>
               <div className="field">
-                <label>CSP कोड <span className="req">*</span></label>
-                <input
-                  type="text"
-                  placeholder="उदा. CSP0421"
-                  value={reg.csp_code}
-                  onChange={(e) => setReg({ ...reg, csp_code: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="field">
                 <label>मोबाईल नंबर <span className="req">*</span></label>
                 <input
                   type="tel"
@@ -327,49 +314,64 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
               {/* Location Section */}
               <div className="loc-label">📍 तुमचे ठिकाण <span className="req">*</span></div>
               <div className="loc-grid">
-                <select
-                  value={reg.state}
-                  onChange={(e) => handleStateChange(e.target.value)}
-                  required
-                >
-                  <option value="">{statesLoading ? 'लोड होत आहे...' : 'राज्य / State'}</option>
-                  {states.map((s) => (
-                    <option key={s.name} value={s.name}>{s.name}</option>
-                  ))}
-                </select>
-                <select
-                  value={reg.district}
-                  onChange={(e) => handleDistrictChange(e.target.value)}
-                  disabled={!reg.state}
-                  required
-                >
-                  <option value="">{districtsLoading ? 'लोड होत आहे...' : 'जिल्हा / District'}</option>
-                  {districts.map((d) => (
-                    <option key={d.name} value={d.name}>{d.name}</option>
-                  ))}
-                </select>
-                <select
-                  value={reg.taluka}
-                  onChange={(e) => handleTalukaChange(e.target.value)}
-                  disabled={!reg.district}
-                  required
-                >
-                  <option value="">{talukasLoading ? 'लोड होत आहे...' : 'तालुका / Taluka'}</option>
-                  {talukas.map((t) => (
-                    <option key={t.name} value={t.name}>{t.name}</option>
-                  ))}
-                </select>
-                <select
-                  value={reg.village_city}
-                  onChange={(e) => setReg({ ...reg, village_city: e.target.value })}
-                  disabled={!reg.taluka}
-                  required
-                >
-                  <option value="">{villagesLoading ? 'लोड होत आहे...' : 'गाव / Village'}</option>
-                  {villages.map((v) => (
-                    <option key={v.name} value={v.name}>{v.name}</option>
-                  ))}
-                </select>
+                <div className="loc-field">
+                  <label>राज्य / State</label>
+                  <select
+                    value={reg.state}
+                    onChange={(e) => handleStateChange(e.target.value)}
+                    required
+                  >
+                    <option value="">{statesLoading ? 'लोड होत आहे...' : 'राज्य / State'}</option>
+                    {states.map((s) => (
+                      <option key={s.name} value={s.name}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="loc-field">
+                  <label>जिल्हा / District</label>
+                  <select
+                    value={reg.district}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
+                    disabled={!reg.state}
+                    required
+                  >
+                    <option value="">{districtsLoading ? 'लोड होत आहे...' : 'जिल्हा / District'}</option>
+                    {districts.map((d) => (
+                      <option key={d.name} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="loc-field">
+                  <label>तालुका / Taluka</label>
+                  <select
+                    value={reg.taluka}
+                    onChange={(e) => handleTalukaChange(e.target.value)}
+                    disabled={!reg.district}
+                    required
+                  >
+                    <option value="">{talukasLoading ? 'लोड होत आहे...' : 'तालुका / Taluka'}</option>
+                    {talukas.map((t) => (
+                      <option key={t.name} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="loc-field">
+                  <label>गाव / Village</label>
+                  <select
+                    value={reg.village_city}
+                    onChange={(e) => setReg({ ...reg, village_city: e.target.value })}
+                    disabled={!reg.taluka}
+                    required
+                  >
+                    <option value="">{villagesLoading ? 'लोड होत आहे...' : 'गाव / Village'}</option>
+                    {villages.map((v) => (
+                      <option key={v.name} value={v.name}>{v.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="field">
@@ -428,6 +430,68 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
           )}
         </div>
       </div>
+
+      {/* Scoped styles only for the location fields — everything else keeps its existing styling */}
+      <style jsx>{`
+        .loc-label {
+          font-weight: 600;
+          font-size: 0.9rem;
+          color: #0f172a;
+          margin: 18px 0 10px;
+        }
+
+        .loc-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 18px 14px;
+          margin-bottom: 14px;
+        }
+
+        .loc-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .loc-field label {
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: #0f172a;
+        }
+
+        .loc-field select {
+          width: 100%;
+          padding: 12px 14px;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 12px;
+          background-color: #ffffff;
+          font-size: 0.95rem;
+          color: #334155;
+          appearance: none;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+        }
+
+        .loc-field select:focus {
+          outline: none;
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .loc-field select:disabled {
+          background-color: #f1f5f9;
+          color: #94a3b8;
+          cursor: not-allowed;
+        }
+
+        @media (max-width: 420px) {
+          .loc-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 14px 10px;
+          }
+        }
+      `}</style>
     </>
   );
 }

@@ -103,6 +103,7 @@ export default function ProfilePage() {
         await profileHook.updatePersonalInfo({
           name: fullName,
           mobile: personalForm.mobile,
+          email: personalForm.email,
           location: personalForm.address,
         });
 

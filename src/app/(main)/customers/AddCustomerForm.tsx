@@ -240,6 +240,7 @@ export const AddCustomerForm: React.FC = () => {
               type="tel"
               placeholder="9123456789"
               value={formData.mobile}
+              maxLength={10}
               onChange={(e) => set("mobile", e.target.value)}
               required
             />
@@ -274,6 +275,7 @@ export const AddCustomerForm: React.FC = () => {
               type="text"
               placeholder="6 digit pin code"
               value={formData.pin_code}
+              maxLength={6}
               onChange={(e) => set("pin_code", e.target.value)}
             />
           </div>

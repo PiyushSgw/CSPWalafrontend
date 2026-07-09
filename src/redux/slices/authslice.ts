@@ -37,9 +37,8 @@ interface AuthState {
   resetStep: 'send' | 'verify' | 'done'
 }
 
-// CSP Login — accepts CSP code + mobile (public site) OR email (legacy).
+// CSP Login — accepts mobile OR email.
 export interface LoginCSPPayload {
-  csp_code?: string
   mobile?: string
   email?: string
   password: string
