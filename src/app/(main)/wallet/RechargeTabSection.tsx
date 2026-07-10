@@ -96,9 +96,9 @@ export const RechargeTabSection: React.FC<{
   }
 
   const rechargeOptions = [
-    { amount: 200, title: "₹200", subtitle: "~40 prints" },
-    { amount: 500, title: "₹500", subtitle: "~100 prints" },
-    { amount: 1000, title: "₹1,000", subtitle: "~200 prints" },
+    { amount: 200, title: "₹200", subtitle: "~1,000 prints" },
+    { amount: 500, title: "₹500", subtitle: "~2,500 prints" },
+    { amount: 1000, title: "₹1,000", subtitle: "~5,000 prints" },
     { amount: 'custom' as const, title: "Custom", subtitle: "Enter amount" },
   ]
 

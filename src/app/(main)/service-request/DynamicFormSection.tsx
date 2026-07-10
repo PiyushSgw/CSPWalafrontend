@@ -1,7 +1,8 @@
 'use client'
-import React from 'react'
+import React, { useCallback } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { FormConfig } from '@/redux/slices/serviceRequestSlice'
+import { fetchAddressFromPincode } from '@/utils/pincode'
 
 interface Props {
   formConfig: FormConfig
@@ -20,6 +21,20 @@ function normalizeOptions(opts: { value: string; label: string }[] | string[] | 
 }
 
 export function DynamicFormSection({ formConfig, formData, onChange, errors, loading }: Props) {
+  const handlePincodeChange = useCallback(async (value: string) => {
+    const pin = value.replace(/\D/g, '').slice(0, 6)
+    onChange('pin', pin)
+
+    if (pin.length !== 6) return
+
+    const address = await fetchAddressFromPincode(pin)
+    if (!address) return
+
+    const fieldNames = formConfig.fields.map((f) => f.name)
+    if (fieldNames.includes('city')) onChange('city', address.city)
+    if (fieldNames.includes('district')) onChange('district', address.district)
+    if (fieldNames.includes('state')) onChange('state', address.state)
+  }, [formConfig.fields, onChange])
   if (loading) {
     return (
       <div className="bg-white rounded-xl border border-[#e5e7eb] p-6">
@@ -142,7 +157,7 @@ export function DynamicFormSection({ formConfig, formData, onChange, errors, loa
           <input
             type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
             value={val ?? ''}
-            onChange={(e) => onChange(field.name, e.target.value)}
+            onChange={(e) => field.name === 'pin' ? handlePincodeChange(e.target.value) : onChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             maxLength={field.maxLength}
             className={inputClass}

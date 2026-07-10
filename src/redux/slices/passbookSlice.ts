@@ -363,7 +363,7 @@ const passbookSlice = createSlice({
         state.preview = {
           html: d?.html || '',
           pdf_url: d?.pdf_url || '',
-          print_charge: d?.print_charge ?? 10,
+          print_charge: d?.print_charge ?? 0.20,
           transaction_count: d?.transaction_count ?? 0,
         }
       })
@@ -392,7 +392,7 @@ const passbookSlice = createSlice({
           print_charge:
             d?.charge ??
             state.preview?.print_charge ??
-            10,
+            0.20,
           transaction_count:
             d?.transaction_count ??
             state.preview?.transaction_count ??

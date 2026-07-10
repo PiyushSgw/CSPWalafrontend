@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
           <h3 className="text-[15px] font-bold text-slate-800 mb-3">Print Revenue (Last 30 days)</h3>
           <div className="flex items-center gap-4">
             <div className="text-[28px] font-bold text-emerald-600">₹{dashboard.prints_last_30d.revenue || 0}</div>
-            <div className="text-[13px] text-slate-500">{dashboard.prints_last_30d.count || 0} prints × ₹10</div>
+            <div className="text-[13px] text-slate-500">{dashboard.prints_last_30d.count || 0} prints × ₹0.20</div>
           </div>
         </div>
       )}

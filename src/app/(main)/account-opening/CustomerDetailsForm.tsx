@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { fetchCustomers } from "@/redux/slices/customersSlice";
+import { fetchAddressFromPincode } from "@/utils/pincode";
 import {
   updateFormField,
   setCustomerId,
@@ -251,21 +252,21 @@ export default function CustomerDetailsForm() {
     }
   };
 
- const handleImageChange = (
-  e: ChangeEvent<HTMLInputElement>,
-  field: "photo_url" | "signature_url",
-) => {
-  const file = e.target.files?.[0];
-  if (!file || !file.type.startsWith("image/")) return;
+  const handleImageChange = (
+    e: ChangeEvent<HTMLInputElement>,
+    field: "photo_url" | "signature_url",
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
 
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    set(field, reader.result as string); // base64 data URI
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      set(field, reader.result as string); // base64 data URI
+    };
+    reader.readAsDataURL(file);
+
+    e.target.value = "";
   };
-  reader.readAsDataURL(file);
-
-  e.target.value = "";
-};
 
   // Toggle: copy applicant address into nominee address, or clear sync flag
   const handleNomineeAddressSameToggle = (checked: boolean) => {
@@ -282,6 +283,67 @@ export default function CustomerDetailsForm() {
   };
 
   const showPassportDates = PASSPORT_LIKE.includes(formData.proof_of_identity);
+
+  const handlePermanentPincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const pin = e.target.value.replace(/\D/g, "").slice(0, 6);
+
+    set("pin", pin);
+
+    if (pin.length !== 6) return;
+
+    const address = await fetchAddressFromPincode(pin);
+
+    if (!address) {
+      alert("Invalid Pincode");
+      return;
+    }
+
+    set("city", address.city);
+    set("district", address.district);
+    set("state", address.state);
+    set("country", address.country);
+  };
+
+  const handleCurrentPincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const pin = e.target.value.replace(/\D/g, "").slice(0, 6);
+
+    set("current_pin" as any, pin);
+
+    if (pin.length !== 6) return;
+
+    const address = await fetchAddressFromPincode(pin);
+
+    if (!address) {
+      alert("Invalid Pincode");
+      return;
+    }
+
+    set("current_city" as any, address.city);
+    set("current_district" as any, address.district);
+    set("current_state" as any, address.state);
+    set("current_country" as any, address.country);
+  };
+
+  const handleNomineePincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (formData.nominee_address_same) return;
+
+    const pin = e.target.value.replace(/\D/g, "").slice(0, 6);
+
+    set("nominee_pin", pin);
+
+    if (pin.length !== 6) return;
+
+    const address = await fetchAddressFromPincode(pin);
+
+    if (!address) {
+      alert("Invalid Pincode");
+      return;
+    }
+
+    set("nominee_city", address.city);
+    set("nominee_district", address.district);
+    set("nominee_state", address.state);
+  };
 
   return (
     <>
@@ -872,7 +934,7 @@ export default function CustomerDetailsForm() {
           <input
             type="checkbox"
             checked={formData.same_address}
-            onChange={() => {}}
+            onChange={() => { }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />
@@ -933,9 +995,7 @@ export default function CustomerDetailsForm() {
               className="cdf-input"
               value={formData.pin}
               maxLength={6}
-              onChange={(e) =>
-                set("pin", e.target.value.replace(/\D/g, "").slice(0, 6))
-              }
+              onChange={handlePermanentPincodeChange}
             />
           </div>
         </div>
@@ -1028,17 +1088,12 @@ export default function CustomerDetailsForm() {
             <div className="cdf-grid-4">
               <div className="cdf-group">
                 <label className="cdf-label">Pincode</label>
-                <input
-                  className="cdf-input"
-                  value={(formData as any).current_pin ?? ""}
-                  maxLength={6}
-                  onChange={(e) =>
-                    set(
-                      "current_pin" as any,
-                      e.target.value.replace(/\D/g, "").slice(0, 6),
-                    )
-                  }
-                />
+                 <input
+              className="cdf-input"
+              value={(formData as any).current_pin ?? ""}
+              maxLength={6}
+              onChange={handleCurrentPincodeChange}
+            />
               </div>
               <div className="cdf-group">
                 <label className="cdf-label">District</label>
@@ -1128,7 +1183,7 @@ export default function CustomerDetailsForm() {
           <input
             type="checkbox"
             checked={nominationOpen}
-            onChange={() => {}}
+            onChange={() => { }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />
@@ -1323,12 +1378,7 @@ export default function CustomerDetailsForm() {
                   value={formData.nominee_pin}
                   maxLength={6}
                   readOnly={!!formData.nominee_address_same}
-                  onChange={(e) =>
-                    set(
-                      "nominee_pin",
-                      e.target.value.replace(/\D/g, "").slice(0, 6),
-                    )
-                  }
+                  onChange={handleNomineePincodeChange}
                 />
               </div>
             </div>
@@ -1372,7 +1422,7 @@ export default function CustomerDetailsForm() {
           <input
             type="checkbox"
             checked={optionalOpen}
-            onChange={() => {}}
+            onChange={() => { }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />
@@ -1559,7 +1609,7 @@ export default function CustomerDetailsForm() {
           <input
             type="checkbox"
             checked={bankUseOpen}
-            onChange={() => {}}
+            onChange={() => { }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />

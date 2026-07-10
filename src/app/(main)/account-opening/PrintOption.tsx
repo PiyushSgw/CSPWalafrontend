@@ -13,7 +13,7 @@ export default function PrintOptions({
   onTogglePassbook,
   onToggleAPY,
 }: Props) {
-  const total = includePassbook ? 13 : 10;
+  const total = includePassbook ? 0.13 : 0.10;
 
   return (
     <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
@@ -40,7 +40,7 @@ export default function PrintOptions({
             </div>
           </label>
           <span className="font-mono text-[14px] font-bold text-[#0f2744]">
-            ₹10
+            ₹0.10
           </span>
         </div>
 
@@ -69,7 +69,7 @@ export default function PrintOptions({
             className={`font-mono text-[14px] font-bold ${includePassbook ? 'text-[#0f2744]' : 'text-gray-400'
               }`}
           >
-            +₹3
+            +₹0.03
           </span>
         </div>
         <div
@@ -143,7 +143,7 @@ export default function PrintOptions({
         <div className="mt-3 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
           <span className="text-[13px] text-gray-500">Total Charge</span>
           <span className="font-mono text-[18px] font-bold text-[#0f2744]">
-            ₹{total}.00
+            ₹{total.toFixed(2)}
           </span>
         </div>
       </div>

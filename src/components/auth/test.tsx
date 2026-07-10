@@ -62,7 +62,7 @@ export default function LoginForm() {
             Manage customers, print A5 passbooks, and handle wallet top-ups.
           </p>
           <div className="grid grid-cols-2 gap-3">
-            {[['60+', 'API Endpoints'], ['A5', 'PDF Format'], ['₹10', 'Per Print'], ['Instant', 'PDF Delivery']].map(([value, label]) => (
+            {[['60+', 'API Endpoints'], ['A5', 'PDF Format'], ['₹0.20', 'Per Print'], ['Instant', 'PDF Delivery']].map(([value, label]) => (
               <div key={label} className="rounded-xl p-3" style={{ background: '#1a2544' }}>
                 <p className="text-green-400 font-bold text-xl" style={{ fontFamily: 'Syne, sans-serif' }}>{value}</p>
                 <p className="text-slate-400 text-xs mt-0.5">{label}</p>

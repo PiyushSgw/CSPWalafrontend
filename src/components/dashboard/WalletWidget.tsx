@@ -28,10 +28,10 @@ export default function WalletWidget() {
   const dashboardState = useSelector((state: RootState) => state.dashboard);
   const walletState = useSelector((state: RootState) => state.wallet);
   const printHistoryState = useSelector((state: RootState) => state.printHistory);
-  
+
   const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
   const isAdmin = authState.isAdminAuthenticated;
-  
+
   useEffect(() => {
     // Fetch wallet data for both admin and CSP users
     dispatch(fetchLedger({ limit: 5 }) as any);
@@ -41,13 +41,13 @@ export default function WalletWidget() {
 
   // Get balance from dashboard for admin, from wallet for CSP
   const balance = isAdmin ? dashboardWalletBalance : (walletState.balance?.balance || 0);
-  
+
   // Get last recharge from wallet state
-  const lastRecharge = walletState.rechargeRequests.length > 0 
+  const lastRecharge = walletState.rechargeRequests.length > 0
     ? {
-        amount: walletState.rechargeRequests[0].amount,
-        date: walletState.rechargeRequests[0].date
-      }
+      amount: walletState.rechargeRequests[0].amount,
+      date: walletState.rechargeRequests[0].date
+    }
     : null;
 
   // Show recharge transactions from ledger
@@ -142,9 +142,8 @@ export default function WalletWidget() {
                   className="flex items-center gap-3 py-3 border-b border-[#e5e7eb] last:border-0"
                 >
                   <div
-                    className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-[15px] flex-shrink-0 ${
-                      tx.amount > 0 ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]'
-                    }`}
+                    className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-[15px] flex-shrink-0 ${tx.amount > 0 ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]'
+                      }`}
                   >
                     {tx.icon}
                   </div>
@@ -157,11 +156,10 @@ export default function WalletWidget() {
                   </div>
 
                   <span
-                    className={`font-mono text-[14px] font-medium flex-shrink-0 ${
-                      tx.amount > 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'
-                    }`}
+                    className={`font-mono text-[14px] font-medium flex-shrink-0 ${tx.amount > 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'
+                      }`}
                   >
-                    {tx.amount > 0 ? '+' : '-'}₹{Math.abs(tx.amount)}
+                    {tx.amount > 0 ? '+' : '-'}₹{Math.abs(tx.amount).toFixed(2)}
                   </span>
                 </div>
               ))}

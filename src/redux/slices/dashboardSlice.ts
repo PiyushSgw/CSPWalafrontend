@@ -99,7 +99,7 @@ export const fetchDashboardStats = createAsyncThunk(
           printsToday: data.prints_last_30d?.count || 0,
           printsThisMonth: data.prints_last_30d?.count || 0,
           totalCustomers: data.csp?.active || 0,
-          printsRemaining: Math.floor((data.total_wallet_balance || 0) / 10),
+          printsRemaining: Math.floor((data.total_wallet_balance || 0) / 0.20),
           recentJobs: [],
           monthlyUsage: data.prints_last_30d?.count || 0,
           monthlyLimit: 200,
@@ -127,7 +127,7 @@ export const fetchDashboardStats = createAsyncThunk(
           dailyLimitUsage: Math.round(((data.prints_today || 0) / 50) * 100), // daily limit of 50 prints
           passbookPrints: data.prints_today || 0,
           accountForms: data.pending_recharge_requests || 0,
-          totalSpendThisMonth: (data.prints_this_month || 0) * 10, // Assuming ₹10 per print
+          totalSpendThisMonth: (data.prints_this_month || 0) * 0.20, // ₹0.20 per print
         } as DashboardStats
       }
 
