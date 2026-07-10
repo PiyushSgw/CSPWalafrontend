@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useWallet } from '@/hooks/useWallet'
+import { RazorpayButton } from '@/components/wallet/RazorpayButton'
 
 export const RechargeTabSection: React.FC<{
   paymentDetails: any
@@ -315,6 +316,26 @@ export const RechargeTabSection: React.FC<{
                   {loading ? 'Submitting...' : 'Submit Recharge Request'}
                 </button>
               </form>
+
+              <hr style={{ margin: '16px 0', borderColor: '#e5e7eb' }} />
+
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textAlign: 'center' }}>
+                OR Pay Online Instantly
+              </div>
+
+              <RazorpayButton
+                amount={enteredAmount}
+                onSuccess={(data) => {
+                  wallet.loadWallet()
+                  alert(`Payment successful! Wallet balance: ₹${data.balance}`)
+                  onClose()
+                }}
+                onError={(msg) => {
+                  if (msg !== 'Payment cancelled') {
+                    alert(msg)
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
