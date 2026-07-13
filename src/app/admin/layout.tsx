@@ -4,10 +4,13 @@ import { useState } from 'react'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import AdminHeader from '@/components/admin/AdminHeader'
 import AuthProvider from '@/components/auth/AuthProvider'
+import SessionExpiredModal from '@/components/auth/SessionExpiredModal'
+import { useSessionTimer } from '@/hooks/useSessionTimer'
 import '../styles.css'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  useSessionTimer('admin_token')
 
   return (
     <AuthProvider>
@@ -20,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </main>
         </div>
       </div>
+      <SessionExpiredModal onLoginPath="/user" />
     </AuthProvider>
   )
 }

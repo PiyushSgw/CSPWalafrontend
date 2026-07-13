@@ -28,7 +28,11 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const [view, setView] = useState<'form' | 'otp'>('form');
   const [showPassword, setShowPassword] = useState(false);
 
-  const [login, setLogin] = useState({ email: '', mobile: '', password: '', remember_me: false });
+  const [login, setLogin] = useState({
+  username: "", // Email ya Mobile Number
+  password: "",
+  remember_me: false,
+});
   const [reg, setReg] = useState({
     name: '', mobile: '', email: '',
     password: '',
@@ -117,29 +121,46 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     onTab(t);
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if ((!login.mobile.trim() && !login.email.trim()) || !login.password) {
-      toast.error('मोबाईल/ईमेल आणि पासवर्ड आवश्यक आहे');
-      return;
-    }
-    setBusy(true);
-    const res = await dispatch(
-      loginCSP({
-        ...(login.email.trim() && { email: login.email.trim() }),
-        ...(login.mobile.trim() && { mobile: login.mobile.trim() }),
-        password: login.password,
-        remember_me: login.remember_me,
-      })
-    );
-    setBusy(false);
-    if (loginCSP.fulfilled.match(res)) {
-      toast.success('स्वागत आहे!');
-      router.push('/dashboard');
-    } else {
-      toast.error((res.payload as string) || 'लॉगिन अयशस्वी');
-    }
-  };
+ const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const username = login.username.trim();
+
+  if (!username || !login.password) {
+    toast.error("ईमेल आयडी / मोबाईल नंबर आणि पासवर्ड आवश्यक आहे.");
+    return;
+  }
+
+  // Email किंवा १० अंकी मोबाईल नंबर तपासा
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username);
+  const isMobile = /^[0-9]{10}$/.test(username);
+
+  if (!isEmail && !isMobile) {
+    toast.error("कृपया वैध ईमेल आयडी किंवा १० अंकी मोबाईल नंबर प्रविष्ट करा.");
+    return;
+  }
+
+  setBusy(true);
+
+  const res = await dispatch(
+    loginCSP({
+      ...(isEmail
+        ? { email: username }
+        : { mobile: username }),
+      password: login.password,
+      remember_me: login.remember_me,
+    })
+  );
+
+  setBusy(false);
+
+  if (loginCSP.fulfilled.match(res)) {
+    toast.success("आपले स्वागत आहे!");
+    router.push("/dashboard");
+  } else {
+    toast.error((res.payload as string) || "लॉगिन अयशस्वी.");
+  }
+};
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,7 +202,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     setBusy(false);
     if (verifyOTP.fulfilled.match(res)) {
       toast.success('मोबाईल सत्यापित! आता लॉगिन करा.');
-      setLogin((p) => ({ ...p, mobile: reg.mobile }));
+      setLogin((p) => ({ ...p, username: reg.mobile }));
       setView('form');
       onTab('login');
     } else {
@@ -219,7 +240,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
           {/* ── LOGIN ── */}
           {view === 'form' && isLogin && (
             <form onSubmit={handleLogin}>
-              <div className="field">
+              {/* <div className="field">
                 <label>मोबाईल नंबर</label>
                 <input
                   type="tel"
@@ -228,8 +249,8 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   value={login.mobile}
                   onChange={(e) => setLogin({ ...login, mobile: onlyDigits(e.target.value) })}
                 />
-              </div>
-              <div className="field">
+              </div> */}
+              {/* <div className="field">
                 <label>ईमेल / Email</label>
                 <input
                   type="email"
@@ -237,7 +258,22 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   value={login.email}
                   onChange={(e) => setLogin({ ...login, email: e.target.value })}
                 />
-              </div>
+              </div> */}
+              <div className="field">
+  <label>Email ID / Mobile Number</label>
+  <input
+    type="text"
+    placeholder="Enter Email ID or Mobile Number"
+    value={login.username}
+    onChange={(e) =>
+      setLogin({
+        ...login,
+        username: e.target.value,
+      })
+    }
+    required
+  />
+</div>
               <div className="field">
                 <label>पासवर्ड</label>
                 <div className="pw-wrap">

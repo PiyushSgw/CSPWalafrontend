@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { triggerSessionExpired } from './sessionExpired'
 
 const ADMIN_TOKEN_KEY = 'admin_token'
 
@@ -20,8 +21,7 @@ adminApi.interceptors.response.use(
   (res) => res,
   async (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem(ADMIN_TOKEN_KEY)
-      window.location.href = '/user'
+      triggerSessionExpired()
     }
     return Promise.reject(error)
   }

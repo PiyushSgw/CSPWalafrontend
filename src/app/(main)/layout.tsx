@@ -4,11 +4,14 @@ import { useState } from 'react'
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import AuthProvider from "@/components/auth/AuthProvider";
+import SessionExpiredModal from "@/components/auth/SessionExpiredModal";
+import { useSessionTimer } from "@/hooks/useSessionTimer";
 // @ts-ignore: side-effect CSS import for global styles
 import "../styles.css";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  useSessionTimer('csp_access_token')
 
   return (
      <AuthProvider>
@@ -23,6 +26,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </main>
       </div>
     </div>
+    <SessionExpiredModal onLoginPath="/user" />
     </AuthProvider>
   );
 }
