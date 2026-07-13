@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock, LogIn, Loader2 } from 'lucide-react'
 import { onSessionExpired, resetSessionExpiredFlag } from '@/utils/sessionExpired'
+
+const AUTO_REDIRECT_SECONDS = 5
 
 interface SessionExpiredModalProps {
   onLoginPath?: string
@@ -13,13 +15,9 @@ export default function SessionExpiredModal({ onLoginPath = '/user' }: SessionEx
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [navigating, setNavigating] = useState(false)
+  const [countdown, setCountdown] = useState(AUTO_REDIRECT_SECONDS)
 
-  useEffect(() => {
-    const unsubscribe = onSessionExpired(() => setIsOpen(true))
-    return unsubscribe
-  }, [])
-
-  const handleLoginAgain = () => {
+  const clearSessionAndRedirect = useCallback(() => {
     setNavigating(true)
     localStorage.removeItem('csp_access_token')
     localStorage.removeItem('csp_refresh_token')
@@ -29,7 +27,27 @@ export default function SessionExpiredModal({ onLoginPath = '/user' }: SessionEx
     }
     resetSessionExpiredFlag()
     router.push(onLoginPath)
-  }
+  }, [onLoginPath, router])
+
+  useEffect(() => {
+    const unsubscribe = onSessionExpired(() => {
+      setIsOpen(true)
+      setCountdown(AUTO_REDIRECT_SECONDS)
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen || navigating) return
+
+    if (countdown <= 0) {
+      clearSessionAndRedirect()
+      return
+    }
+
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [isOpen, navigating, countdown, clearSessionAndRedirect])
 
   if (!isOpen) return null
 
@@ -58,12 +76,13 @@ export default function SessionExpiredModal({ onLoginPath = '/user' }: SessionEx
           </div>
 
           <div className="p-6 text-center">
-            <p className="text-gray-600 text-sm leading-relaxed mb-6">
-              Your session has expired. Please log in again to continue using the application.
+            <p className="text-gray-600 text-sm leading-relaxed mb-4">
+              Your session has expired. You will be redirected to login in{' '}
+              <span className="font-bold text-red-600">{countdown}</span> seconds.
             </p>
 
             <button
-              onClick={handleLoginAgain}
+              onClick={clearSessionAndRedirect}
               disabled={navigating}
               className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
