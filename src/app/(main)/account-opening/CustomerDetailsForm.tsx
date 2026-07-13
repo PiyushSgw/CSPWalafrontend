@@ -416,6 +416,7 @@ export default function CustomerDetailsForm() {
 
         /* ── Grids ── */
         .cdf-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+        .cdf-grid-5 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
         .cdf-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
         .cdf-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
         .cdf-grid-2-sm { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; max-width: 340px; }
@@ -605,6 +606,10 @@ export default function CustomerDetailsForm() {
               }}
             />
           </div>
+          
+        </div>
+
+        <div className="cdf-grid-4">
           <div className="cdf-group">
             <label className="cdf-label">Marital Status</label>
             <select
@@ -620,9 +625,6 @@ export default function CustomerDetailsForm() {
               ))}
             </select>
           </div>
-        </div>
-
-        <div className="cdf-grid-4">
           <div className="cdf-group">
             <label className="cdf-label">
               Father First Name <span className="req">*</span>
@@ -658,14 +660,15 @@ export default function CustomerDetailsForm() {
               }}
             />
           </div>
-          <div className="cdf-group">
+          
+          {/* <div className="cdf-group">
             <label className="cdf-label">Mother Name</label>
             <input
               className="cdf-input"
               value={formData.mother_name}
               onChange={(e) => set("mother_name", e.target.value)}
             />
-          </div>
+          </div> */}
         </div>
 
         <div className="cdf-grid-4">
@@ -849,7 +852,7 @@ export default function CustomerDetailsForm() {
               ))}
             </select>
           </div>
-          <div className="cdf-group">
+          {/* <div className="cdf-group">
             <label className="cdf-label">
               Document No. <span className="req">*</span>
             </label>
@@ -858,7 +861,7 @@ export default function CustomerDetailsForm() {
               value={formData.document_no}
               onChange={(e) => set("document_no", e.target.value)}
             />
-          </div>
+          </div> */}
         </div>
 
         {showPassportDates && (
@@ -1000,7 +1003,16 @@ export default function CustomerDetailsForm() {
           </div>
         </div>
 
-        <div className="cdf-grid-3">
+        <div className="cdf-grid-4">
+          <div className="cdf-group">
+            <label className="cdf-label">Landmark</label>
+            <input
+              className="cdf-input"
+              value={(formData as any).landmark ?? ""}
+              maxLength={30}
+              onChange={(e) => set("landmark" as any, e.target.value)}
+            />
+          </div>
           <div className="cdf-group">
             <label className="cdf-label">District</label>
             <input
@@ -1086,6 +1098,15 @@ export default function CustomerDetailsForm() {
               </div>
             </div>
             <div className="cdf-grid-4">
+              <div className="cdf-group">
+                <label className="cdf-label">Landmark</label>
+                <input
+                  className="cdf-input"
+                  value={(formData as any).current_landmark ?? ""}
+                  maxLength={30}
+                  onChange={(e) => set("current_landmark" as any, e.target.value)}
+                />
+              </div>
               <div className="cdf-group">
                 <label className="cdf-label">Pincode</label>
                  <input
@@ -1620,18 +1641,6 @@ export default function CustomerDetailsForm() {
           <>
             <div className="cdf-grid-4">
               <div className="cdf-group">
-                <label className="cdf-label">Customer ID / CIF</label>
-                <input
-                  className="cdf-input"
-                  placeholder="Bank customer / CIF number"
-                  value={formData.cif}
-                  onChange={(e) => set("cif", e.target.value)}
-                />
-                <p className="cdf-hint" style={{ color: "#6b7280", fontSize: "10px", lineHeight: 1.3 }}>
-                  Enter the bank customer / CIF number manually. Leave blank if not available.
-                </p>
-              </div>
-              <div className="cdf-group">
                 <label className="cdf-label">Branch Name</label>
                 <input
                   className="cdf-input"
@@ -1652,24 +1661,23 @@ export default function CustomerDetailsForm() {
                 <label className="cdf-label">BC Code</label>
                 <input
                   className="cdf-input"
-                  placeholder="BC / BF number"
                   value={formData.bc_code}
                   onChange={(e) => set("bc_code", e.target.value)}
                 />
               </div>
-            </div>
-
-            <div className="cdf-grid-4">
               <div className="cdf-group">
-                <label className="cdf-label">Branch Code</label>
+                <label className="cdf-label">BC Location</label>
                 <input
                   className="cdf-input"
-                  value={formData.branch_code}
-                  onChange={(e) => set("branch_code", e.target.value)}
+                  value={formData.place}
+                  onChange={(e) => set("place", e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="cdf-grid-3">
               <div className="cdf-group">
-                <label className="cdf-label">Official Name</label>
+                <label className="cdf-label">Employee Name</label>
                 <input
                   className="cdf-input"
                   value={formData.official_name}
@@ -1677,44 +1685,44 @@ export default function CustomerDetailsForm() {
                 />
               </div>
               <div className="cdf-group">
-                <label className="cdf-label">PF Number</label>
+                <label className="cdf-label">Employee Code</label>
                 <input
                   className="cdf-input"
-                  value={formData.pf_number}
-                  onChange={(e) => set("pf_number", e.target.value)}
+                  placeholder="Employee code"
+                  value={(formData as any).employee_code ?? ""}
+                  onChange={(e) => set("employee_code" as any, e.target.value)}
                 />
               </div>
               <div className="cdf-group">
-                <label className="cdf-label">Designation</label>
-                <select
-                  className="cdf-select"
-                  value={formData.designation}
-                  onChange={(e) => set("designation", e.target.value)}
-                >
-                  {designationOptions.map((d) => (
-                    <option key={d} value={d === "DESIGNATION" ? "" : d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
+                <label className="cdf-label">P.A./R.P. No.</label>
+                <input
+                  className="cdf-input"
+                  placeholder="PA / RP number"
+                  value={(formData as any).pa_rp_no ?? ""}
+                  onChange={(e) => set("pa_rp_no" as any, e.target.value)}
+                />
               </div>
             </div>
 
             <div className="cdf-grid-2">
+              <div className="cdf-group">
+                <label className="cdf-label">Customer ID / CIF</label>
+                <input
+                  className="cdf-input"
+                  placeholder="Bank customer / CIF number"
+                  value={formData.cif}
+                  onChange={(e) => set("cif", e.target.value)}
+                />
+                <p className="cdf-hint" style={{ color: "#6b7280", fontSize: "10px", lineHeight: 1.3 }}>
+                  Enter the bank customer / CIF number manually. Leave blank if not available.
+                </p>
+              </div>
               <div className="cdf-group">
                 <label className="cdf-label">Account Number</label>
                 <input
                   className="cdf-input"
                   value={formData.account_number}
                   onChange={(e) => set("account_number", e.target.value)}
-                />
-              </div>
-              <div className="cdf-group">
-                <label className="cdf-label">Place</label>
-                <input
-                  className="cdf-input"
-                  value={formData.place}
-                  onChange={(e) => set("place", e.target.value)}
                 />
               </div>
             </div>
