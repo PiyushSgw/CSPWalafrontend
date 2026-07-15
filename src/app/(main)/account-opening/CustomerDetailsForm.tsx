@@ -275,6 +275,7 @@ export default function CustomerDetailsForm() {
       set("nominee_address", formData.address);
       set("nominee_house_no", formData.address_line1);
       set("nominee_street", formData.address_line2);
+      set("nominee_landmark", (formData as any).landmark ?? "");
       set("nominee_city", formData.city);
       set("nominee_district", formData.district);
       set("nominee_state", formData.state);
@@ -1353,6 +1354,7 @@ export default function CustomerDetailsForm() {
                   className="cdf-input"
                   value={formData.nominee_landmark}
                   maxLength={20}
+                  readOnly={!!formData.nominee_address_same}
                   onChange={(e) => set("nominee_landmark", e.target.value)}
                 />
               </div>

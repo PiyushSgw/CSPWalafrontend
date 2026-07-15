@@ -51,6 +51,7 @@ export interface AccountOpeningFormData {
   state: string;
   country: string;
   address: string;
+  landmark: string;
 
   // Nomination
   nominee_name: string;
@@ -101,6 +102,8 @@ export interface AccountOpeningFormData {
   cif: string;
   bc_name: string;
   bc_code: string;
+  employee_code: string;
+  pa_rp_no: string;
 
   // Media
   include_passbook: boolean;
@@ -193,6 +196,7 @@ const initialState: AccountOpeningState = {
     state: '',
     country: 'India',
     address: '',
+    landmark: '',
     nominee_name: '',
     nominee_title: '',
     nominee_first_name: '',
@@ -235,6 +239,8 @@ const initialState: AccountOpeningState = {
     cif: '',
     bc_name: '',
     bc_code: '',
+    employee_code: '',
+    pa_rp_no: '',
     include_passbook: false,
     include_apy: false,
     status: 'pending',
