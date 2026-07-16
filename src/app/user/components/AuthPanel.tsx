@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { useAppDispatch } from '@/redux/hooks';
-import { loginCSP, registerCSP, verifyOTP } from '@/redux/slices/authslice';
+import { loginCSP, registerCSP } from '@/redux/slices/authslice';
+import { initRecaptcha, sendOTP, verifyOTP as verifyFirebaseOTP, cleanupRecaptcha, resetConfirmation } from '@/services/firebaseOtp';
 import api from '@/utils/axios';
 
 type Tab = 'login' | 'register';
@@ -25,20 +26,27 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const router = useRouter();
 
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState<'form' | 'otp'>('form');
   const [showPassword, setShowPassword] = useState(false);
 
   const [login, setLogin] = useState({
-  username: "", // Email ya Mobile Number
-  password: "",
-  remember_me: false,
-});
+    username: "",
+    password: "",
+    remember_me: false,
+  });
   const [reg, setReg] = useState({
     name: '', mobile: '', email: '',
     password: '',
     state: '', district: '', taluka: '', village_city: '',
   });
-  const [otp, setOtp] = useState({ mobile: '', code: '' });
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [mobileVerified, setMobileVerified] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [otpAttempts, setOtpAttempts] = useState(0);
+  const [recaptchaReady, setRecaptchaReady] = useState(false);
+  const [firebaseIdToken, setFirebaseIdToken] = useState<string | null>(null);
+  const lastSentMobile = useRef('');
+  const sendingOTP = useRef(false);
 
   // Location dropdown options
   const [states, setStates] = useState<LocationItem[]>([]);
@@ -55,6 +63,82 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   useEffect(() => {
     if (!isLogin) loadStates();
   }, [tab]);
+
+  useEffect(() => {
+    if (!isLogin) {
+      try {
+        initRecaptcha('firebase-recaptcha-btn');
+        setRecaptchaReady(true);
+      } catch (err) {
+        console.error('reCAPTCHA init failed:', err);
+      }
+    }
+    return () => { cleanupRecaptcha(); };
+  }, [tab]);
+
+  const handleSendFirebaseOtp = useCallback(async () => {
+    if (sendingOTP.current) return;
+    const mobile = reg.mobile;
+    if (mobile.length !== 10 || !/^[6-9]/.test(mobile)) {
+      toast.error('वैध 10 अंकी मोबाईल नंबर टाका');
+      return;
+    }
+    if (otpAttempts >= 3) {
+      toast.error('अधिकतम प्रयतन वापरले गएले. कृपया नंतर पुन्हा प्रयत्न करा.');
+      return;
+    }
+    sendingOTP.current = true;
+    setBusy(true);
+    try {
+      await sendOTP(`+91${mobile}`);
+      lastSentMobile.current = mobile;
+      toast.success('OTP पाठवला गया!');
+      setOtpCode('');
+      setOtpSent(true);
+      setOtpTimer(30);
+      setOtpAttempts((a) => a + 1);
+    } catch (err: any) {
+      console.error('Firebase sendOTP error:', err);
+      toast.error(err.message || 'OTP पाठवण्यात त्रुटी');
+    } finally {
+      sendingOTP.current = false;
+      setBusy(false);
+    }
+  }, [reg.mobile, otpAttempts]);
+
+  const handleVerifyOtp = async () => {
+    if (otpCode.trim().length < 6) {
+      toast.error('वैध OTP टाका');
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await verifyFirebaseOTP(otpCode.trim());
+      const idToken = await result.user.getIdToken();
+      setFirebaseIdToken(idToken);
+      toast.success('मोबाईल सत्यापित!');
+      setMobileVerified(true);
+      setOtpSent(false);
+      setOtpTimer(0);
+    } catch (err: any) {
+      console.error('Firebase verifyOTP error:', err);
+      toast.error(err.message || 'OTP पडताळणी अयशस्वी');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (otpTimer > 0) return;
+    lastSentMobile.current = '';
+    await handleSendFirebaseOtp();
+  };
+
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const interval = setInterval(() => setOtpTimer((t) => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [otpTimer]);
 
   const loadStates = async () => {
     setStatesLoading(true);
@@ -90,14 +174,14 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     setTalukas([]);
     setVillages([]);
     if (!districtVal || !reg.state) return;
-    setTalukasLoading(true);
+    setDistrictsLoading(true);
     try {
       const res = await api.get(`/locations/states/${encodeURIComponent(reg.state)}/districts/${encodeURIComponent(districtVal)}/talukas`);
       setTalukas(res.data.data);
     } catch {
       toast.error('तालुके लोड करताना त्रुटी');
     } finally {
-      setTalukasLoading(false);
+      setDistrictsLoading(false);
     }
   };
 
@@ -117,53 +201,62 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   };
 
   const switchTab = (t: Tab) => {
-    setView('form');
+    setOtpSent(false);
+    setMobileVerified(false);
+    setOtpCode('');
+    setOtpAttempts(0);
+    setOtpTimer(0);
+    setFirebaseIdToken(null);
+    lastSentMobile.current = '';
     onTab(t);
   };
 
- const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const username = login.username.trim();
+    const username = login.username.trim();
 
-  if (!username || !login.password) {
-    toast.error("ईमेल आयडी / मोबाईल नंबर आणि पासवर्ड आवश्यक आहे.");
-    return;
-  }
+    if (!username || !login.password) {
+      toast.error("ईमेल आयडी / मोबाईल नंबर आणि पासवर्ड आवश्यक आहे.");
+      return;
+    }
 
-  // Email किंवा १० अंकी मोबाईल नंबर तपासा
-  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username);
-  const isMobile = /^[0-9]{10}$/.test(username);
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username);
+    const isMobile = /^[0-9]{10}$/.test(username);
 
-  if (!isEmail && !isMobile) {
-    toast.error("कृपया वैध ईमेल आयडी किंवा १० अंकी मोबाईल नंबर प्रविष्ट करा.");
-    return;
-  }
+    if (!isEmail && !isMobile) {
+      toast.error("कृपया वैध ईमेल आयडी किंवा १० अंकी मोबाईल नंबर प्रविष्ट करा.");
+      return;
+    }
 
-  setBusy(true);
+    setBusy(true);
 
-  const res = await dispatch(
-    loginCSP({
-      ...(isEmail
-        ? { email: username }
-        : { mobile: username }),
-      password: login.password,
-      remember_me: login.remember_me,
-    })
-  );
+    const res = await dispatch(
+      loginCSP({
+        ...(isEmail
+          ? { email: username }
+          : { mobile: username }),
+        password: login.password,
+        remember_me: login.remember_me,
+      })
+    );
 
-  setBusy(false);
+    setBusy(false);
 
-  if (loginCSP.fulfilled.match(res)) {
-    toast.success("आपले स्वागत आहे!");
-    router.push("/dashboard");
-  } else {
-    toast.error((res.payload as string) || "लॉगिन अयशस्वी.");
-  }
-};
+    if (loginCSP.fulfilled.match(res)) {
+      toast.success("आपले स्वागत आहे!");
+      router.push("/dashboard");
+    } else {
+      toast.error((res.payload as string) || "लॉगिन अयशस्वी.");
+    }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!mobileVerified) {
+      toast.error('कृपया प्रथम मोबाईल नंबर सत्यापित करा');
+      return;
+    }
     if (!reg.name.trim() || !reg.mobile.trim() || !reg.email.trim() || !reg.password) {
       toast.error('कृपया सर्व आवश्यक माहिती भरा');
       return;
@@ -181,42 +274,31 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
         village_city: reg.village_city.trim(),
       })
     );
-    setBusy(false);
     if (registerCSP.fulfilled.match(res)) {
-      toast.success('OTP तुमच्या मोबाईलवर पाठवला आहे');
-      setOtp({ mobile: reg.mobile.trim(), code: '' });
-      setView('otp');
+      // Send Firebase idToken to backend to activate the account
+      if (firebaseIdToken) {
+        try {
+          await api.post('/auth/verify-firebase', { idToken: firebaseIdToken });
+        } catch (err) {
+          console.error('Backend verify-firebase failed:', err);
+        }
+      }
+      setBusy(false);
+      toast.success('नोंदणी यशस्वी! आता लॉगिन करा.');
+      setLogin((p) => ({ ...p, username: reg.mobile }));
+      setMobileVerified(false);
+      setFirebaseIdToken(null);
+      onTab('login');
     } else {
+      setBusy(false);
       toast.error((res.payload as string) || 'नोंदणी अयशस्वी');
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp.code.trim().length < 4) {
-      toast.error('वैध OTP टाका');
-      return;
-    }
-    setBusy(true);
-    const res = await dispatch(verifyOTP({ mobile: otp.mobile, otp: otp.code.trim() }));
-    setBusy(false);
-    if (verifyOTP.fulfilled.match(res)) {
-      toast.success('मोबाईल सत्यापित! आता लॉगिन करा.');
-      setLogin((p) => ({ ...p, username: reg.mobile }));
-      setView('form');
-      onTab('login');
-    } else {
-      toast.error((res.payload as string) || 'OTP पडताळणी अयशस्वी');
-    }
-  };
-
-  const title = view === 'otp' ? 'OTP पडताळणी' : isLogin ? 'BC एजंट लॉगिन' : 'नवीन नोंदणी';
-  const subtitle =
-    view === 'otp'
-      ? 'तुमच्या मोबाईलवर आलेला OTP टाका'
-      : isLogin
-        ? 'तुमच्या CSP खात्याने लॉगिन करा'
-        : 'काही मिनिटांत खाते तयार करा';
+  const title = isLogin ? 'BC एजंट लॉगिन' : 'नवीन नोंदणी';
+  const subtitle = isLogin
+    ? 'तुमच्या CSP खात्याने लॉगिन करा'
+    : 'काही मिनिटांत खाते तयार करा';
 
   return (
     <>
@@ -230,50 +312,29 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
         </div>
 
         <div className="p-body">
-          {view === 'form' && (
-            <div className="p-tabs">
-              <button className={isLogin ? 'on' : ''} onClick={() => switchTab('login')}>लॉगिन</button>
-              <button className={!isLogin ? 'on' : ''} onClick={() => switchTab('register')}>नोंदणी</button>
-            </div>
-          )}
+          <div className="p-tabs">
+            <button className={isLogin ? 'on' : ''} onClick={() => switchTab('login')}>लॉगिन</button>
+            <button className={!isLogin ? 'on' : ''} onClick={() => switchTab('register')}>नोंदणी</button>
+          </div>
 
           {/* ── LOGIN ── */}
-          {view === 'form' && isLogin && (
+          {isLogin && (
             <form onSubmit={handleLogin}>
-              {/* <div className="field">
-                <label>मोबाईल नंबर</label>
-                <input
-                  type="tel"
-                  placeholder="10 अंकी मोबाईल नंबर"
-                  maxLength={10}
-                  value={login.mobile}
-                  onChange={(e) => setLogin({ ...login, mobile: onlyDigits(e.target.value) })}
-                />
-              </div> */}
-              {/* <div className="field">
-                <label>ईमेल / Email</label>
-                <input
-                  type="email"
-                  placeholder="yourname@gmail.com"
-                  value={login.email}
-                  onChange={(e) => setLogin({ ...login, email: e.target.value })}
-                />
-              </div> */}
               <div className="field">
-  <label>Email ID / Mobile Number</label>
-  <input
-    type="text"
-    placeholder="Enter Email ID or Mobile Number"
-    value={login.username}
-    onChange={(e) =>
-      setLogin({
-        ...login,
-        username: e.target.value,
-      })
-    }
-    required
-  />
-</div>
+                <label>Email ID / Mobile Number</label>
+                <input
+                  type="text"
+                  placeholder="Enter Email ID or Mobile Number"
+                  value={login.username}
+                  onChange={(e) =>
+                    setLogin({
+                      ...login,
+                      username: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
               <div className="field">
                 <label>पासवर्ड</label>
                 <div className="pw-wrap">
@@ -312,7 +373,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
           )}
 
           {/* ── REGISTER ── */}
-          {view === 'form' && !isLogin && (
+          {!isLogin && (
             <form onSubmit={handleRegister}>
               <div className="field">
                 <label>पूर्ण नाव <span className="req">*</span></label>
@@ -324,18 +385,117 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   required
                 />
               </div>
+
+              {/* Mobile Number + Send OTP */}
               <div className="field">
                 <label>मोबाईल नंबर <span className="req">*</span></label>
-                <input
-                  type="tel"
-                  placeholder="10 अंकी मोबाईल नंबर"
-                  maxLength={10}
-                  value={reg.mobile}
-                  onChange={(e) => setReg({ ...reg, mobile: onlyDigits(e.target.value) })}
-                  required
-                />
-                <div className="hint">OTP याच नंबरवर पाठवला जाईल</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', backgroundColor: '#fff', flex: 1 }}>
+                    <span style={{ padding: '12px 10px', backgroundColor: '#f1f5f9', fontWeight: 600, fontSize: '0.95rem', color: '#334155', borderRight: '1.5px solid #e2e8f0', whiteSpace: 'nowrap' }}>+91</span>
+                    <input
+                      type="tel"
+                      placeholder="10 अंकी मोबाईल नंबर"
+                      maxLength={10}
+                      value={reg.mobile}
+                      onChange={(e) => {
+                        const newMobile = onlyDigits(e.target.value, 10);
+                        if (newMobile !== reg.mobile) {
+                          setMobileVerified(false);
+                          setOtpSent(false);
+                          setOtpCode('');
+                          setOtpTimer(0);
+                          setFirebaseIdToken(null);
+                          lastSentMobile.current = '';
+                          resetConfirmation();
+                        }
+                        setReg({ ...reg, mobile: newMobile });
+                      }}
+                      style={{ border: 'none', outline: 'none', flex: 1, padding: '12px 14px', fontSize: '0.95rem' }}
+                      required
+                    />
+                  </div>
+                  {!mobileVerified && (
+                    <button
+                      type="button"
+                      onClick={handleSendFirebaseOtp}
+                      disabled={busy || otpSent || reg.mobile.length !== 10 || !/^[6-9]/.test(reg.mobile)}
+                      style={{
+                        padding: '12px 16px',
+                        borderRadius: 12,
+                        border: '1.5px solid #2563eb',
+                        backgroundColor: (busy || otpSent || reg.mobile.length !== 10 || !/^[6-9]/.test(reg.mobile)) ? '#e2e8f0' : '#2563eb',
+                        color: (busy || otpSent || reg.mobile.length !== 10 || !/^[6-9]/.test(reg.mobile)) ? '#94a3b8' : '#fff',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        cursor: (busy || otpSent || reg.mobile.length !== 10 || !/^[6-9]/.test(reg.mobile)) ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {busy ? '...' : 'Send OTP'}
+                    </button>
+                  )}
+                </div>
+                {mobileVerified && (
+                  <div style={{ color: '#16a34a', fontWeight: 600, fontSize: '.85rem', marginTop: 4 }}>
+                    ✔ मोबाईल सत्यापित
+                  </div>
+                )}
+                {!mobileVerified && !otpSent && (
+                  <div className="hint">OTP याच नंबरवर पाठवला जाईल</div>
+                )}
               </div>
+
+              {/* Inline OTP Section */}
+              {otpSent && !mobileVerified && (
+                <div className="field" style={{ backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '14px 16px' }}>
+                  <label style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a' }}>OTP पडताळणी</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8 }}>
+                    <input
+                      type="tel"
+                      placeholder="6 अंकी OTP टाका"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(onlyDigits(e.target.value, 6))}
+                      style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyOtp}
+                      disabled={busy || otpCode.trim().length < 6}
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: 12,
+                        border: '1.5px solid #16a34a',
+                        backgroundColor: (busy || otpCode.trim().length < 6) ? '#e2e8f0' : '#16a34a',
+                        color: (busy || otpCode.trim().length < 6) ? '#94a3b8' : '#fff',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        cursor: (busy || otpCode.trim().length < 6) ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {busy ? '...' : 'Verify'}
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 10, textAlign: 'center' }}>
+                    {otpTimer > 0 ? (
+                      <span style={{ color: '#64748b', fontSize: '.82rem' }}>
+                        पुन्हा OTP पाठवा {otpTimer}s
+                      </span>
+                    ) : (
+                      <a
+                        href="javascript:void(0)"
+                        onClick={handleResendOtp}
+                        style={{ color: '#2563eb', fontSize: '.82rem', fontWeight: 500 }}
+                      >
+                        OTP पुन्हा पाठवा
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="field">
                 <label>ईमेल / Email <span className="req">*</span></label>
                 <input
@@ -440,32 +600,10 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
               </p>
             </form>
           )}
-
-          {/* ── OTP ── */}
-          {view === 'otp' && (
-            <form onSubmit={handleVerifyOtp}>
-              <div className="field">
-                <label>OTP</label>
-                <input
-                  type="tel"
-                  placeholder="मोबाईलवर आलेला OTP"
-                  maxLength={8}
-                  value={otp.code}
-                  onChange={(e) => setOtp({ ...otp, code: onlyDigits(e.target.value, 8) })}
-                  required
-                />
-                <div className="hint">{otp.mobile} वर पाठवलेला OTP टाका</div>
-              </div>
-              <button className="p-submit" type="submit" disabled={busy}>
-                {busy ? 'पडताळणी होत आहे...' : 'OTP पडताळा'}
-              </button>
-              <p className="p-link-cta" style={{ marginTop: 18 }}>
-                <a href="javascript:void(0)" onClick={() => switchTab('register')}>← नोंदणीकडे परत जा</a>
-              </p>
-            </form>
-          )}
         </div>
       </div>
+
+      <div id="firebase-recaptcha-btn" style={{ display: 'none' }} />
 
       {/* Scoped styles only for the location fields — everything else keeps its existing styling */}
       <style jsx>{`
