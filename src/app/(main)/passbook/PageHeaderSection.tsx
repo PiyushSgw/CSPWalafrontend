@@ -8,19 +8,19 @@ interface Props {
 
 export const PageHeaderSection: React.FC<Props> = ({ onReset }) => {
   return (
-    <div className="flex items-start justify-between flex-wrap gap-3">
-      <div>
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="min-w-0">
         <h1
           className="text-2xl font-bold text-slate-800 flex items-center gap-2"
           style={{ fontFamily: 'Syne, sans-serif' }}
         >
          📖 Passbook Printing
         </h1>
-        <p className="text-[12.5px] text-slate-500 mt-1">
+        <p className="text-[12.5px] text-slate-500 mt-1 truncate">
           Enter customer details and generate A5 passbook PDF — ₹10 per print
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0 flex-wrap">
         <button
           onClick={onReset}
           className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-lg  text-[12.5px] font-semibold text-[#374151] "

@@ -132,7 +132,7 @@ export default function Sidebar({ mobileOpen = false, onToggleMobile }: SidebarP
         />
       )}
       <aside
-        className={`flex flex-col h-screen bg-[#0f2744] overflow-hidden z-50 transition-transform duration-300 ease-in-out
+        className={`flex flex-col h-screen bg-[#0f2744] overflow-hidden lg:z-50 z-[60] transition-transform duration-300 ease-in-out
           fixed inset-y-0 left-0 w-[260px] lg:relative lg:translate-x-0 lg:w-[260px] lg:min-w-[260px]
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}

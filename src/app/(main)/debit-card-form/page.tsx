@@ -122,14 +122,14 @@ export default function DebitCardFormPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between bg-white rounded-xl border border-[#e5e7eb] p-5">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0d8f72] to-[#0fb896] flex items-center justify-center">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white rounded-xl border border-[#e5e7eb] p-5 gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0d8f72] to-[#0fb896] flex items-center justify-center flex-shrink-0">
             <CreditCard className="w-6 h-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-[#111827]">Debit Card Form</h1>
-            <p className="text-sm text-[#6b7280]">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-[#111827] truncate">Debit Card Form</h1>
+            <p className="text-sm text-[#6b7280] truncate">
               {dc.selectedCustomer?.bank_name || 'Debit Card Application'}
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function DebitCardFormPage() {
         {dc.step !== 'customer' && (
           <button
             onClick={dc.reset}
-            className="px-4 py-2 text-sm font-medium text-[#374151] bg-white border border-[#e5e7eb] rounded-lg hover:bg-[#f9fafb] transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[#374151] bg-white border border-[#e5e7eb] rounded-lg hover:bg-[#f9fafb] transition-colors shrink-0"
           >
             New Request
           </button>
@@ -223,7 +223,7 @@ export default function DebitCardFormPage() {
                 <FileText className="w-4 h-4" />
                 Request ID: <span className="font-mono font-medium">{dc.submitResult.id}</span>
               </div>
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 {pdfDownloadUrl && (
                   <button
                     onClick={handleDownloadPdf}

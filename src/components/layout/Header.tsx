@@ -25,7 +25,6 @@ export default function Header({ onMenuToggle }: HeaderProps) {
     return <AdminHeader onMenuToggle={onMenuToggle} />
   }
 
-  const [walletBalance, setWalletBalance]         = useState<number>(0);
   const [showDropdown, setShowDropdown]           = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [mounted, setMounted]                     = useState(false);
@@ -35,13 +34,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   useEffect(() => { setMounted(true); }, []);
 
   const dashboardState = useSelector((state: RootState) => state.dashboard);
-  const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
-
-  useEffect(() => {
-    if (mounted && authState.isAuthenticated && !authState.admin) {
-      setWalletBalance(dashboardWalletBalance);
-    }
-  }, [mounted, authState.isAuthenticated, authState.admin, dashboardWalletBalance]);
+  const walletBalance = dashboardState.stats?.walletBalance ?? 0;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -117,30 +110,28 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const unreadCount = notifications.filter(n => n.unread).length;
 
   return (
-    <header className="topbar flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3">
+    <header className="topbar">
       <button
         onClick={onMenuToggle}
-        className="lg:hidden p-2 -ml-2 mr-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+        className="lg:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
         aria-label="Open menu"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
       </button>
-      <div className="topbar-title min-w-0 flex-1 md:flex-none">
+      <div className="topbar-title">
         {getPageName()} <span className="hidden sm:inline">/ Dashboard Home</span>
       </div>
 
-      <div className="topbar-actions w-full md:w-auto flex items-center justify-end flex-wrap sm:flex-nowrap gap-2">
-        {isLowBalance && (
-          <div
-            className="alert-box warn max-w-full sm:max-w-none"
-            style={{ margin: 0, padding: '8px 14px', borderRadius: '8px', fontSize: '12px' }}
-          >
-            <span>⚠️</span>
-            <span style={{ marginLeft: '4px' }} className="whitespace-nowrap">
-              <strong>Low Balance:</strong> ₹{dashboardWalletBalance} remaining
-            </span>
-          </div>
-        )}
+      <div className="topbar-actions shrink-0">
+        <div
+          className={`max-w-full sm:max-w-none flex-shrink-0 ${isLowBalance ? 'alert-box warn' : 'alert-box info'}`}
+          style={{ margin: 0, padding: '6px 12px', borderRadius: '8px', fontSize: '12px' }}
+        >
+          <span className="flex-shrink-0">{isLowBalance ? '⚠️' : '💰'}</span>
+          <span style={{ marginLeft: '4px' }} className="whitespace-nowrap min-w-0">
+            <strong>{isLowBalance ? 'Low Balance:' : 'Balance:'}</strong> ₹{walletBalance}
+          </span>
+        </div>
 
         <div className="relative" ref={notificationRef}>
           <button
@@ -153,7 +144,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 top-full mt-2 w-[92vw] max-w-80 sm:w-80 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-[88vw] max-w-80 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/80">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
@@ -230,17 +221,17 @@ export default function Header({ onMenuToggle }: HeaderProps) {
             className="topbar-user"
           >
             <div className="topbar-user-avatar">{initial}</div>
-            <span className="topbar-user-name hidden sm:inline max-w-[140px] truncate">{user?.name || 'User'}</span>
+            <span className="topbar-user-name hidden sm:inline max-w-[120px] truncate">{user?.name || 'User'}</span>
             <ChevronDown
               size={14}
               strokeWidth={2.5}
-              className="text-slate-400 transition-transform duration-200"
+              className="text-slate-400 transition-transform duration-200 hidden sm:block"
               style={{ transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }}
             />
           </div>
 
           {showDropdown && (
-            <div className="absolute right-0 top-[calc(100%+8px)] w-[92vw] max-w-56 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 overflow-hidden">
+            <div className="absolute right-0 top-[calc(100%+8px)] w-[85vw] max-w-56 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-red-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">

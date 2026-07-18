@@ -331,10 +331,10 @@ export default function AccountFormPage() {
                   }
                 />
 
-                <div className="flex flex-wrap justify-between gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <button
                     onClick={() => dispatch(setStep(1))}
-                    className="rounded-lg border-[1.5px] border-gray-300 px-5 py-2.5 text-[13px] font-bold text-gray-600 transition-all hover:bg-gray-50"
+                    className="rounded-lg border-[1.5px] border-gray-300 px-5 py-2.5 text-[13px] font-bold text-gray-600 transition-all hover:bg-gray-50 order-2 sm:order-1"
                   >
                     ← Back to Bank Selection
                   </button>
@@ -342,7 +342,7 @@ export default function AccountFormPage() {
                   <button
                     onClick={handleGenerate}
                     disabled={isGenerating}
-                    className="rounded-lg bg-teal-600 px-5 py-2.5 text-[13px] font-bold text-white transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-lg bg-teal-600 px-5 py-2.5 text-[13px] font-bold text-white transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60 order-1 sm:order-2"
                   >
                     {customerCreating
                       ? 'Registering customer...'

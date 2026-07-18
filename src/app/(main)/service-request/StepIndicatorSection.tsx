@@ -27,7 +27,7 @@ export function StepIndicatorSection({ activeStep, onStepClick }: Props) {
 
   return (
     <div className="bg-white rounded-xl border border-[#e5e7eb] p-4">
-      <div className="flex items-center justify-between max-w-3xl mx-auto">
+      <div className="flex items-center justify-between max-w-3xl mx-auto overflow-x-auto gap-1">
         {STEPS.map((step, i) => {
           const isCompleted = i < activeIndex
           const isActive = i === activeIndex

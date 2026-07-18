@@ -206,18 +206,20 @@
 }
 /* TOPBAR */
 .topbar {
-  height: var(--topbar-h);
+  min-height: var(--topbar-h);
+  height: auto;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center;
-  padding: 0 28px;
-  gap: 16px;
+  padding: 8px 28px;
+  gap: 12px;
   position: sticky; top: 0; z-index: 50;
   flex-shrink: 0;
+  flex-wrap: nowrap;
 }
-.topbar-title { font-size: 16px; font-weight: 700; color: var(--ink); flex: 1; }
+.topbar-title { font-size: 16px; font-weight: 700; color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-title span { color: var(--ink3); font-weight: 400; font-size: 13px; }
-.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .topbar-btn {
   display: flex; align-items: center; gap: 7px;
   padding: 8px 14px; border-radius: 8px;
@@ -799,8 +801,14 @@
   .form-row.cols-2, .form-row.cols-3 { grid-template-columns: 1fr; }
   .bank-grid { grid-template-columns: repeat(2,1fr); }
   .content { padding: 16px; }
-  .topbar { padding: 0 16px; }
+  .topbar { padding: 8px 12px; gap: 8px; }
+  .topbar-title { font-size: 14px; }
   .topbar-title span { display: none; }
+  .topbar-actions { gap: 6px; }
+  .notif-btn { width: 34px; height: 34px; }
+  .topbar-user { padding: 5px 8px; gap: 6px; }
+  .topbar-user-avatar { width: 24px; height: 24px; font-size: 10px; }
+  .quick-actions { grid-template-columns: 1fr; }
 }
 
 /* Extra-small screens */
@@ -816,6 +824,13 @@
   .info-row:nth-child(odd) { padding-right: 0; }
   .info-row:nth-child(even) { padding-left: 0; border-left: none; }
   .data-table th, .data-table td { padding: 8px 10px; font-size: 12px; }
+  .topbar { padding: 6px 10px; gap: 6px; }
+  .topbar-title { font-size: 13px; }
+  .notif-btn { width: 32px; height: 32px; font-size: 14px; }
+  .topbar-user { padding: 4px 6px; gap: 4px; }
+  .topbar-user-avatar { width: 22px; height: 22px; font-size: 9px; border-radius: 5px; }
+  .topbar-user-name { font-size: 11px; }
+  .alert-box { padding: 10px 12px; font-size: 12px; gap: 8px; }
 }
 
 /* Scrollable main content area */
@@ -831,4 +846,38 @@ main.main-scroll {
 
 .header_scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ═══════════════════════════════════════════
+   FORM & BUTTON RESPONSIVE FIXES
+═══════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .page-header-actions .btn {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  .btn {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+  .card-body { padding: 16px; }
+  .card-header { padding: 12px 16px; }
+}
+
+@media (max-width: 480px) {
+  .page-header-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .page-header-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .form-row { gap: 12px; margin-bottom: 12px; }
+  .form-input, .form-select, .form-textarea {
+    font-size: 16px;
+  }
+  .empty-state { padding: 30px 16px; }
+  .print-confirm { padding: 16px; }
+  .stat-value { font-size: 22px; }
 } 

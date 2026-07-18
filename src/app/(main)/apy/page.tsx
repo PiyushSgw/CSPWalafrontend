@@ -120,14 +120,14 @@ function ApyPageInner() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between bg-white rounded-xl border border-[#e5e7eb] p-5">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0d8f72] to-[#0fb896] flex items-center justify-center">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white rounded-xl border border-[#e5e7eb] p-5 gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0d8f72] to-[#0fb896] flex items-center justify-center flex-shrink-0">
             <ShieldCheck className="w-6 h-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-[#111827]">Atal Pension Yojana</h1>
-            <p className="text-sm text-[#6b7280]">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-[#111827] truncate">Atal Pension Yojana</h1>
+            <p className="text-sm text-[#6b7280] truncate">
               {apy.editId ? 'Edit APY Subscription' : apy.selectedCustomer?.bank_name || 'APY Subscription Form'}
             </p>
           </div>
@@ -135,7 +135,7 @@ function ApyPageInner() {
         {apy.step !== 'customer' && (
           <button
             onClick={apy.reset}
-            className="px-4 py-2 text-sm font-medium text-[#374151] bg-white border border-[#e5e7eb] rounded-lg hover:bg-[#f9fafb] transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[#374151] bg-white border border-[#e5e7eb] rounded-lg hover:bg-[#f9fafb] transition-colors shrink-0"
           >
             {apy.editId ? 'Cancel' : 'New Request'}
           </button>
@@ -223,17 +223,17 @@ function ApyPageInner() {
                 <FileText className="w-4 h-4" />
                 Request ID: <span className="font-mono font-medium">{apy.submitResult.id}</span>
               </div>
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button
                   onClick={handleDownloadPdf}
-                  className="px-6 py-2.5 bg-white text-[#0d8f72] border border-[#0d8f72] text-sm font-semibold rounded-lg hover:bg-[#e6f7f3] transition-colors"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-white text-[#0d8f72] border border-[#0d8f72] text-sm font-semibold rounded-lg hover:bg-[#e6f7f3] transition-colors"
                 >
                   <FileText className="w-4 h-4 mr-1.5 inline" />
                   Download PDF
                 </button>
                 <button
                   onClick={apy.reset}
-                  className="px-6 py-2.5 bg-[#0d8f72] text-white text-sm font-semibold rounded-lg hover:bg-[#0b7a62] transition-colors"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-[#0d8f72] text-white text-sm font-semibold rounded-lg hover:bg-[#0b7a62] transition-colors"
                 >
                   {apy.editId ? 'Done' : 'New Request'}
                 </button>

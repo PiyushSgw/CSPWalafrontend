@@ -15,11 +15,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
      <AuthProvider>
-    <div className="flex h-screen  overflow-hidden bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar mobileOpen={mobileSidebarOpen} onToggleMobile={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
-      <div className="flex flex-col flex-1 min-w-0  main-scroll overflow-x-hidden main-scrollbar">
+      <div className="flex flex-col flex-1 min-w-0 overflow-x-hidden main-scrollbar">
         <Header onMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
-        <main className="flex-1 main-scroll  ">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="p-4 md:p-6 flex flex-col gap-5 pb-6">
             {children}
           </div>
