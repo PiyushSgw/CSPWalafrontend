@@ -6,6 +6,12 @@ import { toast } from 'react-hot-toast';
 import { useAppDispatch } from '@/redux/hooks';
 import { loginCSP, registerCSP } from '@/redux/slices/authslice';
 import { initRecaptcha, sendOTP, verifyOTP as verifyFirebaseOTP, cleanupRecaptcha, resetConfirmation } from '@/services/firebaseOtp';
+import {
+  isValidEmail,
+  sendEmailVerificationToCurrentUser,
+  checkEmailVerified,
+} from '@/services/firebaseEmailVerification';
+import { auth } from '@/lib/firebase';
 import api from '@/utils/axios';
 
 type Tab = 'login' | 'register';
@@ -47,6 +53,11 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const [firebaseIdToken, setFirebaseIdToken] = useState<string | null>(null);
   const lastSentMobile = useRef('');
   const sendingOTP = useRef(false);
+
+  // Email verification state
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   // Location dropdown options
   const [states, setStates] = useState<LocationItem[]>([]);
@@ -140,6 +151,82 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     return () => clearInterval(interval);
   }, [otpTimer]);
 
+  // ── Email Verification Handler ──
+  const handleSendEmailVerification = useCallback(async () => {
+    const email = reg.email.trim();
+    if (!email) {
+      toast.error('कृपया ईमेल पत्ता टाका');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      toast.error('कृपया वैध ईमेल पत्ता टाका');
+      return;
+    }
+    setEmailSending(true);
+    try {
+      const result = await sendEmailVerificationToCurrentUser(email);
+      if (result.success) {
+        toast.success(result.message);
+        setEmailSent(true);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'ईमेल सत्यापन पाठवण्यात त्रुटी');
+    } finally {
+      setEmailSending(false);
+    }
+  }, [reg.email]);
+
+  // ── Auto-detect email verification ──
+  const pollEmailVerification = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user || !emailSent || emailVerified) return;
+    try {
+      const verified = await checkEmailVerified(user);
+      if (verified) {
+        setEmailVerified(true);
+        setEmailSent(false);
+        toast.success('ईमेल सत्यापित!');
+        // Update email verification status in backend
+        try {
+          const idToken = await user.getIdToken(true);
+          await api.post('/auth/verify-email-status', { idToken });
+        } catch (err) {
+          console.error('Backend email verification update failed:', err);
+        }
+      }
+    } catch {
+      // Silent fail — will retry on next event
+    }
+  }, [emailSent, emailVerified]);
+
+  // Check on page load / mount
+  useEffect(() => {
+    if (emailSent && !emailVerified) {
+      pollEmailVerification();
+    }
+  }, [emailSent, emailVerified, pollEmailVerification]);
+
+  // Check when window gains focus
+  useEffect(() => {
+    if (!emailSent || emailVerified) return;
+
+    const handleFocus = () => pollEmailVerification();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        pollEmailVerification();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [emailSent, emailVerified, pollEmailVerification]);
+
   const loadStates = async () => {
     setStatesLoading(true);
     try {
@@ -207,6 +294,9 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     setOtpAttempts(0);
     setOtpTimer(0);
     setFirebaseIdToken(null);
+    setEmailVerified(false);
+    setEmailSent(false);
+    setEmailSending(false);
     lastSentMobile.current = '';
     onTab(t);
   };
@@ -272,6 +362,8 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
         district: reg.district.trim(),
         taluka: reg.taluka.trim(),
         village_city: reg.village_city.trim(),
+        phone_verified: mobileVerified ? 1 : 0,
+        email_verified: emailVerified ? 1 : 0,
       })
     );
     if (registerCSP.fulfilled.match(res)) {
@@ -287,6 +379,8 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
       toast.success('नोंदणी यशस्वी! आता लॉगिन करा.');
       setLogin((p) => ({ ...p, username: reg.mobile }));
       setMobileVerified(false);
+      setEmailVerified(false);
+      setEmailSent(false);
       setFirebaseIdToken(null);
       onTab('login');
     } else {
@@ -405,6 +499,8 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                           setOtpCode('');
                           setOtpTimer(0);
                           setFirebaseIdToken(null);
+                          setEmailVerified(false);
+                          setEmailSent(false);
                           lastSentMobile.current = '';
                           resetConfirmation();
                         }
@@ -497,14 +593,76 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
               )}
 
               <div className="field">
-                <label>ईमेल / Email <span className="req">*</span></label>
+                <label>ईमेल / Email <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 400 }}>(पर्यायी)</span></label>
                 <input
                   type="email"
                   placeholder="yourname@gmail.com"
                   value={reg.email}
-                  onChange={(e) => setReg({ ...reg, email: e.target.value })}
+                  onChange={(e) => {
+                    setReg({ ...reg, email: e.target.value });
+                    // Reset email verification if email changes
+                    if (emailVerified || emailSent) {
+                      setEmailVerified(false);
+                      setEmailSent(false);
+                    }
+                  }}
                   required
                 />
+                {/* Email Verification Button & Status */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  {!emailVerified && (
+                    <button
+                      type="button"
+                      onClick={handleSendEmailVerification}
+                      disabled={
+                        emailSending ||
+                        !reg.email.trim() ||
+                        !isValidEmail(reg.email.trim()) ||
+                        !mobileVerified
+                      }
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 10,
+                        border: '1.5px solid #7c3aed',
+                        backgroundColor:
+                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) || !mobileVerified
+                            ? '#e2e8f0'
+                            : '#7c3aed',
+                        color:
+                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) || !mobileVerified
+                            ? '#94a3b8'
+                            : '#fff',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        cursor:
+                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) || !mobileVerified
+                            ? 'not-allowed'
+                            : 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {emailSending ? '...' : 'Verify Email Address'}
+                    </button>
+                  )}
+                  {emailVerified && (
+                    <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '.85rem' }}>
+                      ✔ Verified
+                    </span>
+                  )}
+                  {!emailVerified && !emailSent && (
+                    <span className="hint" style={{ width: '100%' }}>
+                      {mobileVerified
+                        ? 'OTP सत्यापनानंतर ईमेल सत्यापन करा (पर्यायी)'
+                        : 'प्रथम मोबाईल नंबर सत्यापित करा'}
+                    </span>
+                  )}
+                  {emailSent && !emailVerified && (
+                    <span className="hint" style={{ width: '100%' }}>
+                      सत्यापन ईमेल पाठवला गेला आहे. आपला इनबॉक्स तपासा.
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Location Section */}
@@ -592,9 +750,19 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   मी <a href="#" style={{ color: 'var(--blue)' }}>Terms & Conditions</a> आणि <a href="#" style={{ color: 'var(--blue)' }}>Privacy Policy</a> वाचली असून मान्य आहे.
                 </label>
               </div>
-              <button className="p-submit" type="submit" disabled={busy} style={{ marginTop: 14 }}>
+              <button className="p-submit" type="submit" disabled={busy || !mobileVerified} style={{ marginTop: 14 }}>
                 {busy ? 'नोंदणी होत आहे...' : 'नोंदणी करा'}
               </button>
+              {!mobileVerified && (
+                <p style={{ textAlign: 'center', fontSize: '.75rem', color: '#dc2626', marginTop: 8 }}>
+                  कृपया मोबाईल नंबर सत्यापित करा
+                </p>
+              )}
+              {mobileVerified && !emailVerified && (
+                <p style={{ textAlign: 'center', fontSize: '.75rem', color: '#64748b', marginTop: 8 }}>
+                  ईमेल सत्यापन पर्यायी आहे. तुमचा ईमेल नंतर सत्यापित करू शकता.
+                </p>
+              )}
               <p className="p-link-cta" style={{ marginTop: 16 }}>
                 आधीच खाते आहे? <a href="javascript:void(0)" onClick={() => switchTab('login')}>लॉगिन करा</a>
               </p>
