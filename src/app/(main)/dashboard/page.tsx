@@ -78,7 +78,8 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="flex items-start justify-between flex-wrap gap-3 mb-6">
+      {/* ── Header: Desktop (hidden on mobile) ── */}
+      <div className="hidden md:flex items-start justify-between flex-wrap gap-3 mb-6">
         <div>
           <h1 className="text-[22px] font-extrabold text-[#111827] tracking-[-0.5px] flex items-center gap-2">
             {getGreeting()}, {user?.name?.split(' ')[0] || 'User'} 👋
@@ -107,7 +108,43 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-3.5">
+      {/* ── Header: Mobile (4 responsive cards, hidden on desktop) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 md:hidden">
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+          <h1 className="text-[17px] font-extrabold text-[#111827] tracking-[-0.3px] leading-tight">
+            {getGreeting()}, {user?.name?.split(' ')[0] || 'User'} 👋
+          </h1>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+          <p className="text-[12px] text-[#6b7280] leading-snug" data-testid="dashboard-date">
+            {getDate()}
+          </p>
+          <p className="text-[11px] font-semibold text-[#0284c7] mt-1" data-testid="dashboard-role">
+            {role}
+          </p>
+        </div>
+
+        <button
+          onClick={() => router.push('/print-history')}
+          className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center gap-2 hover:border-[#d1d5db] transition-colors"
+          data-testid="view-reports-btn"
+        >
+          <span className="text-[20px]">📊</span>
+          <span className="text-[13px] font-bold text-[#374151]">View Reports</span>
+        </button>
+
+        <button
+          onClick={() => router.push('/passbook')}
+          className="bg-[#0d8f72] hover:opacity-90 rounded-xl p-4 flex items-center gap-2 transition-all"
+          data-testid="new-print-job-btn"
+        >
+          <span className="text-[20px]">🖨️</span>
+          <span className="text-[13px] font-bold text-white">New Print Job</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-3.5">
         <div className="transition-transform duration-200 ease-out hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98]" data-testid="wallet-balance-card">
           <StatCard
             label="Wallet Balance"
@@ -154,7 +191,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-[2fr_1fr] gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4 mb-4">
         <div data-testid="quick-actions">
           <QuickActions />
         </div>
@@ -163,7 +200,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div data-testid="recent-print-jobs">
           <RecentPrintJobs />
         </div>

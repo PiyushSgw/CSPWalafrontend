@@ -24,6 +24,9 @@ export function isValidEmail(email: string): boolean {
  * Send email verification to the currently signed-in Firebase user.
  * Sets the email on the current user (updateEmail) then sends the
  * verification link via sendEmailVerification.
+ *
+ * Handles the common auth/requires-recent-login error by skipping
+ * updateEmail when the email is already set.
  */
 export async function sendEmailVerificationToCurrentUser(
   email: string
@@ -38,9 +41,31 @@ export async function sendEmailVerificationToCurrentUser(
   }
 
   try {
-    // Set email on the current user (if not already set or different)
+    // Only call updateEmail if the email is actually different
+    // This avoids auth/requires-recent-login errors when the email is already correct
     if (user.email !== email) {
-      await updateEmail(user, email);
+      try {
+        await updateEmail(user, email);
+      } catch (updateErr: any) {
+        // If requires-recent-login, check if email is already set (might be a stale token issue)
+        if (updateErr.code === 'auth/requires-recent-login') {
+          // Reload user to check if email was already set
+          await user.reload();
+          if (user.email === email) {
+            // Email is already correct, just send verification
+          } else {
+            return {
+              success: false,
+              message: 'Session expired. Please verify your mobile number again and try.',
+            };
+          }
+        } else {
+          return {
+            success: false,
+            message: getFirebaseEmailError(updateErr),
+          };
+        }
+      }
     }
 
     // Send the verification email

@@ -179,9 +179,17 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   }, [reg.email]);
 
   // ── Auto-detect email verification ──
+  const lastPollTime = useRef(0);
+
   const pollEmailVerification = useCallback(async () => {
     const user = auth.currentUser;
     if (!user || !emailSent || emailVerified) return;
+
+    // Debounce: don't poll more than once every 3 seconds
+    const now = Date.now();
+    if (now - lastPollTime.current < 3000) return;
+    lastPollTime.current = now;
+
     try {
       const verified = await checkEmailVerified(user);
       if (verified) {
@@ -208,7 +216,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     }
   }, [emailSent, emailVerified, pollEmailVerification]);
 
-  // Check when window gains focus
+  // Check when window gains focus (debounced)
   useEffect(() => {
     if (!emailSent || emailVerified) return;
 

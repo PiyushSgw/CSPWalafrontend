@@ -57,7 +57,7 @@ export default function QuickActions() {
       <h2 className="text-[14px] font-bold text-slate-800 mb-3 flex items-center gap-2">
         ⚡ Quick Actions
       </h2>
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
         {actions.map((a) => (
           <a
             key={a.name}
