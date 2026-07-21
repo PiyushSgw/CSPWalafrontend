@@ -4,14 +4,14 @@
    element selectors never leak into the dashboard / rest of the app.
    ============================================================================ */
 
-/* The app shell sets `html, body { height:100%; overflow:hidden }` globally
-   (dashboard uses an internal scroll container). The public landing must be a
-   normally-scrolling document instead. The .bc-scroll class is toggled on
-   <html> only while the landing page is mounted; .bc-locked freezes scroll
-   while the auth panel is open. */
+/* The app shell sets `html, body { overflow-x:hidden }` globally.
+   The public landing must be a normally-scrolling document instead.
+   The .bc-scroll class is toggled on <html> only while the landing page
+   is mounted; .bc-locked freezes scroll while the auth panel is open. */
 html.bc-scroll { height: auto; overflow-x: hidden; overflow-y: auto; }
-html.bc-scroll body { height: auto; overflow: visible; }
+html.bc-scroll body { height: auto; overflow: visible; overflow-x: hidden; }
 html.bc-scroll.bc-locked { overflow: hidden; }
+html.bc-locked { overflow: hidden; }
 
 .bc-landing {
   --navy:#0D1B35;
@@ -651,4 +651,69 @@ html.bc-scroll.bc-locked { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bc-landing * { animation:none !important; transition:none !important; }
+}
+
+/* ═══════════════════════════════════════════
+   FOOTER & BOTTOM VISIBILITY FIXES
+═══════════════════════════════════════════ */
+
+/* Ensure footer is always fully visible */
+.bc-landing footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* Footer responsive: stack columns on mobile */
+@media (max-width:900px) {
+  .bc-landing .ft-inner {
+    flex-direction: column;
+    gap: 24px;
+  }
+  .bc-landing .ft-brand {
+    max-width: 100%;
+  }
+  .bc-landing .ft-bottom {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+@media (max-width:600px) {
+  .bc-landing .ft-inner {
+    padding: 0 0 20px;
+  }
+  .bc-landing footer {
+    padding: 32px 16px 18px;
+  }
+  .bc-landing .sec {
+    padding: 48px 16px;
+  }
+  .bc-landing .hero {
+    padding: 40px 16px 36px;
+  }
+  .bc-landing .cs-wrap {
+    padding: 24px 16px;
+  }
+  .bc-landing .fw-body {
+    padding: 20px 16px;
+  }
+  .bc-landing .bundle-bar {
+    padding: 16px;
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* Extra small: 320px */
+@media (max-width:360px) {
+  .bc-landing .hero h1 {
+    font-size: 1.5rem;
+  }
+  .bc-landing .sec-top h2 {
+    font-size: 1.4rem;
+  }
+  .bc-landing .cs-head h2 {
+    font-size: 1.3rem;
+  }
 }

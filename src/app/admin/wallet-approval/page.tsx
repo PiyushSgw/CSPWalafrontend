@@ -58,20 +58,20 @@ export default function WalletApprovalPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="text-[20px] font-bold text-slate-800">Wallet Recharge Approval</h1>
           <p className="text-[13px] text-slate-500 mt-1">{rechargeTotal} total requests</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 sm:flex-none">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search by CSP code, UTR..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] w-64 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+              className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
             />
           </div>
           <select
@@ -96,8 +96,9 @@ export default function WalletApprovalPage() {
           <p className="text-[13px]">Try adjusting your search or filters</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full">
+        <div className="overflow-x-auto">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden min-w-[700px]">
+            <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase tracking-wide">CSP</th>
@@ -182,6 +183,7 @@ export default function WalletApprovalPage() {
               >
                 Next
               </button>
+            </div>
             </div>
           </div>
         </div>

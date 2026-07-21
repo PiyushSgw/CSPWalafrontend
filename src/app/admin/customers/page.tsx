@@ -29,12 +29,12 @@ export default function CustomersPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-3">
         <div>
           <h1 className="text-[20px] font-bold text-slate-800">Customer Management</h1>
           <p className="text-[13px] text-slate-500 mt-1">{customerTotal} total customers</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -74,6 +74,7 @@ export default function CustomersPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -158,6 +159,7 @@ export default function CustomersPage() {
               ))}
             </tbody>
           </table>
+          </div>
           
           {/* Pagination */}
           <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-200">

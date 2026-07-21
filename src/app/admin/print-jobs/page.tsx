@@ -49,20 +49,20 @@ export default function PrintJobsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="text-[20px] font-bold text-slate-800">Print Jobs</h1>
           <p className="text-[13px] text-slate-500 mt-1">Monitor all passbook print operations</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 sm:flex-none">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search by customer, account..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] w-64 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+              className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
             />
           </div>
           <select
@@ -81,13 +81,13 @@ export default function PrintJobsPage() {
             onChange={(e) => setDateRange(e.target.value)}
             className="px-3 py-2 border border-slate-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
           />
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-semibold rounded-lg transition-colors">
+          <button className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-semibold rounded-lg transition-colors whitespace-nowrap">
             <Download size={14} /> Export
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-3.5 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide">Today's Prints</span>
@@ -133,8 +133,9 @@ export default function PrintJobsPage() {
       {loading ? (
         <div className="flex items-center justify-center py-20 text-slate-400">Loading...</div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full">
+        <div className="overflow-x-auto">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden min-w-[800px]">
+            <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left px-4 py-3 text-[12px] font-semibold text-slate-600 uppercase tracking-wide">Job ID</th>
@@ -188,7 +189,8 @@ export default function PrintJobsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
     </>

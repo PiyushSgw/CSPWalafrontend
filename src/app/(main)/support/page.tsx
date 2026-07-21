@@ -20,7 +20,6 @@ export default function SupportPage() {
           <div
             className="three-col"
             style={{
-              gridTemplateColumns: "1fr 1fr 1fr",
               marginBottom: 20,
             }}
           >

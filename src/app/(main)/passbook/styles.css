@@ -830,3 +830,111 @@ body {
   .print-confirm { padding: 16px; }
   .empty-state { padding: 30px 16px; }
 }
+
+/* ═══════════════════════════════════════════
+   BOTTOM SPACING & TABLE OVERFLOW FIXES
+═══════════════════════════════════════════ */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.data-table {
+  min-width: 600px;
+}
+
+.card {
+  overflow: hidden;
+}
+
+.wallet-card {
+  overflow: hidden;
+}
+
+.profile-header {
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    padding: 6px 12px;
+    gap: 6px;
+  }
+  .topbar-title {
+    font-size: 13px;
+  }
+  .topbar-title span {
+    display: none;
+  }
+  .topbar-actions {
+    gap: 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .topbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .topbar-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .notif-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .topbar-user {
+    padding: 4px 8px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .topbar-user-name {
+    display: none;
+  }
+  .stat-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .bank-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .quick-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .two-col, .three-col, .col-2-1, .col-1-2 {
+    grid-template-columns: 1fr;
+  }
+  .form-row.cols-2, .form-row.cols-3 {
+    grid-template-columns: 1fr;
+  }
+  .page-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .page-header-actions {
+    width: 100%;
+  }
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  .info-row:nth-child(odd) {
+    padding-right: 0;
+  }
+  .info-row:nth-child(even) {
+    padding-left: 0;
+    border-left: none;
+  }
+}

@@ -16,10 +16,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <AuthProvider>
       <div className="flex h-screen overflow-hidden bg-slate-50">
         <AdminSidebar mobileOpen={mobileSidebarOpen} onToggleMobile={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
-        <div className="flex flex-col flex-1 min-w-0 main-scroll overflow-x-hidden main-scrollbar">
+        <div className="flex flex-col flex-1 min-w-0 main-scrollbar">
           <AdminHeader onMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
-          <main className="flex-1 main-scroll">
-            <div className="p-4 md:p-6 flex flex-col gap-5 pb-6">{children}</div>
+          <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+            <div className="p-4 md:p-6 lg:p-8 flex flex-col gap-5 pb-8 md:pb-10">{children}</div>
           </main>
         </div>
       </div>

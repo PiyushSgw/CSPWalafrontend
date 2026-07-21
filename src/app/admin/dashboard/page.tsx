@@ -38,7 +38,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {stats.map((s) => (
           <div key={s.label} className={`bg-white rounded-xl border ${s.accent} p-4 transition-transform duration-200 hover:scale-[1.02] hover:-translate-y-0.5`}>
             <div className="flex items-center justify-between mb-3">

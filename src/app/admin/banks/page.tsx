@@ -87,34 +87,34 @@ export default function BanksPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="text-[20px] font-bold text-slate-800">Bank Management</h1>
           <p className="text-[13px] text-slate-500 mt-1">{banks.length} banks configured</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 sm:flex-none">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search banks..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] w-48 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+              className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-[13px] w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
             />
           </div>
           <button
             onClick={() => { setEditingBank(null); setBankForm({ name: '', short_code: '', logo_url: '' }); setShowBankModal(true) }}
-            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-semibold rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-semibold rounded-lg transition-colors whitespace-nowrap"
           >
             <Plus size={14} /> Add Bank
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Banks List */}
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
               <h3 className="text-[14px] font-semibold text-slate-800">Banks</h3>

@@ -44,7 +44,7 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex relative" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen flex relative overflow-y-auto" style={{ background: '#f8fafc' }}>
       {/* Navigation Loader Overlay */}
       {navigating && (
         <div className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex items-center justify-center">

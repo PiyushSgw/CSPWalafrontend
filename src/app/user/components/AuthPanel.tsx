@@ -6,12 +6,7 @@ import { toast } from 'react-hot-toast';
 import { useAppDispatch } from '@/redux/hooks';
 import { loginCSP, registerCSP } from '@/redux/slices/authslice';
 import { initRecaptcha, sendOTP, verifyOTP as verifyFirebaseOTP, cleanupRecaptcha, resetConfirmation } from '@/services/firebaseOtp';
-import {
-  isValidEmail,
-  sendEmailVerificationToCurrentUser,
-  checkEmailVerified,
-} from '@/services/firebaseEmailVerification';
-import { auth } from '@/lib/firebase';
+import { isValidEmail, sendEmailVerification, verifyEmailOtp, checkEmailVerificationStatus } from '@/services/firebaseEmailVerification';
 import api from '@/utils/axios';
 
 type Tab = 'login' | 'register';
@@ -58,6 +53,8 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const [emailVerified, setEmailVerified] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [emailChecking, setEmailChecking] = useState(false);
 
   // Location dropdown options
   const [states, setStates] = useState<LocationItem[]>([]);
@@ -164,9 +161,9 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     }
     setEmailSending(true);
     try {
-      const result = await sendEmailVerificationToCurrentUser(email);
+      const result = await sendEmailVerification(email);
       if (result.success) {
-        toast.success(result.message);
+        toast.success(result.message || 'सत्यापन ईमेल पाठवला गेला. आपला इनबॉक्स तपासा.');
         setEmailSent(true);
       } else {
         toast.error(result.message);
@@ -178,62 +175,55 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     }
   }, [reg.email]);
 
-  // ── Auto-detect email verification ──
-  const lastPollTime = useRef(0);
-
-  const pollEmailVerification = useCallback(async () => {
-    const user = auth.currentUser;
-    if (!user || !emailSent || emailVerified) return;
-
-    // Debounce: don't poll more than once every 3 seconds
-    const now = Date.now();
-    if (now - lastPollTime.current < 3000) return;
-    lastPollTime.current = now;
-
+  // ── Verify Email OTP ──
+  const handleVerifyEmailOtp = useCallback(async () => {
+    const email = reg.email.trim();
+    const otp = emailOtpCode.trim();
+    if (!email || !isValidEmail(email)) {
+      toast.error('कृपया वैध ईमेल पत्ता टाका');
+      return;
+    }
+    if (otp.length !== 6) {
+      toast.error('कृपया 6 अंकी OTP टाका');
+      return;
+    }
+    setEmailChecking(true);
     try {
-      const verified = await checkEmailVerified(user);
-      if (verified) {
+      const result = await verifyEmailOtp(email, otp);
+      if (result.success) {
         setEmailVerified(true);
         setEmailSent(false);
-        toast.success('ईमेल सत्यापित!');
-        // Update email verification status in backend
-        try {
-          const idToken = await user.getIdToken(true);
-          await api.post('/auth/verify-email-status', { idToken });
-        } catch (err) {
-          console.error('Backend email verification update failed:', err);
-        }
+        setEmailOtpCode('');
+        toast.success(result.message || 'ईमेल सत्यापित!');
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'OTP पडताळणी अयशस्वी');
+    } finally {
+      setEmailChecking(false);
+    }
+  }, [reg.email, emailOtpCode]);
+
+  // ── Check if email is already verified on blur ──
+  const handleEmailBlur = useCallback(async () => {
+    const email = reg.email.trim();
+    if (!email || !isValidEmail(email)) return;
+    if (emailVerified || emailSent) return;
+
+    setEmailChecking(true);
+    try {
+      const result = await checkEmailVerificationStatus(email);
+      if (result.success && result.verified) {
+        setEmailVerified(true);
+        setEmailSent(false);
       }
     } catch {
-      // Silent fail — will retry on next event
+      // Silent fail
+    } finally {
+      setEmailChecking(false);
     }
-  }, [emailSent, emailVerified]);
-
-  // Check on page load / mount
-  useEffect(() => {
-    if (emailSent && !emailVerified) {
-      pollEmailVerification();
-    }
-  }, [emailSent, emailVerified, pollEmailVerification]);
-
-  // Check when window gains focus (debounced)
-  useEffect(() => {
-    if (!emailSent || emailVerified) return;
-
-    const handleFocus = () => pollEmailVerification();
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        pollEmailVerification();
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [emailSent, emailVerified, pollEmailVerification]);
+  }, [reg.email, emailVerified, emailSent]);
 
   const loadStates = async () => {
     setStatesLoading(true);
@@ -305,6 +295,8 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     setEmailVerified(false);
     setEmailSent(false);
     setEmailSending(false);
+    setEmailOtpCode('');
+    setEmailChecking(false);
     lastSentMobile.current = '';
     onTab(t);
   };
@@ -389,6 +381,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
       setMobileVerified(false);
       setEmailVerified(false);
       setEmailSent(false);
+      setEmailOtpCode('');
       setFirebaseIdToken(null);
       onTab('login');
     } else {
@@ -608,42 +601,42 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   value={reg.email}
                   onChange={(e) => {
                     setReg({ ...reg, email: e.target.value });
-                    // Reset email verification if email changes
                     if (emailVerified || emailSent) {
                       setEmailVerified(false);
                       setEmailSent(false);
+                      setEmailOtpCode('');
                     }
                   }}
+                  onBlur={handleEmailBlur}
                   required
                 />
                 {/* Email Verification Button & Status */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                  {!emailVerified && (
+                  {!emailVerified && !emailSent && !emailChecking && (
                     <button
                       type="button"
                       onClick={handleSendEmailVerification}
                       disabled={
                         emailSending ||
                         !reg.email.trim() ||
-                        !isValidEmail(reg.email.trim()) ||
-                        !mobileVerified
+                        !isValidEmail(reg.email.trim()) 
                       }
                       style={{
                         padding: '8px 14px',
                         borderRadius: 10,
                         border: '1.5px solid #7c3aed',
                         backgroundColor:
-                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) || !mobileVerified
+                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) 
                             ? '#e2e8f0'
                             : '#7c3aed',
                         color:
-                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) || !mobileVerified
+                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) 
                             ? '#94a3b8'
                             : '#fff',
                         fontWeight: 600,
                         fontSize: '0.8rem',
                         cursor:
-                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) || !mobileVerified
+                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) 
                             ? 'not-allowed'
                             : 'pointer',
                         whiteSpace: 'nowrap',
@@ -658,19 +651,62 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                       ✔ Verified
                     </span>
                   )}
-                  {!emailVerified && !emailSent && (
-                    <span className="hint" style={{ width: '100%' }}>
-                      {mobileVerified
-                        ? 'OTP सत्यापनानंतर ईमेल सत्यापन करा (पर्यायी)'
-                        : 'प्रथम मोबाईल नंबर सत्यापित करा'}
+                  {emailChecking && !emailVerified && (
+                    <span style={{ color: '#64748b', fontSize: '.82rem' }}>
+                      Checking...
                     </span>
                   )}
-                  {emailSent && !emailVerified && (
+                  {!emailVerified && !emailSent && !emailChecking && (
                     <span className="hint" style={{ width: '100%' }}>
-                      सत्यापन ईमेल पाठवला गेला आहे. आपला इनबॉक्स तपासा.
+                      ईमेल पत्ता प्रविष्ट करा आणि सत्यापन बटण दाबा (पर्यायी)
                     </span>
                   )}
                 </div>
+
+                {/* Inline Email OTP Section */}
+                {emailSent && !emailVerified && (
+                  <div style={{ backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '14px 16px', marginTop: 10 }}>
+                    <label style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a' }}>ईमेल OTP पडताळणी</label>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', marginTop: 8 }}>
+                      <input
+                        type="tel"
+                        placeholder="6 अंकी OTP टाका"
+                        maxLength={6}
+                        value={emailOtpCode}
+                        onChange={(e) => setEmailOtpCode(onlyDigits(e.target.value, 6))}
+                        style={{ flex: 1, padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyEmailOtp}
+                        disabled={emailChecking || emailOtpCode.trim().length < 6}
+                        style={{
+                          padding: '10px 16px',
+                          borderRadius: 12,
+                          border: '1.5px solid #16a34a',
+                          backgroundColor: (emailChecking || emailOtpCode.trim().length < 6) ? '#e2e8f0' : '#16a34a',
+                          color: (emailChecking || emailOtpCode.trim().length < 6) ? '#94a3b8' : '#fff',
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          cursor: (emailChecking || emailOtpCode.trim().length < 6) ? 'not-allowed' : 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {emailChecking ? '...' : 'Verify'}
+                      </button>
+                    </div>
+                    <div style={{ marginTop: 10, textAlign: 'center' }}>
+                      <a
+                        href="javascript:void(0)"
+                        onClick={handleSendEmailVerification}
+                        style={{ color: '#7c3aed', fontSize: '.82rem', fontWeight: 500 }}
+                      >
+                        OTP पुन्हा पाठवा
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Location Section */}

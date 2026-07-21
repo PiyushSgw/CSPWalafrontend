@@ -167,7 +167,7 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="h-screen flex items-start justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-4 py-6 overflow-y-auto">
+    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-4 py-6 overflow-y-auto">
       <div className="w-full max-w-5xl grid md:grid-cols-2 bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden">
         {/* LEFT SIDE */}
         <div className="hidden md:flex flex-col justify-center items-center text-white p-10 space-y-6">
@@ -186,7 +186,7 @@ export default function RegisterPage() {
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="bg-white p-8 md:p-12 flex flex-col justify-center max-h-screen overflow-y-auto">
+        <div className="bg-white p-8 md:p-12 flex flex-col justify-center max-h-none md:max-h-screen overflow-y-auto">
           <h2 className="text-3xl font-bold mb-2">Create Account</h2>
           <p className="text-gray-500 mb-6">Fill in your details to register</p>
 
