@@ -12,9 +12,19 @@ export interface CustomerSearchResult {
   address: string
   pin_code: string
   bank_id: number
+  branch_id?: number | null
   bank_name: string
   bank_code: string
   branch_name: string
+  title?: string
+  dob?: string
+  place_of_birth?: string
+  nominee_name?: string
+  nominee_relation?: string
+  nominee_dob?: string
+  nominee_address?: string
+  nominee_aadhaar?: string
+  pran_number?: string | null
 }
 
 export interface ApySubscription {
@@ -63,6 +73,8 @@ export interface ApySubscription {
 
 export interface ApyFormData {
   customerId: number | null
+  bankId: number | null
+  branchId: number | null
   title: string
   fullName: string
   dateOfBirth: string
@@ -77,6 +89,7 @@ export interface ApyFormData {
   nomineeAadhaar: string
   nomineeRelation: string
   nomineeDob: string
+  nomineeAddress: string
   guardianName: string
   hasOtherSocialSchemes: boolean
   isIncomeTaxPayer: boolean
@@ -86,10 +99,13 @@ export interface ApyFormData {
   contributionAmount: string
   declarationDate: string
   declarationPlace: string
+  pranNumber: string
 }
 
 const initialFormData: ApyFormData = {
   customerId: null,
+  bankId: null,
+  branchId: null,
   title: '',
   fullName: '',
   dateOfBirth: '',
@@ -104,6 +120,7 @@ const initialFormData: ApyFormData = {
   nomineeAadhaar: '',
   nomineeRelation: '',
   nomineeDob: '',
+  nomineeAddress: '',
   guardianName: '',
   hasOtherSocialSchemes: false,
   isIncomeTaxPayer: false,
@@ -113,6 +130,7 @@ const initialFormData: ApyFormData = {
   contributionAmount: '',
   declarationDate: '',
   declarationPlace: '',
+  pranNumber: '',
 }
 
 interface ApyState {
@@ -159,6 +177,18 @@ export const searchCustomers = createAsyncThunk(
   }
 )
 
+export const fetchCustomerApplicationDetails = createAsyncThunk(
+  'apy/fetchCustomerApplicationDetails',
+  async (customerId: number, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`${API_BASE}/customer/${customerId}/application-details`)
+      return res.data?.data || null
+    } catch (e: any) {
+      return rejectWithValue(e.response?.data?.message || 'Failed to fetch customer details')
+    }
+  }
+)
+
 export const submitApySubscription = createAsyncThunk(
   'apy/submitApySubscription',
   async (payload: Record<string, any>, { rejectWithValue }) => {
@@ -198,6 +228,8 @@ export const updateApySubscription = createAsyncThunk(
 function mapSubscriptionToFormData(sub: ApySubscription): ApyFormData {
   return {
     customerId: sub.customer_id,
+    bankId: sub.bank_id || null,
+    branchId: sub.branch_id || null,
     title: sub.title || '',
     fullName: sub.full_name || '',
     dateOfBirth: sub.date_of_birth ? sub.date_of_birth.split('T')[0] : '',
@@ -212,6 +244,7 @@ function mapSubscriptionToFormData(sub: ApySubscription): ApyFormData {
     nomineeAadhaar: sub.nominee_aadhaar || '',
     nomineeRelation: sub.nominee_relation || '',
     nomineeDob: sub.nominee_dob ? sub.nominee_dob.split('T')[0] : '',
+    nomineeAddress: (sub as any).nominee_address || '',
     guardianName: sub.guardian_name || '',
     hasOtherSocialSchemes: sub.has_other_social_schemes || false,
     isIncomeTaxPayer: sub.is_income_tax_payer || false,
@@ -221,6 +254,7 @@ function mapSubscriptionToFormData(sub: ApySubscription): ApyFormData {
     contributionAmount: sub.contribution_amount ? String(sub.contribution_amount) : '',
     declarationDate: sub.declaration_date ? sub.declaration_date.split('T')[0] : '',
     declarationPlace: sub.declaration_place || '',
+    pranNumber: sub.pran_number || '',
   }
 }
 
@@ -234,11 +268,35 @@ const apySlice = createSlice({
     selectCustomer(state, action: PayloadAction<CustomerSearchResult | null>) {
       state.selectedCustomer = action.payload
       if (action.payload) {
-        state.formData.customerId = action.payload.id
-        state.formData.fullName = action.payload.name || ''
-        state.formData.mobile = action.payload.mobile || ''
-        state.formData.aadhaar = action.payload.aadhar_number || ''
-        state.formData.email = (action.payload as any).email || ''
+        const c = action.payload
+        state.formData.customerId = c.id
+        state.formData.fullName = c.name || ''
+        state.formData.mobile = c.mobile || ''
+        state.formData.aadhaar = c.aadhar_number || ''
+        if (c.title) {
+          const t = c.title.toUpperCase().replace(/[^A-Z.]/g, '')
+          if (t === 'MR' || t === 'MR.') state.formData.title = 'Mr.'
+          else if (t === 'MS' || t === 'MS.' || t === 'MRS' || t === 'MRS.') state.formData.title = 'Ms.'
+          else if (t === 'DR' || t === 'DR.') state.formData.title = 'Dr.'
+          else state.formData.title = c.title
+        }
+        if (c.dob) {
+          state.formData.dateOfBirth = c.dob.split('T')[0]
+          const birth = new Date(c.dob)
+          const today = new Date()
+          let age = today.getFullYear() - birth.getFullYear()
+          const m = today.getMonth() - birth.getMonth()
+          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+          state.formData.age = String(age)
+        }
+        if (c.place_of_birth) state.formData.declarationPlace = c.place_of_birth
+        if (c.nominee_name) state.formData.nomineeName = c.nominee_name
+        if (c.nominee_relation) {
+          const rel = c.nominee_relation
+          state.formData.nomineeRelation = rel.charAt(0).toUpperCase() + rel.slice(1).toLowerCase()
+        }
+        if (c.nominee_dob) state.formData.nomineeDob = c.nominee_dob.split('T')[0]
+        if (c.nominee_address) state.formData.nomineeAddress = c.nominee_address
       }
     },
     clearCustomerSearch(state) {
@@ -323,6 +381,52 @@ const apySlice = createSlice({
       .addCase(updateApySubscription.rejected, (state, action) => {
         state.submitting = false
         state.error = action.payload as string
+      })
+
+      .addCase(fetchCustomerApplicationDetails.fulfilled, (state, action) => {
+        const app = action.payload
+        if (app && state.selectedCustomer) {
+          state.selectedCustomer = {
+            ...state.selectedCustomer,
+            title: app.title || state.selectedCustomer.title,
+            dob: app.dob || state.selectedCustomer.dob,
+            place_of_birth: app.place_of_birth || state.selectedCustomer.place_of_birth,
+            nominee_name: app.nominee_name || state.selectedCustomer.nominee_name,
+            nominee_relation: app.nominee_relation || state.selectedCustomer.nominee_relation,
+            nominee_dob: app.nominee_dob || state.selectedCustomer.nominee_dob,
+            nominee_address: app.nominee_address ||
+              [app.nominee_house_no, app.nominee_street, app.nominee_landmark,
+               app.nominee_city, app.nominee_district, app.nominee_state, app.nominee_pin]
+                .filter(Boolean).join(', ') || state.selectedCustomer.nominee_address,
+          }
+
+          const c = state.selectedCustomer
+          if (app.title && !state.formData.title) {
+            const t = app.title.toUpperCase().replace(/[^A-Z.]/g, '')
+            if (t === 'MR' || t === 'MR.') state.formData.title = 'Mr.'
+            else if (t === 'MS' || t === 'MS.' || t === 'MRS' || t === 'MRS.') state.formData.title = 'Ms.'
+            else if (t === 'DR' || t === 'DR.') state.formData.title = 'Dr.'
+            else state.formData.title = app.title
+          }
+          if (app.email && !state.formData.email) state.formData.email = app.email
+          if (app.dob && !state.formData.dateOfBirth) {
+            state.formData.dateOfBirth = app.dob.split('T')[0]
+            const birth = new Date(app.dob)
+            const today = new Date()
+            let age = today.getFullYear() - birth.getFullYear()
+            const m = today.getMonth() - birth.getMonth()
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+            state.formData.age = String(age)
+          }
+          if (app.place_of_birth && !state.formData.declarationPlace) state.formData.declarationPlace = app.place_of_birth
+          if (app.nominee_name && !state.formData.nomineeName) state.formData.nomineeName = app.nominee_name
+          if (app.nominee_relation && !state.formData.nomineeRelation) {
+            const rel = app.nominee_relation
+            state.formData.nomineeRelation = rel.charAt(0).toUpperCase() + rel.slice(1).toLowerCase()
+          }
+          if (app.nominee_dob && !state.formData.nomineeDob) state.formData.nomineeDob = app.nominee_dob.split('T')[0]
+          if (app.nominee_address && !state.formData.nomineeAddress) state.formData.nomineeAddress = app.nominee_address
+        }
       })
   },
 })

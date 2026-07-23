@@ -6,6 +6,7 @@ import {
   submitApySubscription,
   fetchApySubscription,
   updateApySubscription,
+  fetchCustomerApplicationDetails,
   setStep,
   selectCustomer,
   clearCustomerSearch,
@@ -30,6 +31,8 @@ export const useApy = () => {
     loadRequest: (id: string) => dispatch(fetchApySubscription(id)),
     updateRequest: (payload: { id: string; data: Record<string, any> }) =>
       dispatch(updateApySubscription(payload)).unwrap(),
+    fetchAppDetails: (customerId: number) =>
+      dispatch(fetchCustomerApplicationDetails(customerId)).unwrap(),
 
     goToStep: (step: 'customer' | 'form' | 'review' | 'done') => dispatch(setStep(step)),
     pickCustomer: (customer: CustomerSearchResult | null) => dispatch(selectCustomer(customer)),

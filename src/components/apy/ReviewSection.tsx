@@ -37,6 +37,7 @@ export function ReviewSection({ customer, formData, isEdit, submitting, onSubmit
     labelValue('Nominee Aadhaar', formData.nomineeAadhaar),
     labelValue('Relation', formData.nomineeRelation),
     labelValue('Nominee DOB', formData.nomineeDob),
+    labelValue('Nominee Address', formData.nomineeAddress),
     labelValue('Guardian Name', formData.guardianName),
   ].filter(Boolean) as { label: string; value: string }[]
 

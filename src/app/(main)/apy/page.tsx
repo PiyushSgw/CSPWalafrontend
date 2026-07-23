@@ -25,6 +25,12 @@ function ApyPageInner() {
     }
   }, [editId])
 
+  useEffect(() => {
+    if (apy.selectedCustomer && !apy.editId && apy.step === 'customer') {
+      apy.fetchAppDetails(apy.selectedCustomer.id).catch(() => {})
+    }
+  }, [apy.selectedCustomer?.id])
+
   const handleCustomerContinue = () => {
     apy.goToStep('form')
   }
@@ -52,6 +58,7 @@ function ApyPageInner() {
       nomineeAadhaar: apy.formData.nomineeAadhaar || undefined,
       nomineeRelation: apy.formData.nomineeRelation,
       nomineeDob: apy.formData.nomineeDob || undefined,
+      nomineeAddress: apy.formData.nomineeAddress || undefined,
       guardianName: apy.formData.guardianName || undefined,
       hasOtherSocialSchemes: apy.formData.hasOtherSocialSchemes,
       isIncomeTaxPayer: apy.formData.isIncomeTaxPayer,

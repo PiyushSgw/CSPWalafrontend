@@ -40,11 +40,12 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     state: '', district: '', taluka: '', village_city: '',
   });
   const [otpCode, setOtpCode] = useState('');
+  const otpCodeRef = useRef('');
   const [otpSent, setOtpSent] = useState(false);
   const [mobileVerified, setMobileVerified] = useState(false);
   const [otpTimer, setOtpTimer] = useState(0);
   const [otpAttempts, setOtpAttempts] = useState(0);
-  const [recaptchaReady, setRecaptchaReady] = useState(false);
+  const recaptchaInited = useRef(false);
   const [firebaseIdToken, setFirebaseIdToken] = useState<string | null>(null);
   const lastSentMobile = useRef('');
   const sendingOTP = useRef(false);
@@ -65,23 +66,29 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const [districtsLoading, setDistrictsLoading] = useState(false);
   const [talukasLoading, setTalukasLoading] = useState(false);
   const [villagesLoading, setVillagesLoading] = useState(false);
+  const statesLoaded = useRef(false);
+
+  // Custom "Other" input values
+  const [customState, setCustomState] = useState('');
+  const [customDistrict, setCustomDistrict] = useState('');
+  const [customTaluka, setCustomTaluka] = useState('');
+  const [customVillage, setCustomVillage] = useState('');
 
   const isLogin = tab === 'login';
 
   useEffect(() => {
-    if (!isLogin) loadStates();
+    if (!isLogin && !statesLoaded.current) loadStates();
   }, [tab]);
 
   useEffect(() => {
-    if (!isLogin) {
+    if (!isLogin && !recaptchaInited.current) {
       try {
         initRecaptcha('firebase-recaptcha-btn');
-        setRecaptchaReady(true);
+        recaptchaInited.current = true;
       } catch (err) {
         console.error('reCAPTCHA init failed:', err);
       }
     }
-    return () => { cleanupRecaptcha(); };
   }, [tab]);
 
   const handleSendFirebaseOtp = useCallback(async () => {
@@ -114,14 +121,15 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     }
   }, [reg.mobile, otpAttempts]);
 
-  const handleVerifyOtp = async () => {
-    if (otpCode.trim().length < 6) {
+  const handleVerifyOtp = useCallback(async () => {
+    const code = otpCodeRef.current;
+    if (code.trim().length < 6) {
       toast.error('वैध OTP टाका');
       return;
     }
     setBusy(true);
     try {
-      const result = await verifyFirebaseOTP(otpCode.trim());
+      const result = await verifyFirebaseOTP(code.trim());
       const idToken = await result.user.getIdToken();
       setFirebaseIdToken(idToken);
       toast.success('मोबाईल सत्यापित!');
@@ -134,7 +142,9 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     } finally {
       setBusy(false);
     }
-  };
+  }, []);
+
+  useEffect(() => { otpCodeRef.current = otpCode; }, [otpCode]);
 
   const handleResendOtp = async () => {
     if (otpTimer > 0) return;
@@ -230,6 +240,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     try {
       const res = await api.get('/locations/states');
       setStates(res.data.data);
+      statesLoaded.current = true;
     } catch {
       toast.error('राज्ये लोड करताना त्रुटी');
     } finally {
@@ -237,11 +248,19 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     }
   };
 
-  const handleStateChange = async (stateVal: string) => {
-    setReg({ ...reg, state: stateVal, district: '', taluka: '', village_city: '' });
+  const handleStateChange = useCallback(async (stateVal: string) => {
+    setReg(prev => ({ ...prev, state: stateVal, district: '', taluka: '', village_city: '' }));
     setDistricts([]);
     setTalukas([]);
     setVillages([]);
+    setCustomDistrict('');
+    setCustomTaluka('');
+    setCustomVillage('');
+    if (stateVal === '__other__') {
+      setCustomState('');
+      return;
+    }
+    setCustomState('');
     if (!stateVal) return;
     setDistrictsLoading(true);
     try {
@@ -252,40 +271,56 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     } finally {
       setDistrictsLoading(false);
     }
-  };
+  }, []);
 
-  const handleDistrictChange = async (districtVal: string) => {
-    setReg({ ...reg, district: districtVal, taluka: '', village_city: '' });
+  const handleDistrictChange = useCallback(async (districtVal: string) => {
+    setReg(prev => ({ ...prev, district: districtVal, taluka: '', village_city: '' }));
     setTalukas([]);
     setVillages([]);
-    if (!districtVal || !reg.state) return;
+    setCustomTaluka('');
+    setCustomVillage('');
+    if (districtVal === '__other__') {
+      setCustomDistrict('');
+      return;
+    }
+    setCustomDistrict('');
+    const effectiveState = reg.state === '__other__' ? customState : reg.state;
+    if (!districtVal || !effectiveState) return;
     setDistrictsLoading(true);
     try {
-      const res = await api.get(`/locations/states/${encodeURIComponent(reg.state)}/districts/${encodeURIComponent(districtVal)}/talukas`);
+      const res = await api.get(`/locations/states/${encodeURIComponent(effectiveState)}/districts/${encodeURIComponent(districtVal)}/talukas`);
       setTalukas(res.data.data);
     } catch {
       toast.error('तालुके लोड करताना त्रुटी');
     } finally {
       setDistrictsLoading(false);
     }
-  };
+  }, [reg.state, customState]);
 
-  const handleTalukaChange = async (talukaVal: string) => {
-    setReg({ ...reg, taluka: talukaVal, village_city: '' });
+  const handleTalukaChange = useCallback(async (talukaVal: string) => {
+    setReg(prev => ({ ...prev, taluka: talukaVal, village_city: '' }));
     setVillages([]);
-    if (!talukaVal || !reg.state || !reg.district) return;
+    setCustomVillage('');
+    if (talukaVal === '__other__') {
+      setCustomTaluka('');
+      return;
+    }
+    setCustomTaluka('');
+    const effectiveState = reg.state === '__other__' ? customState : reg.state;
+    const effectiveDistrict = reg.district === '__other__' ? customDistrict : reg.district;
+    if (!talukaVal || !effectiveState || !effectiveDistrict) return;
     setVillagesLoading(true);
     try {
-      const res = await api.get(`/locations/states/${encodeURIComponent(reg.state)}/districts/${encodeURIComponent(reg.district)}/talukas/${encodeURIComponent(talukaVal)}/villages`);
+      const res = await api.get(`/locations/states/${encodeURIComponent(effectiveState)}/districts/${encodeURIComponent(effectiveDistrict)}/talukas/${encodeURIComponent(talukaVal)}/villages`);
       setVillages(res.data.data);
     } catch {
       toast.error('गावे लोड करताना त्रुटी');
     } finally {
       setVillagesLoading(false);
     }
-  };
+  }, [reg.state, reg.district, customState, customDistrict]);
 
-  const switchTab = (t: Tab) => {
+  const switchTab = useCallback((t: Tab) => {
     setOtpSent(false);
     setMobileVerified(false);
     setOtpCode('');
@@ -299,9 +334,9 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     setEmailChecking(false);
     lastSentMobile.current = '';
     onTab(t);
-  };
+  }, [onTab]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
     const username = login.username.trim();
@@ -339,9 +374,9 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     } else {
       toast.error((res.payload as string) || "लॉगिन अयशस्वी.");
     }
-  };
+  }, [login.username, login.password, login.remember_me, dispatch, router]);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mobileVerified) {
       toast.error('कृपया प्रथम मोबाईल नंबर सत्यापित करा');
@@ -351,6 +386,18 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
       toast.error('कृपया सर्व आवश्यक माहिती भरा');
       return;
     }
+
+    // Resolve final location values (handle "Other" selections)
+    const finalState = reg.state === '__other__' ? customState.trim() : reg.state.trim();
+    const finalDistrict = reg.district === '__other__' ? customDistrict.trim() : reg.district.trim();
+    const finalTaluka = reg.taluka === '__other__' ? customTaluka.trim() : reg.taluka.trim();
+    const finalVillage = reg.village_city === '__other__' ? customVillage.trim() : reg.village_city.trim();
+
+    if (!finalState || !finalDistrict || !finalTaluka || !finalVillage) {
+      toast.error('कृपया सर्व ठिकाण भरा');
+      return;
+    }
+
     setBusy(true);
     const res = await dispatch(
       registerCSP({
@@ -358,10 +405,10 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
         mobile: reg.mobile.trim(),
         email: reg.email.trim(),
         password: reg.password,
-        state: reg.state.trim(),
-        district: reg.district.trim(),
-        taluka: reg.taluka.trim(),
-        village_city: reg.village_city.trim(),
+        state: finalState,
+        district: finalDistrict,
+        taluka: finalTaluka,
+        village_city: finalVillage,
         phone_verified: mobileVerified ? 1 : 0,
         email_verified: emailVerified ? 1 : 0,
       })
@@ -388,7 +435,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
       setBusy(false);
       toast.error((res.payload as string) || 'नोंदणी अयशस्वी');
     }
-  };
+  }, [mobileVerified, reg, emailVerified, firebaseIdToken, dispatch, onTab, customState, customDistrict, customTaluka, customVillage]);
 
   const title = isLogin ? 'BC एजंट लॉगिन' : 'नवीन नोंदणी';
   const subtitle = isLogin
@@ -717,13 +764,24 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                   <select
                     value={reg.state}
                     onChange={(e) => handleStateChange(e.target.value)}
-                    required
+                    required={reg.state !== '__other__'}
                   >
                     <option value="">{statesLoading ? 'लोड होत आहे...' : 'राज्य / State'}</option>
                     {states.map((s) => (
                       <option key={s.name} value={s.name}>{s.name}</option>
                     ))}
+                    <option value="__other__">Other</option>
                   </select>
+                  {reg.state === '__other__' && (
+                    <input
+                      type="text"
+                      placeholder="Enter State"
+                      value={customState}
+                      onChange={(e) => setCustomState(e.target.value)}
+                      required
+                      style={{ marginTop: 6, width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
+                    />
+                  )}
                 </div>
 
                 <div className="loc-field">
@@ -732,13 +790,24 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                     value={reg.district}
                     onChange={(e) => handleDistrictChange(e.target.value)}
                     disabled={!reg.state}
-                    required
+                    required={reg.district !== '__other__'}
                   >
                     <option value="">{districtsLoading ? 'लोड होत आहे...' : 'जिल्हा / District'}</option>
                     {districts.map((d) => (
                       <option key={d.name} value={d.name}>{d.name}</option>
                     ))}
+                    <option value="__other__">Other</option>
                   </select>
+                  {reg.district === '__other__' && (
+                    <input
+                      type="text"
+                      placeholder="Enter District"
+                      value={customDistrict}
+                      onChange={(e) => setCustomDistrict(e.target.value)}
+                      required
+                      style={{ marginTop: 6, width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
+                    />
+                  )}
                 </div>
 
                 <div className="loc-field">
@@ -747,28 +816,54 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                     value={reg.taluka}
                     onChange={(e) => handleTalukaChange(e.target.value)}
                     disabled={!reg.district}
-                    required
+                    required={reg.taluka !== '__other__'}
                   >
                     <option value="">{talukasLoading ? 'लोड होत आहे...' : 'तालुका / Taluka'}</option>
                     {talukas.map((t) => (
                       <option key={t.name} value={t.name}>{t.name}</option>
                     ))}
+                    <option value="__other__">Other</option>
                   </select>
+                  {reg.taluka === '__other__' && (
+                    <input
+                      type="text"
+                      placeholder="Enter Taluka"
+                      value={customTaluka}
+                      onChange={(e) => setCustomTaluka(e.target.value)}
+                      required
+                      style={{ marginTop: 6, width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
+                    />
+                  )}
                 </div>
 
                 <div className="loc-field">
                   <label>गाव / Village</label>
                   <select
                     value={reg.village_city}
-                    onChange={(e) => setReg({ ...reg, village_city: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setReg(prev => ({ ...prev, village_city: val }));
+                      if (val !== '__other__') setCustomVillage('');
+                    }}
                     disabled={!reg.taluka}
-                    required
+                    required={reg.village_city !== '__other__'}
                   >
                     <option value="">{villagesLoading ? 'लोड होत आहे...' : 'गाव / Village'}</option>
                     {villages.map((v) => (
                       <option key={v.name} value={v.name}>{v.name}</option>
                     ))}
+                    <option value="__other__">Other</option>
                   </select>
+                  {reg.village_city === '__other__' && (
+                    <input
+                      type="text"
+                      placeholder="Enter Village"
+                      value={customVillage}
+                      onChange={(e) => setCustomVillage(e.target.value)}
+                      required
+                      style={{ marginTop: 6, width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
+                    />
+                  )}
                 </div>
               </div>
 

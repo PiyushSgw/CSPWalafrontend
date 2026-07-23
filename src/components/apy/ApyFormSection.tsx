@@ -10,7 +10,7 @@ interface Props {
   onBack: () => void
 }
 
-const TITLE_OPTIONS = ['Shri', 'Smt', 'Kumari', 'Dr', 'Shri/Smt']
+const TITLE_OPTIONS = ['Mr.', 'Ms.', 'Dr.']
 const NOMINEE_RELATIONS = ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Other']
 const FREQUENCY_OPTIONS = ['Monthly', 'Quarterly', 'Half-yearly', 'Yearly']
 
@@ -217,6 +217,17 @@ export function ApyFormSection({ formData, onChange, onContinue, onBack }: Props
               inputMode="numeric"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[#374151] mb-1.5">Nominee Address</label>
+          <input
+            type="text"
+            value={formData.nomineeAddress}
+            onChange={(e) => onChange({ nomineeAddress: e.target.value })}
+            className="w-full px-3 py-2 text-sm border border-[#d1d5db] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(13,143,114,0.12)] focus:border-[#0d8f72]"
+            placeholder="Nominee's full address"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
