@@ -24,6 +24,7 @@ import {
 } from '@/redux/slices/accountOpeningSlice';
 import { createCustomer } from '@/redux/slices/customersSlice';
 import { fetchWalletBalance } from '@/redux/slices/walletSlice';
+import { loadProfile } from '@/redux/slices/profileSlice';
 import {
   updateFormData as updateApyFormData,
   setStep as setApyStep,
@@ -69,6 +70,14 @@ export default function AccountFormPage() {
 
   const customerCreating = useAppSelector((state) => state.customers.creating);
   const authUser = useAppSelector((state) => state.auth.user);
+  const cspProfile = useAppSelector((state) => state.profile.profile);
+
+  // Load CSP profile to access location for BC Location auto-fill
+  useEffect(() => {
+    if (!cspProfile) {
+      dispatch(loadProfile());
+    }
+  }, [dispatch, cspProfile]);
 
   // Pre-fill BC Name from the logged-in CSP (editable; the PDF falls back to
   // the CSP's profile BC name/number when these are left blank).
@@ -83,6 +92,13 @@ export default function AccountFormPage() {
       dispatch(updateFormField({ field: 'bc_code', value: authUser.csp_code }));
     }
   }, [authUser, formData.bc_code, dispatch]);
+
+  // Pre-fill BC Location (place) from the CSP profile's location
+  useEffect(() => {
+    if (cspProfile?.location && !formData.place) {
+      dispatch(updateFormField({ field: 'place', value: cspProfile.location }));
+    }
+  }, [cspProfile, formData.place, dispatch]);
 
   useEffect(() => {
     if (submitSuccess) {
