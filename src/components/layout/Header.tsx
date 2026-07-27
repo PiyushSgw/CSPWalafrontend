@@ -14,6 +14,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle }: HeaderProps) {
+  
   const authState = useSelector((state: RootState) => state.auth);
   const user      = authState.user || authState.admin;
   const isAdmin   = !!authState.admin;
