@@ -15,12 +15,19 @@ import debitCardReducer from './slices/debitCardSlice';
 import apyReducer from './slices/apySlice';
 import locationReducer from './slices/locationSlice';
 
-import storage from 'redux-persist/lib/storage'; // localStorage
+const isServer = typeof window === 'undefined';
+
+const storage = isServer
+  ? {
+      getItem: async () => null,
+      setItem: async () => {},
+      removeItem: async () => {},
+    }
+  : require('redux-persist/lib/storage').default;
 
 const persistConfig = {
   key: 'auth',
   storage,
-  // ✅ Persist specific fields only
   whitelist: ['user', 'admin', 'isAuthenticated', 'isAdminAuthenticated'],
 };
 

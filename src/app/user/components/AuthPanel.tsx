@@ -8,6 +8,8 @@ import { loginCSP, registerCSP } from '@/redux/slices/authslice';
 import { initRecaptcha, sendOTP, verifyOTP as verifyFirebaseOTP, cleanupRecaptcha, resetConfirmation } from '@/services/firebaseOtp';
 import { isValidEmail, sendEmailVerification, verifyEmailOtp, checkEmailVerificationStatus } from '@/services/firebaseEmailVerification';
 import api from '@/utils/axios';
+import LocationForm from '@/components/location/LocationForm';
+import type { LocationFormValue } from '@/components/location/LocationForm';
 
 type Tab = 'login' | 'register';
 
@@ -19,8 +21,6 @@ interface Props {
 }
 
 const onlyDigits = (v: string, max = 10) => v.replace(/\D/g, '').slice(0, max);
-
-interface LocationItem { name: string }
 
 export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const dispatch = useAppDispatch();
@@ -37,7 +37,14 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const [reg, setReg] = useState({
     name: '', mobile: '', email: '',
     password: '',
-    state: '', district: '', taluka: '', village_city: '',
+  });
+  const [location, setLocation] = useState<LocationFormValue>({
+    state: '',
+    district: '',
+    subDistrict: '',
+    villageCity: '',
+    pinCode: '',
+    fullAddress: '',
   });
   const [otpCode, setOtpCode] = useState('');
   const otpCodeRef = useRef('');
@@ -57,28 +64,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   const [emailOtpCode, setEmailOtpCode] = useState('');
   const [emailChecking, setEmailChecking] = useState(false);
 
-  // Location dropdown options
-  const [states, setStates] = useState<LocationItem[]>([]);
-  const [districts, setDistricts] = useState<LocationItem[]>([]);
-  const [talukas, setTalukas] = useState<LocationItem[]>([]);
-  const [villages, setVillages] = useState<LocationItem[]>([]);
-  const [statesLoading, setStatesLoading] = useState(false);
-  const [districtsLoading, setDistrictsLoading] = useState(false);
-  const [talukasLoading, setTalukasLoading] = useState(false);
-  const [villagesLoading, setVillagesLoading] = useState(false);
-  const statesLoaded = useRef(false);
-
-  // Custom "Other" input values
-  const [customState, setCustomState] = useState('');
-  const [customDistrict, setCustomDistrict] = useState('');
-  const [customTaluka, setCustomTaluka] = useState('');
-  const [customVillage, setCustomVillage] = useState('');
-
   const isLogin = tab === 'login';
-
-  useEffect(() => {
-    if (!isLogin && !statesLoaded.current) loadStates();
-  }, [tab]);
 
   useEffect(() => {
     if (!isLogin && !recaptchaInited.current) {
@@ -235,91 +221,6 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
     }
   }, [reg.email, emailVerified, emailSent]);
 
-  const loadStates = async () => {
-    setStatesLoading(true);
-    try {
-      const res = await api.get('/locations/states');
-      setStates(res.data.data);
-      statesLoaded.current = true;
-    } catch {
-      toast.error('राज्ये लोड करताना त्रुटी');
-    } finally {
-      setStatesLoading(false);
-    }
-  };
-
-  const handleStateChange = useCallback(async (stateVal: string) => {
-    setReg(prev => ({ ...prev, state: stateVal, district: '', taluka: '', village_city: '' }));
-    setDistricts([]);
-    setTalukas([]);
-    setVillages([]);
-    setCustomDistrict('');
-    setCustomTaluka('');
-    setCustomVillage('');
-    if (stateVal === '__other__') {
-      setCustomState('');
-      return;
-    }
-    setCustomState('');
-    if (!stateVal) return;
-    setDistrictsLoading(true);
-    try {
-      const res = await api.get(`/locations/states/${encodeURIComponent(stateVal)}/districts`);
-      setDistricts(res.data.data);
-    } catch {
-      toast.error('जिल्हे लोड करताना त्रुटी');
-    } finally {
-      setDistrictsLoading(false);
-    }
-  }, []);
-
-  const handleDistrictChange = useCallback(async (districtVal: string) => {
-    setReg(prev => ({ ...prev, district: districtVal, taluka: '', village_city: '' }));
-    setTalukas([]);
-    setVillages([]);
-    setCustomTaluka('');
-    setCustomVillage('');
-    if (districtVal === '__other__') {
-      setCustomDistrict('');
-      return;
-    }
-    setCustomDistrict('');
-    const effectiveState = reg.state === '__other__' ? customState : reg.state;
-    if (!districtVal || !effectiveState) return;
-    setDistrictsLoading(true);
-    try {
-      const res = await api.get(`/locations/states/${encodeURIComponent(effectiveState)}/districts/${encodeURIComponent(districtVal)}/talukas`);
-      setTalukas(res.data.data);
-    } catch {
-      toast.error('तालुके लोड करताना त्रुटी');
-    } finally {
-      setDistrictsLoading(false);
-    }
-  }, [reg.state, customState]);
-
-  const handleTalukaChange = useCallback(async (talukaVal: string) => {
-    setReg(prev => ({ ...prev, taluka: talukaVal, village_city: '' }));
-    setVillages([]);
-    setCustomVillage('');
-    if (talukaVal === '__other__') {
-      setCustomTaluka('');
-      return;
-    }
-    setCustomTaluka('');
-    const effectiveState = reg.state === '__other__' ? customState : reg.state;
-    const effectiveDistrict = reg.district === '__other__' ? customDistrict : reg.district;
-    if (!talukaVal || !effectiveState || !effectiveDistrict) return;
-    setVillagesLoading(true);
-    try {
-      const res = await api.get(`/locations/states/${encodeURIComponent(effectiveState)}/districts/${encodeURIComponent(effectiveDistrict)}/talukas/${encodeURIComponent(talukaVal)}/villages`);
-      setVillages(res.data.data);
-    } catch {
-      toast.error('गावे लोड करताना त्रुटी');
-    } finally {
-      setVillagesLoading(false);
-    }
-  }, [reg.state, reg.district, customState, customDistrict]);
-
   const switchTab = useCallback((t: Tab) => {
     setOtpSent(false);
     setMobileVerified(false);
@@ -382,16 +283,20 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
       toast.error('कृपया प्रथम मोबाईल नंबर सत्यापित करा');
       return;
     }
-    if (!reg.name.trim() || !reg.mobile.trim() || !reg.email.trim() || !reg.password) {
+    if (!reg.name.trim() || !reg.mobile.trim() || !reg.password) {
       toast.error('कृपया सर्व आवश्यक माहिती भरा');
       return;
     }
 
-    // Resolve final location values (handle "Other" selections)
-    const finalState = reg.state === '__other__' ? customState.trim() : reg.state.trim();
-    const finalDistrict = reg.district === '__other__' ? customDistrict.trim() : reg.district.trim();
-    const finalTaluka = reg.taluka === '__other__' ? customTaluka.trim() : reg.taluka.trim();
-    const finalVillage = reg.village_city === '__other__' ? customVillage.trim() : reg.village_city.trim();
+    if (reg.email.trim() && !isValidEmail(reg.email.trim())) {
+      toast.error('कृपया वैध ईमेल पत्ता टाका');
+      return;
+    }
+
+    const finalState = location.state.trim();
+    const finalDistrict = location.district.trim();
+    const finalTaluka = location.subDistrict.trim();
+    const finalVillage = location.villageCity.trim();
 
     if (!finalState || !finalDistrict || !finalTaluka || !finalVillage) {
       toast.error('कृपया सर्व ठिकाण भरा');
@@ -409,12 +314,13 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
         district: finalDistrict,
         taluka: finalTaluka,
         village_city: finalVillage,
+        pin_code: location.pinCode.trim(),
+        address: location.fullAddress.trim(),
         phone_verified: mobileVerified ? 1 : 0,
         email_verified: emailVerified ? 1 : 0,
       })
     );
     if (registerCSP.fulfilled.match(res)) {
-      // Send Firebase idToken to backend to activate the account
       if (firebaseIdToken) {
         try {
           await api.post('/auth/verify-firebase', { idToken: firebaseIdToken });
@@ -435,7 +341,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
       setBusy(false);
       toast.error((res.payload as string) || 'नोंदणी अयशस्वी');
     }
-  }, [mobileVerified, reg, emailVerified, firebaseIdToken, dispatch, onTab, customState, customDistrict, customTaluka, customVillage]);
+  }, [mobileVerified, reg, emailVerified, firebaseIdToken, location, dispatch, onTab]);
 
   const title = isLogin ? 'BC एजंट लॉगिन' : 'नवीन नोंदणी';
   const subtitle = isLogin
@@ -655,7 +561,6 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                     }
                   }}
                   onBlur={handleEmailBlur}
-                  required
                 />
                 {/* Email Verification Button & Status */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
@@ -758,114 +663,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
 
               {/* Location Section */}
               <div className="loc-label">📍 तुमचे ठिकाण <span className="req">*</span></div>
-              <div className="loc-grid">
-                <div className="loc-field">
-                  <label>राज्य / State</label>
-                  <select
-                    value={reg.state}
-                    onChange={(e) => handleStateChange(e.target.value)}
-                    required={reg.state !== '__other__'}
-                  >
-                    <option value="">{statesLoading ? 'लोड होत आहे...' : 'राज्य / State'}</option>
-                    {states.map((s) => (
-                      <option key={s.name} value={s.name}>{s.name}</option>
-                    ))}
-                    <option value="__other__">Other</option>
-                  </select>
-                  {reg.state === '__other__' && (
-                    <input
-                      type="text"
-                      placeholder="Enter State"
-                      value={customState}
-                      onChange={(e) => setCustomState(e.target.value)}
-                      required
-                      style={{ marginTop: 6, width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
-                    />
-                  )}
-                </div>
-
-                <div className="loc-field">
-                  <label>जिल्हा / District</label>
-                  <select
-                    value={reg.district}
-                    onChange={(e) => handleDistrictChange(e.target.value)}
-                    disabled={!reg.state}
-                    required={reg.district !== '__other__'}
-                  >
-                    <option value="">{districtsLoading ? 'लोड होत आहे...' : 'जिल्हा / District'}</option>
-                    {districts.map((d) => (
-                      <option key={d.name} value={d.name}>{d.name}</option>
-                    ))}
-                    <option value="__other__">Other</option>
-                  </select>
-                  {reg.district === '__other__' && (
-                    <input
-                      type="text"
-                      placeholder="Enter District"
-                      value={customDistrict}
-                      onChange={(e) => setCustomDistrict(e.target.value)}
-                      required
-                      style={{ marginTop: 6, width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
-                    />
-                  )}
-                </div>
-
-                <div className="loc-field">
-                  <label>तालुका / Taluka</label>
-                  <select
-                    value={reg.taluka}
-                    onChange={(e) => handleTalukaChange(e.target.value)}
-                    disabled={!reg.district}
-                    required={reg.taluka !== '__other__'}
-                  >
-                    <option value="">{talukasLoading ? 'लोड होत आहे...' : 'तालुका / Taluka'}</option>
-                    {talukas.map((t) => (
-                      <option key={t.name} value={t.name}>{t.name}</option>
-                    ))}
-                    <option value="__other__">Other</option>
-                  </select>
-                  {reg.taluka === '__other__' && (
-                    <input
-                      type="text"
-                      placeholder="Enter Taluka"
-                      value={customTaluka}
-                      onChange={(e) => setCustomTaluka(e.target.value)}
-                      required
-                      style={{ marginTop: 6, width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
-                    />
-                  )}
-                </div>
-
-                <div className="loc-field">
-                  <label>गाव / Village</label>
-                  <select
-                    value={reg.village_city}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setReg(prev => ({ ...prev, village_city: val }));
-                      if (val !== '__other__') setCustomVillage('');
-                    }}
-                    disabled={!reg.taluka}
-                    required={reg.village_city !== '__other__'}
-                  >
-                    <option value="">{villagesLoading ? 'लोड होत आहे...' : 'गाव / Village'}</option>
-                    {villages.map((v) => (
-                      <option key={v.name} value={v.name}>{v.name}</option>
-                    ))}
-                    <option value="__other__">Other</option>
-                  </select>
-                  {reg.village_city === '__other__' && (
-                    <input
-                      type="text"
-                      placeholder="Enter Village"
-                      value={customVillage}
-                      onChange={(e) => setCustomVillage(e.target.value)}
-                      required
-                      style={{ marginTop: 6, width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: '0.95rem', outline: 'none' }}
-                    />
-                  )}
-                </div>
-              </div>
+              <LocationForm value={location} onChange={setLocation} showAddressField={true} />
 
               <div className="field">
                 <label>नवीन पासवर्ड <span className="req">*</span></label>
@@ -912,65 +710,12 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
 
       <div id="firebase-recaptcha-btn" style={{ display: 'none' }} />
 
-      {/* Scoped styles only for the location fields — everything else keeps its existing styling */}
       <style jsx>{`
         .loc-label {
           font-weight: 600;
           font-size: 0.9rem;
           color: #0f172a;
           margin: 18px 0 10px;
-        }
-
-        .loc-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 18px 14px;
-          margin-bottom: 14px;
-        }
-
-        .loc-field {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .loc-field label {
-          font-weight: 600;
-          font-size: 0.85rem;
-          color: #0f172a;
-        }
-
-        .loc-field select {
-          width: 100%;
-          padding: 12px 14px;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 12px;
-          background-color: #ffffff;
-          font-size: 0.95rem;
-          color: #334155;
-          appearance: none;
-          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
-          background-repeat: no-repeat;
-          background-position: right 12px center;
-        }
-
-        .loc-field select:focus {
-          outline: none;
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-
-        .loc-field select:disabled {
-          background-color: #f1f5f9;
-          color: #94a3b8;
-          cursor: not-allowed;
-        }
-
-        @media (max-width: 420px) {
-          .loc-grid {
-            grid-template-columns: 1fr 1fr;
-            gap: 14px 10px;
-          }
         }
       `}</style>
     </>

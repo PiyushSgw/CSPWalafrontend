@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../utils/axios'
+import { clear } from 'console'
 
 interface LocationItem {
   name: string
@@ -10,7 +11,11 @@ interface LocationState {
   districts: LocationItem[]
   talukas: LocationItem[]
   villages: LocationItem[]
+  pinCode: LocationItem[];
+  fullAddress: LocationItem[];
   loading: boolean
+  loadingDistricts: boolean
+  loadingTalukas: boolean
   error: string | null
 }
 
@@ -19,7 +24,11 @@ const initialState: LocationState = {
   districts: [],
   talukas: [],
   villages: [],
+  pinCode: [],
+  fullAddress: [],
   loading: false,
+  loadingDistricts: false,
+  loadingTalukas: false,
   error: null,
 }
 
@@ -34,8 +43,6 @@ export const fetchStates = createAsyncThunk(
     }
   }
 )
-
-export const fetchDistricts = createAsyncThunk(
   'location/fetchDistricts',
   async (state: string, { rejectWithValue }) => {
     try {
@@ -75,21 +82,22 @@ const locationSlice = createSlice({
   name: 'location',
   initialState,
   reducers: {
-    clearDistricts: (state) => { state.districts = []; state.talukas = []; state.villages = [] },
+    clearDistricts: (state) => { state.districts = []; state.talukas = []; state.villages = []; state.pincode = []; },
     clearTalukas: (state) => { state.talukas = []; state.villages = [] },
     clearVillages: (state) => { state.villages = [] },
+    clearPinCode: () => { state.pincode = []},
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchStates.pending, (state) => { state.loading = true; state.error = null })
       .addCase(fetchStates.fulfilled, (state, action) => { state.loading = false; state.states = action.payload })
       .addCase(fetchStates.rejected, (state, action) => { state.loading = false; state.error = action.payload as string })
-      .addCase(fetchDistricts.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(fetchDistricts.fulfilled, (state, action) => { state.loading = false; state.districts = action.payload })
-      .addCase(fetchDistricts.rejected, (state, action) => { state.loading = false; state.error = action.payload as string })
-      .addCase(fetchTalukas.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(fetchTalukas.fulfilled, (state, action) => { state.loading = false; state.talukas = action.payload })
-      .addCase(fetchTalukas.rejected, (state, action) => { state.loading = false; state.error = action.payload as string })
+      .addCase(fetchDistricts.pending, (state) => { state.loadingDistricts = true; state.error = null })
+      .addCase(fetchDistricts.fulfilled, (state, action) => { state.loadingDistricts = false; state.districts = action.payload })
+      .addCase(fetchDistricts.rejected, (state, action) => { state.loadingDistricts = false; state.error = action.payload as string })
+      .addCase(fetchTalukas.pending, (state) => { state.loadingTalukas = true; state.error = null })
+      .addCase(fetchTalukas.fulfilled, (state, action) => { state.loadingTalukas = false; state.talukas = action.payload })
+      .addCase(fetchTalukas.rejected, (state, action) => { state.loadingTalukas = false; state.error = action.payload as string })
       .addCase(fetchVillages.pending, (state) => { state.loading = true; state.error = null })
       .addCase(fetchVillages.fulfilled, (state, action) => { state.loading = false; state.villages = action.payload })
       .addCase(fetchVillages.rejected, (state, action) => { state.loading = false; state.error = action.payload as string })
