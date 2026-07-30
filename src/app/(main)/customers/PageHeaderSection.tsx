@@ -1,7 +1,21 @@
 import React from "react";
-// import "./../../styles.css";
+import type { MappedCustomer } from "./customer";
 
-export const PageHeaderSection: React.FC = () => {
+import { exportCustomersCSV } from "../../../utils/exportCustomersCSV";
+
+// import "./../../styles.css";
+interface Props {
+  customers: MappedCustomer[];
+  searchTerm: string;
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+  onExportCSV: () => void;
+}
+export const PageHeaderSection: React.FC<Props> = ({
+  customers,
+  searchTerm,
+  setSearchTerm,
+  onExportCSV,
+}) => {
   return (
     <div className="page-header">
       <div className="page-header-left">
@@ -10,8 +24,11 @@ export const PageHeaderSection: React.FC = () => {
           63 customers registered · Search, view, edit, and manage customer records
         </div>
       </div>
-      <div className="page-header-actions">
-        <button className="btn btn-outline btn-sm">⬇️ Export CSV</button>
+      <div className="page-header-actions"><button
+        onClick={onExportCSV}
+      >
+        ⬇️ Export CSV
+      </button>
         <button className="btn btn-teal btn-sm" onClick={() => {
           document.getElementById("add-cust-form")?.scrollIntoView({ behavior: "smooth" });
         }}>

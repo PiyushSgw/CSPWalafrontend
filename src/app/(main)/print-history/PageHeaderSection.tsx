@@ -1,4 +1,6 @@
 import React from "react";
+import type { MappedPrintJob } from "./printHistory";
+import { exportPrintHistoryCSV } from "../../../utils/exportPrintHistoryCSV";
 
 interface Props {
   showDatePopup: boolean;
@@ -9,6 +11,7 @@ interface Props {
   setEndDate: (value: string) => void;
   onApplyDateFilter: () => void;
   onClearDateFilter: () => void;
+  filteredJobs: MappedPrintJob[];
 }
 
 export const PageHeaderSection: React.FC<Props> = ({
@@ -20,6 +23,7 @@ export const PageHeaderSection: React.FC<Props> = ({
   setEndDate,
   onApplyDateFilter,
   onClearDateFilter,
+  filteredJobs,
 }) => {
   return (
     <div className="page-header" style={{ position: "relative" }}>
@@ -39,7 +43,7 @@ export const PageHeaderSection: React.FC<Props> = ({
           📅 Filter by Date
         </button>
 
-        <button className="btn btn-outline btn-sm" type="button">
+        <button className="btn btn-outline btn-sm" type="button" onClick={() => exportPrintHistoryCSV(filteredJobs)}>
           ⬇️ Export CSV
         </button>
       </div>

@@ -2,47 +2,101 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import api from '../../utils/axios';
 import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
+import api from '../../utils/axios';
+import LocationForm from '@/components/location/LocationForm';
+import type { LocationFormValue } from '@/components/location/LocationForm';
+
+const BANK_OPTIONS = [
+  { id: 1, name: 'State Bank of India (SBI)' },
+  { id: 2, name: 'Punjab National Bank (PNB)' },
+  { id: 3, name: 'Bank of Baroda (BOB)' },
+  { id: 4, name: 'Canara Bank' },
+  { id: 5, name: 'Union Bank of India' },
+  { id: 6, name: 'Bank of India' },
+  { id: 7, name: 'Indian Bank' },
+  { id: 8, name: 'Central Bank of India' },
+  { id: 9, name: 'Indian Overseas Bank' },
+  { id: 10, name: 'UCO Bank' },
+  { id: 11, name: 'HDFC Bank' },
+  { id: 12, name: 'ICICI Bank' },
+  { id: 13, name: 'Axis Bank' },
+  { id: 14, name: 'Kotak Mahindra Bank' },
+  { id: 15, name: 'Yes Bank' },
+  { id: 16, name: 'IndusInd Bank' },
+  { id: 17, name: 'IDBI Bank' },
+  { id: 18, name: 'Bandhan Bank' },
+  { id: 99, name: 'Other' },
+];
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const [bankId, setBankId] = useState('');
+  const [otherBankName, setOtherBankName] = useState('');
+  const [branchId, setBranchId] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [location, setLocation] = useState<LocationFormValue>({
+    state: '',
+    district: '',
+    subDistrict: '',
+    villageCity: '',
+    pinCode: '',
+    fullAddress: '',
+  });
+
   const router = useRouter();
+  const isOtherBank = bankId === '99';
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await api.post('/auth/register', {
+      const registrationData: any = {
         name,
         mobile,
-        email: email || undefined,
+        email,
         password,
-      });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      document.cookie = `token=${response.data.token}; path=/`;
-      toast.success('Registered successfully!');
-      router.push('/login');
+        bank_id: parseInt(bankId),
+        branch_id: branchId ? parseInt(branchId) : undefined,
+        state: location.state,
+        district: location.district,
+        taluka: location.subDistrict,
+        village_city: location.villageCity,
+        pin_code: location.pinCode,
+        address: location.fullAddress,
+      };
+
+      if (isOtherBank && otherBankName.trim()) {
+        registrationData.location = `Other Bank: ${otherBankName.trim()}`;
+      }
+
+      await api.post('/auth/register', registrationData);
+
+      localStorage.setItem('registration_mobile', mobile);
+      toast.success('Registration successful! Please verify OTP sent to your mobile.');
+      router.push('/verify-otp');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Registration failed');
+      const errMsg = error.response?.data?.errors?.join('. ') || error.response?.data?.message || error.response?.data?.error || 'Registration failed';
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
   };
 
   const passwordChecks = [
-    { label: 'At least 6 characters', valid: password.length >= 6 },
+    { label: 'At least 8 characters', valid: password.length >= 8 },
+    { label: 'Contains uppercase & lowercase', valid: /[a-z]/.test(password) && /[A-Z]/.test(password) },
     { label: 'Contains a number', valid: /\d/.test(password) },
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-4">
+    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-4 py-6 overflow-y-auto">
       <div className="w-full max-w-5xl grid md:grid-cols-2 bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden">
         {/* LEFT SIDE */}
         <div className="hidden md:flex flex-col justify-center items-center text-white p-10 space-y-6">
@@ -61,7 +115,7 @@ export default function RegisterPage() {
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="bg-white p-8 md:p-12 flex flex-col justify-center">
+        <div className="bg-white p-8 md:p-12 flex flex-col justify-center max-h-none md:max-h-screen overflow-y-auto">
           <h2 className="text-3xl font-bold mb-2">Create Account</h2>
           <p className="text-gray-500 mb-6">Fill in your details to register</p>
 
@@ -80,26 +134,79 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label className="text-sm font-medium text-gray-600">Email (optional)</label>
+              <label className="text-sm font-medium text-gray-600">Email <span className="text-red-500">*</span></label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
+                required
               />
             </div>
 
             {/* Mobile */}
             <div>
-              <label className="text-sm font-medium text-gray-600">Mobile Number</label>
+              <label className="text-sm font-medium text-gray-600">Mobile Number <span className="text-red-500">*</span></label>
               <input
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
                 placeholder="9876543210"
                 className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
                 required
+                maxLength={10}
               />
+            </div>
+
+            {/* Bank Selection */}
+            <div>
+              <label className="text-sm font-medium text-gray-600">Bank <span className="text-red-500">*</span></label>
+              <select
+                value={bankId}
+                onChange={(e) => setBankId(e.target.value)}
+                className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                required
+              >
+                <option value="">Select Bank</option>
+                {BANK_OPTIONS.map((bank) => (
+                  <option key={bank.id} value={bank.id}>
+                    {bank.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Other Bank Name (shown when Other selected) */}
+            {isOtherBank && (
+              <div>
+                <label className="text-sm font-medium text-gray-600">Enter Bank Name <span className="text-red-500">*</span></label>
+                <input
+                  value={otherBankName}
+                  onChange={(e) => setOtherBankName(e.target.value)}
+                  placeholder="e.g., Maharashtra Gramin Bank"
+                  className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
+                  required={isOtherBank}
+                />
+                <p className="text-xs text-gray-500 mt-1">Admin will verify and add this bank to the system.</p>
+              </div>
+            )}
+
+            {/* Branch ID (Optional) */}
+            <div>
+              <label className="text-sm font-medium text-gray-600">Branch ID (Optional)</label>
+              <input
+                type="number"
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                placeholder="Enter branch ID if available"
+                className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+
+            {/* ---- Location Section ---- */}
+            <div className="border-t pt-4 mt-2">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Location Details</h3>
+              <LocationForm value={location} onChange={setLocation} showAddressField={true} />
             </div>
 
             {/* Password */}

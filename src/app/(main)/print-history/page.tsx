@@ -15,6 +15,7 @@ import {
   PrintHistoryFilter,
   PrintHistoryFilterBar,
 } from "./PrintHistoryFilterBar";
+import type { MappedPrintJob } from "./printHistory";
 
 const DEFAULT_FILTERS: FetchPrintHistoryParams = {
   page: 1,
@@ -35,6 +36,7 @@ export default function PrintHistoryPage() {
   const [showDatePopup, setShowDatePopup] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [filteredJobs, setFilteredJobs] = useState<MappedPrintJob[]>([]);
 
   const load = (params: FetchPrintHistoryParams) => dispatch(fetchPrintHistory(params));
 
@@ -64,22 +66,30 @@ export default function PrintHistoryPage() {
   return (
     <div className="page active" id="page-print-history">
       <PageHeaderSection
+        filteredJobs={filteredJobs}
+
         showDatePopup={showDatePopup}
         setShowDatePopup={setShowDatePopup}
         startDate={startDate}
         endDate={endDate}
+
         setStartDate={(value) => {
           setStartDate(value);
           setCurrentPage(1);
+          setFilteredJobs([]);
         }}
+
         setEndDate={(value) => {
           setEndDate(value);
           setCurrentPage(1);
+          setFilteredJobs([]);
         }}
+
         onApplyDateFilter={() => {
           setShowDatePopup(false);
           setCurrentPage(1);
         }}
+
         onClearDateFilter={() => {
           setStartDate("");
           setEndDate("");
@@ -118,6 +128,7 @@ export default function PrintHistoryPage() {
         activeFilter={activeFilter}
         startDate={startDate}
         endDate={endDate}
+        onFilteredDataChange={setFilteredJobs}
       />
     </div>
   );

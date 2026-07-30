@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useWallet } from '@/hooks/useWallet'
+import { RazorpayButton } from '@/components/wallet/RazorpayButton'
 
 export const RechargeTabSection: React.FC<{
   paymentDetails: any
@@ -50,15 +51,30 @@ export const RechargeTabSection: React.FC<{
     }
   }
 
+  const [utrError, setUtrError] = useState<string | null>(null)
+
+  const validateUtr = (value: string): boolean => {
+    // UTR should be 12-22 alphanumeric characters
+    const utrRegex = /^[A-Za-z0-9]{12,22}$/
+    return utrRegex.test(value.trim())
+  }
+
   const handleRechargeSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     onClearError()
+    setUtrError(null)
 
     if (!enteredAmount || enteredAmount <= 0) {
       return
     }
 
     if (!utr.trim()) {
+      setUtrError('UTR/Reference number is required')
+      return
+    }
+
+    if (!validateUtr(utr)) {
+      setUtrError('UTR must be 12-22 alphanumeric characters (no spaces or special chars)')
       return
     }
 
@@ -70,6 +86,7 @@ export const RechargeTabSection: React.FC<{
       })
 
       setUtr('')
+      setUtrError(null)
       setSelectedAmount(500)
       setEnteredAmount(500)
       setPaymentMethod('UPI')
@@ -80,9 +97,9 @@ export const RechargeTabSection: React.FC<{
   }
 
   const rechargeOptions = [
-    { amount: 200, title: "₹200", subtitle: "~40 prints" },
-    { amount: 500, title: "₹500", subtitle: "~100 prints" },
-    { amount: 1000, title: "₹1,000", subtitle: "~200 prints" },
+    { amount: 200, title: "₹200", subtitle: "~1,000 prints" },
+    { amount: 500, title: "₹500", subtitle: "~2,500 prints" },
+    { amount: 1000, title: "₹1,000", subtitle: "~5,000 prints" },
     { amount: 'custom' as const, title: "Custom", subtitle: "Enter amount" },
   ]
 
@@ -254,15 +271,24 @@ export const RechargeTabSection: React.FC<{
                     UTR / Reference Number <span className="req">*</span>
                   </label>
                   <input
-                    className="form-input"
+                    className={`form-input ${utrError ? 'border-red-500' : ''}`}
                     type="text"
                     value={utr}
-                    onChange={(e) => setUtr(e.target.value)}
+                    onChange={(e) => {
+                      setUtr(e.target.value)
+                      if (utrError) setUtrError(null)
+                    }}
                     placeholder="12-digit UTR or transaction reference"
                   />
-                  <div className="form-hint">
-                    Found in your UPI app or bank transaction history
-                  </div>
+                  {utrError ? (
+                    <div className="form-hint" style={{ color: 'var(--color-text-danger)' }}>
+                      {utrError}
+                    </div>
+                  ) : (
+                    <div className="form-hint">
+                      Found in your UPI app or bank transaction history
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 14 }}>
@@ -290,6 +316,26 @@ export const RechargeTabSection: React.FC<{
                   {loading ? 'Submitting...' : 'Submit Recharge Request'}
                 </button>
               </form>
+
+              <hr style={{ margin: '16px 0', borderColor: '#e5e7eb' }} />
+
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textAlign: 'center' }}>
+                OR Pay Online Instantly
+              </div>
+
+              <RazorpayButton
+                amount={enteredAmount}
+                onSuccess={(data) => {
+                  wallet.loadWallet()
+                  alert(`Payment successful! Wallet balance: ₹${data.balance}`)
+                  onClose()
+                }}
+                onError={(msg) => {
+                  if (msg !== 'Payment cancelled') {
+                    alert(msg)
+                  }
+                }}
+              />
             </div>
           </div>
         </div>

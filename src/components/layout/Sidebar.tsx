@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
 import { logoutCSP, logoutAdmin } from '../../redux/slices/authslice';
 import api from '../../utils/axios';
+import AdminSidebar from '../admin/AdminSidebar';
 
 const navGroups = [
   {
@@ -17,8 +18,11 @@ const navGroups = [
   {
     section: 'SERVICES',
     items: [
-      { href: '/passbook',        label: 'Passbook Print',       emoji: '📖', iconBg: 'bg-white/5', badge: undefined, badgeStyle: undefined },
-      { href: '/account-opening', label: 'Account Opening Form', emoji: '📋', iconBg: 'bg-white/5', badge: 'NEW',     badgeStyle: 'yellow' },
+      { href: '/passbook',        label: 'Passbook Print',       emoji: '\u{1F4D6}', iconBg: 'bg-white/5', badge: undefined, badgeStyle: undefined },
+      { href: '/account-opening', label: 'Account Opening Form', emoji: '\u{1F4CB}', iconBg: 'bg-white/5', badge: 'NEW',     badgeStyle: 'yellow' },
+      { href: '/service-request', label: 'Service Requests',     emoji: '\u{1F4CB}', iconBg: 'bg-white/5', badge: 'NEW',     badgeStyle: 'yellow' },
+      { href: '/debit-card-form', label: 'Debit Card Form',     emoji: '\u{1F4B3}', iconBg: 'bg-white/5', badge: 'NEW',     badgeStyle: 'yellow' },
+      { href: '/apy',             label: 'APY Subscription',   emoji: '\u{1F4CB}', iconBg: 'bg-white/5', badge: 'NEW',     badgeStyle: 'yellow' },
     ],
   },
   {
@@ -43,7 +47,12 @@ const navGroups = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onToggleMobile?: () => void;
+}
+
+export default function Sidebar({ mobileOpen = false, onToggleMobile }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const dispatch = useDispatch();
@@ -54,6 +63,11 @@ export default function Sidebar() {
   const isAuthenticated = authState.isAuthenticated || authState.isAdminAuthenticated;
   const isAdmin         = !!authState.admin;
 
+  // ✅ If admin is logged in and accessing admin routes, show admin sidebar
+  if (isAdmin && pathname?.startsWith('/admin')) {
+    return <AdminSidebar mobileOpen={mobileOpen} onToggleMobile={onToggleMobile} />
+  }
+
   const [mounted, setMounted] = useState(false);
 
   // ✅ Use dashboard state instead of separate API call
@@ -62,10 +76,16 @@ export default function Sidebar() {
 
   useEffect(() => { setMounted(true); }, []);
 
+  // Auto-close mobile sidebar on route change
+  useEffect(() => {
+    if (mobileOpen && onToggleMobile) onToggleMobile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   // ✅ Auth check — same as 1st code
   useEffect(() => {
     if (mounted && !isAuthenticated) {
-      router.push('/login');
+      router.push('/user');
     }
   }, [mounted, isAuthenticated, router]);
 
@@ -76,29 +96,61 @@ export default function Sidebar() {
 
   // ✅ Logout handler
   const handleLogout = async () => {
+    console.log('🔐 Sidebar logout: Starting logout process...');
+
+    // CSP users return to the public landing page; admins to the admin login.
+    router.push(isAdmin ? '/login' : '/user');
+
+    // Then clear tokens and update state
     try {
       if (isAdmin) {
-        await (dispatch as any)(logoutAdmin());
+        console.log('🔐 Sidebar logout: Clearing admin tokens...');
+        localStorage.removeItem('admin_token');
+        dispatch({ type: 'auth/logoutAdmin/fulfilled', payload: null });
       } else {
-        await (dispatch as any)(logoutCSP());
+        console.log('🔐 Sidebar logout: Clearing CSP tokens...');
+        localStorage.removeItem('csp_access_token');
+        localStorage.removeItem('csp_refresh_token');
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        dispatch({ type: 'auth/logoutCSP/fulfilled', payload: null });
       }
-      router.replace('/login');
+      console.log('✅ Sidebar logout: Completed successfully');
     } catch (error) {
-      console.error('Logout failed:', error);
-      // Force redirect even if logout fails
-      router.replace('/login');
+      console.error('❌ Sidebar logout failed:', error);
     }
   };
 
   const initial = user?.name?.[0]?.toUpperCase() || 'U';
 
   return (
-    <aside className="flex flex-col w-[260px] min-w-[260px] h-screen bg-[#0f2744] overflow-hidden">
-
-      {/* ✅ Scrollable Nav */}
-      <nav
-        className="flex-1 overflow-x-hidden py-[14px]"
+    <>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onToggleMobile}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`flex flex-col h-screen bg-[#0f2744] overflow-hidden lg:z-50 z-[60] transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 w-[260px] lg:relative lg:translate-x-0 lg:w-[260px] lg:min-w-[260px]
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
       >
+
+        {/* Mobile close button */}
+        <button
+          onClick={onToggleMobile}
+          className="absolute top-3 right-3 p-1.5 text-white/50 hover:text-white lg:hidden z-10"
+          aria-label="Close menu"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+
+        {/* ✅ Scrollable Nav */}
+        <nav
+          className="flex-1 overflow-x-hidden overflow-y-auto py-[14px]"
+        >
 
         {/* ✅ Brand Logo */}
         <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-white/[0.08] flex-shrink-0">
@@ -228,5 +280,6 @@ export default function Sidebar() {
         </div>
       </nav>
     </aside>
+    </>
   );
 }

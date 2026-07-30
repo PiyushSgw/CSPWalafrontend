@@ -76,12 +76,12 @@ export default function ConfirmPrint({
           </div>
         )}
 
-        <div className="flex gap-3 justify-center mt-5 flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mt-5 flex-wrap">
           <button
             type="button"
             onClick={onBack}
             disabled={loading}
-            className="px-5 py-2.5 border-[1.5px] border-gray-300 rounded-lg text-[13px] font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full sm:w-auto px-5 py-2.5 border-[1.5px] border-gray-300 rounded-lg text-[13px] font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all order-2 sm:order-1"
           >
             {loading ? 'Please wait...' : '← Edit Details'}
           </button>
@@ -90,7 +90,7 @@ export default function ConfirmPrint({
             type="button"
             onClick={onConfirm}
             disabled={!canPrint}
-            className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-[13px] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full sm:w-auto px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-[13px] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all order-1 sm:order-2"
           >
             {loading ? 'Processing...' : '✅ Confirm & Print PDF'}
           </button>

@@ -5,7 +5,7 @@ const actions = [
     icon: "📖",
     name: "Print Passbook",
     desc: "Enter customer details and print passbook PDF",
-    price: "₹5 / print",
+    price: "₹0.20 / print",
     priceClass: "text-green-700",
     href: "/passbook",
   },
@@ -13,7 +13,7 @@ const actions = [
     icon: "📋",
     name: "Account Opening Form",
     desc: "Fill and print bank account opening form",
-    price: "₹10 / print",
+    price: "₹0.10 / print",
     priceClass: "text-green-700",
     href: "/account-opening",
   },
@@ -21,7 +21,7 @@ const actions = [
     icon: "🔗",
     name: "Combo Print",
     desc: "Form + Passbook together at discounted rate",
-    price: "₹13 combo",
+    price: "₹0.30 combo",
     priceClass: "text-green-700",
     href: "/account-opening",
   },
@@ -57,7 +57,7 @@ export default function QuickActions() {
       <h2 className="text-[14px] font-bold text-slate-800 mb-3 flex items-center gap-2">
         ⚡ Quick Actions
       </h2>
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
         {actions.map((a) => (
           <a
             key={a.name}

@@ -12,12 +12,16 @@ export interface AccountOpeningFormData {
   account_type: string;
 
   // Personal Details
+  title: string;
   first_name: string;
   middle_name: string;
   last_name: string;
   full_name: string;
   marital_status: string;
   father_name: string;
+  father_first_name: string;
+  father_middle_name: string;
+  father_last_name: string;
   mother_name: string;
   dob: string;
   gender: string;
@@ -47,14 +51,28 @@ export interface AccountOpeningFormData {
   state: string;
   country: string;
   address: string;
+  landmark: string;
 
   // Nomination
   nominee_name: string;
+  nominee_title: string;
+  nominee_first_name: string;
+  nominee_middle_name: string;
+  nominee_last_name: string;
   nominee_mobile: string;
   nominee_relation: string;
   nominee_address: string;
+  nominee_address_same?: boolean;
   nominee_age: string;
   nominee_dob: string;
+  nominee_house_no: string;
+  nominee_street: string;
+  nominee_landmark: string;
+  nominee_city: string;
+  nominee_district: string;
+  nominee_state: string;
+  nominee_pin: string;
+  nominee_phone: string;
 
   // Optional Details
   ckyc_number: string;
@@ -66,6 +84,8 @@ export interface AccountOpeningFormData {
   politically_exposed: string;
   printer_type: string;
   place_of_birth: string;
+  witness_name: string;
+  witness_address: string;
 
   // Services
   cheque_book: boolean;
@@ -79,9 +99,15 @@ export interface AccountOpeningFormData {
   account_number: string;
   branch_name: string;
   place: string;
+  cif: string;
+  bc_name: string;
+  bc_code: string;
+  employee_code: string;
+  pa_rp_no: string;
 
   // Media
   include_passbook: boolean;
+  include_apy: boolean;
   status: string;
   photo_url: string;
   signature_url: string;
@@ -135,12 +161,16 @@ const initialState: AccountOpeningState = {
     bank_id: null,
     branch_id: null,
     account_type: '',
+    title: '',
     first_name: '',
     middle_name: '',
     last_name: '',
     full_name: '',
     marital_status: '',
     father_name: '',
+    father_first_name: '',
+    father_middle_name: '',
+    father_last_name: '',
     mother_name: '',
     dob: '',
     gender: '',
@@ -166,12 +196,26 @@ const initialState: AccountOpeningState = {
     state: '',
     country: 'India',
     address: '',
+    landmark: '',
     nominee_name: '',
+    nominee_title: '',
+    nominee_first_name: '',
+    nominee_middle_name: '',
+    nominee_last_name: '',
     nominee_mobile: '',
     nominee_relation: 'FATHER',
     nominee_address: '',
+    nominee_address_same: false,
     nominee_age: '',
     nominee_dob: '',
+    nominee_house_no: '',
+    nominee_street: '',
+    nominee_landmark: '',
+    nominee_city: '',
+    nominee_district: '',
+    nominee_state: '',
+    nominee_pin: '',
+    nominee_phone: '',
     ckyc_number: '',
     date: new Date().toISOString().split('T')[0],
     permanent_address_type: 'RESIDENTIAL/BUSINESS',
@@ -181,6 +225,8 @@ const initialState: AccountOpeningState = {
     politically_exposed: 'NONE',
     printer_type: '',
     place_of_birth: '',
+    witness_name: '',
+    witness_address: '',
     cheque_book: false,
     atm_card_required: false,
     branch_code: '',
@@ -190,7 +236,13 @@ const initialState: AccountOpeningState = {
     account_number: '',
     branch_name: '',
     place: '',
+    cif: '',
+    bc_name: '',
+    bc_code: '',
+    employee_code: '',
+    pa_rp_no: '',
     include_passbook: false,
+    include_apy: false,
     status: 'pending',
     photo_url: '',
     signature_url: '',
@@ -252,8 +304,21 @@ export const createApplication = createAsyncThunk<CreateApplicationResponse, Acc
     }
   }
 );
+export interface DownloadPdfResult {
+  success: true;
+  filename: string;
+  charge: number;
+  balance: number | null;
+  previousBalance: number | null;
+}
 
-export const downloadApplicationPdf = createAsyncThunk<{ success: true; filename: string }, number | string, { rejectValue: string }>(
+const num = (v: unknown): number | null => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+export const downloadApplicationPdf = createAsyncThunk<DownloadPdfResult, number | string, { rejectValue: string }>(
   'accountOpening/downloadApplicationPdf',
   async (applicationId, { rejectWithValue }) => {
     try {
@@ -272,8 +337,23 @@ export const downloadApplicationPdf = createAsyncThunk<{ success: true; filename
       link.href = fileURL; link.download = filename;
       document.body.appendChild(link); link.click(); link.remove();
       window.URL.revokeObjectURL(fileURL);
-      return { success: true, filename };
+      return {
+        success: true,
+        filename,
+        charge: num(response.headers['x-print-charge']) ?? 0,
+        balance: num(response.headers['x-wallet-balance']),
+        previousBalance: num(response.headers['x-wallet-previous']),
+      };
     } catch (error: any) {
+      // Error responses also arrive as a Blob (responseType: 'blob'); read the
+      // JSON body out of it so messages like "insufficient balance" surface.
+      const data = error?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const parsed = JSON.parse(await data.text());
+          if (parsed?.message) return rejectWithValue(parsed.message);
+        } catch { /* fall through to status-based messages */ }
+      }
       if (error?.response?.status === 401) return rejectWithValue('Unauthorized. Token missing or invalid.');
       if (error?.response?.status === 403) return rejectWithValue('Forbidden. You do not have access.');
       if (error?.response?.status === 404) return rejectWithValue('Application PDF not found.');
@@ -317,6 +397,16 @@ const accountOpeningSlice = createSlice({
       state: AccountOpeningState,
       action: PayloadAction<{ field: K; value: AccountOpeningFormData[K] }>
     ) { state.formData[action.payload.field] = action.payload.value; },
+    // Bulk-update many formData fields at once in a single atomic action.
+    // Used by CustomerSearchBar to autofill several fields (name, mobile,
+    // account number, address, etc.) from a selected customer record
+    // without firing one dispatch per field.
+    applyCustomerToFormData(
+      state: AccountOpeningState,
+      action: PayloadAction<Partial<AccountOpeningFormData>>
+    ) {
+      state.formData = { ...state.formData, ...action.payload };
+    },
     resetSubmitState(state) { state.previewError = null; state.submitError = null; state.submitSuccess = null; state.pdfError = null; },
     resetCustomerLookup(state) { state.customerNotFound = false; state.formData.customer_id = null; },
     setCustomerLookupStatus(state, action: PayloadAction<boolean>) { state.customerNotFound = action.payload; },
@@ -360,6 +450,7 @@ export const {
   setCustomerNotFound, setCustomerId, setBankId, setBranchId,
   updateFormField, resetSubmitState, resetCustomerLookup,
   setCustomerLookupStatus, addHistoryItem, resetAccountOpeningState,
+  applyCustomerToFormData,
 } = accountOpeningSlice.actions;
 
 export default accountOpeningSlice.reducer;

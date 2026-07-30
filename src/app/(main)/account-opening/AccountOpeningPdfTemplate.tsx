@@ -42,12 +42,14 @@ interface AccountOpeningPdfTemplateProps {
     country?: string;
     address?: string;
     aadhaar?: string;
+    nominee_title?: string;
     nominee_name?: string;
     nominee_relation?: string;
     nominee_dob?: string;
     nominee_mobile?: string;
     nominee_address?: string;
     nominee_age?: string;
+    cif?: string;
     ckyc_number?: string;
     date?: string;
     permanent_address_type?: string;
@@ -57,6 +59,8 @@ interface AccountOpeningPdfTemplateProps {
     politically_exposed?: string;
     printer_type?: string;
     place_of_birth?: string;
+    witness_name?: string;
+    witness_address?: string;
     account_type?: string;
     cheque_book?: boolean;
     atm_card_required?: boolean;
@@ -329,6 +333,11 @@ export default function AccountOpeningPdfTemplate({
           {/* Nomination */}
           <SectionHeader checked>Nomination Required</SectionHeader>
           <div className="pdf-grid-4">
+            <PreviewField
+              label="Nominee Title"
+              value={formData.nominee_title}
+              placeholder="Not selected"
+            />
             <PreviewField label="Nominee Name" value={formData.nominee_name} />
             <PreviewField
               label="Mobile"
@@ -340,13 +349,13 @@ export default function AccountOpeningPdfTemplate({
               value={formData.nominee_relation}
               placeholder="Not entered"
             />
+          </div>
+          <div className="pdf-grid">
             <PreviewField
               label="Nominee Address"
               value={formData.nominee_address}
               placeholder="Not entered"
             />
-          </div>
-          <div className="pdf-grid">
             <PreviewField
               label="Nominee Age"
               value={formData.nominee_age}
@@ -400,6 +409,16 @@ export default function AccountOpeningPdfTemplate({
               value={formData.place_of_birth}
               placeholder="Not entered"
             />
+            <PreviewField
+              label="Witness Name"
+              value={formData.witness_name}
+              placeholder="Not entered"
+            />
+            <PreviewField
+              label="Witness Address"
+              value={formData.witness_address}
+              placeholder="Not entered"
+            />
           </div>
 
           {/* Services */}
@@ -448,7 +467,7 @@ export default function AccountOpeningPdfTemplate({
             />
           </div>
           <div className="pdf-grid-4">
-            <PreviewField label="Customer ID" value={formData.customer_id} />
+            <PreviewField label="Customer ID / CIF" value={formData.cif} placeholder="Not entered" />
             <PreviewField
               label="Account Number"
               value={formData.account_number}

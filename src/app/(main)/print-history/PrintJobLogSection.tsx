@@ -1,9 +1,15 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
+
 import { useAppSelector } from "../../../redux/hooks";
 import { PrintJobRow } from "./PrintJobRow";
 import type { PrintHistoryFilter } from "./PrintHistoryFilterBar";
+import type { MappedPrintJob } from "./printHistory";
 
 interface Props {
   currentPage: number;
@@ -11,6 +17,9 @@ interface Props {
   activeFilter: PrintHistoryFilter;
   startDate: string;
   endDate: string;
+  onFilteredDataChange?: (
+    jobs: MappedPrintJob[]
+  ) => void;
 }
 
 export const PrintJobLogSection: React.FC<Props> = ({
@@ -19,20 +28,28 @@ export const PrintJobLogSection: React.FC<Props> = ({
   activeFilter,
   startDate,
   endDate,
+  onFilteredDataChange,
 }) => {
-  const { mappedList, meta, loading, error } = useAppSelector(
-    (s) => s.printHistory
-  );
+  const {
+    mappedList,
+    meta,
+    loading,
+    error,
+  } = useAppSelector((s) => s.printHistory);
 
   const [search, setSearch] = useState("");
 
+  // FILTERED LIST
   const filteredList = useMemo(() => {
     const q = search.trim().toLowerCase();
 
     let baseList = mappedList;
 
+    // TYPE FILTER
     if (activeFilter === "Passbooks") {
-      baseList = mappedList.filter((job) => job.type === "Passbook");
+      baseList = mappedList.filter(
+        (job) => job.type === "Passbook"
+      );
     } else if (activeFilter === "Forms") {
       baseList = mappedList.filter(
         (job) =>
@@ -41,56 +58,111 @@ export const PrintJobLogSection: React.FC<Props> = ({
           job.type === "Jan Dhan"
       );
     } else if (activeFilter === "Combo") {
-      // ✅ FIXED: Only use types that exist in job.type union
-      baseList = mappedList.filter((job) => job.type === "Combo");
+      baseList = mappedList.filter(
+        (job) => job.type === "Combo"
+      );
     }
 
-    // NEW: date filter
+    // DATE FILTER
     if (startDate || endDate) {
       baseList = baseList.filter((job) => {
         const rawDate = String(
-          job.createdAtRaw ?? job.dateTime ?? ""
+          job.createdAtRaw ??
+          job.dateTime ??
+          ""
         ).trim();
 
         const jobDate = new Date(rawDate);
-        if (Number.isNaN(jobDate.getTime())) return false;
+
+        if (
+          Number.isNaN(jobDate.getTime())
+        ) {
+          return false;
+        }
 
         if (startDate) {
-          const start = new Date(`${startDate}T00:00:00`);
-          if (jobDate < start) return false;
+          const start = new Date(
+            `${startDate}T00:00:00`
+          );
+
+          if (jobDate < start) {
+            return false;
+          }
         }
 
         if (endDate) {
-          const end = new Date(`${endDate}T23:59:59.999`);
-          if (jobDate > end) return false;
+          const end = new Date(
+            `${endDate}T23:59:59.999`
+          );
+
+          if (jobDate > end) {
+            return false;
+          }
         }
 
         return true;
       });
     }
 
-    if (!q) return baseList;
+    // SEARCH FILTER
+    if (!q) {
+      return baseList;
+    }
 
     return baseList.filter((job) => {
-      const jobId = String(job.id ?? "").toLowerCase();
-      const customer = String(job.customer ?? "").toLowerCase();
-      const normalizedId = jobId.replace(/[^a-z0-9]/gi, "");
+      const jobId = String(
+        job.id ?? ""
+      ).toLowerCase();
+
+      const customer = String(
+        job.customer ?? ""
+      ).toLowerCase();
+
+      const normalizedId = jobId.replace(
+        /[^a-z0-9]/gi,
+        ""
+      );
 
       return (
         customer.includes(q) ||
         jobId.includes(q) ||
-        normalizedId.includes(q.replace(/[^a-z0-9]/gi, ""))
+        normalizedId.includes(
+          q.replace(/[^a-z0-9]/gi, "")
+        )
       );
     });
-  }, [mappedList, search, activeFilter, startDate, endDate]);
+  }, [
+    mappedList,
+    search,
+    activeFilter,
+    startDate,
+    endDate,
+  ]);
+
+  // SEND FILTERED DATA TO PARENT
+  useEffect(() => {
+    if (onFilteredDataChange) {
+      onFilteredDataChange(filteredList);
+    }
+  }, [filteredList, onFilteredDataChange]);
 
   const total =
-    search.trim() || activeFilter !== "All Jobs" || startDate || endDate
+    search.trim() ||
+      activeFilter !== "All Jobs" ||
+      startDate ||
+      endDate
       ? filteredList.length
       : meta?.total ?? 0;
 
-  const from = total === 0 ? 0 : (currentPage - 1) * 20 + 1;
-  const to = Math.min(currentPage * 20, total);
+  const from =
+    total === 0
+      ? 0
+      : (currentPage - 1) * 20 + 1;
+
+  const to = Math.min(
+    currentPage * 20,
+    total
+  );
 
   return (
     <div className="card">
@@ -105,55 +177,74 @@ export const PrintJobLogSection: React.FC<Props> = ({
           flexWrap: "wrap",
         }}
       >
-        <div className="card-title">Print Job Log ({total})</div>
+        <div className="card-title">
+          Print Job Log ({total})
+        </div>
 
-        {/* SEARCH BOX */}
         <div
           style={{
-            position: "relative",
-            width: "100%",
-            maxWidth: 260,
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
           }}
         >
-          <div className="relative w-56">
-            <div className="w-full h-10 border border-gray-300 rounded-xl bg-white"></div>
 
-            <span
-              style={{
-                position: "absolute",
-                left: 14,
-                top: "50%",
-                transform: "translateY(-50%)",
-                fontSize: 14,
-                color: "var(--color-text-secondary)",
-                pointerEvents: "none",
-              }}
-            >
-              🔍
-            </span>
+          {/* SEARCH */}
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: 260,
+            }}
+          >
+            <div className="relative w-56">
+              <div className="w-full h-10 border border-gray-300 rounded-xl bg-white"></div>
 
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                onPageChange(1);
-              }}
-              placeholder="Search customer..."
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                padding: "0 14px 0 42px",
-                borderRadius: 12,
-                border: "none",
-                background: "transparent",
-                color: "var(--color-text-primary)",
-                fontSize: 14,
-                outline: "none",
-              }}
-            />
+              <span
+                style={{
+                  position: "absolute",
+                  left: 14,
+                  top: "50%",
+                  transform:
+                    "translateY(-50%)",
+                  fontSize: 14,
+                  color:
+                    "var(--color-text-secondary)",
+                  pointerEvents: "none",
+                }}
+              >
+                🔍
+              </span>
+
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => {
+                  setSearch(
+                    e.target.value
+                  );
+
+                  onPageChange(1);
+                }}
+                placeholder="Search customer..."
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  padding:
+                    "0 14px 0 42px",
+                  borderRadius: 12,
+                  border: "none",
+                  background:
+                    "transparent",
+                  color:
+                    "var(--color-text-primary)",
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -178,7 +269,14 @@ export const PrintJobLogSection: React.FC<Props> = ({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: "center", padding: 40 }}>
+                <td
+                  colSpan={9}
+                  style={{
+                    textAlign:
+                      "center",
+                    padding: 40,
+                  }}
+                >
                   Loading...
                 </td>
               </tr>
@@ -187,22 +285,27 @@ export const PrintJobLogSection: React.FC<Props> = ({
                 <td
                   colSpan={9}
                   style={{
-                    textAlign: "center",
+                    textAlign:
+                      "center",
                     padding: 40,
-                    color: "var(--color-text-danger)",
+                    color:
+                      "var(--color-text-danger)",
                   }}
                 >
                   {error}
                 </td>
               </tr>
-            ) : filteredList.length === 0 ? (
+            ) : filteredList.length ===
+              0 ? (
               <tr>
                 <td
                   colSpan={9}
                   style={{
-                    textAlign: "center",
+                    textAlign:
+                      "center",
                     padding: 40,
-                    color: "var(--color-text-secondary)",
+                    color:
+                      "var(--color-text-secondary)",
                   }}
                 >
                   No print jobs found
@@ -210,7 +313,10 @@ export const PrintJobLogSection: React.FC<Props> = ({
               </tr>
             ) : (
               filteredList.map((job) => (
-                <PrintJobRow key={job.id} {...job} />
+                <PrintJobRow
+                  key={job.id}
+                  {...job}
+                />
               ))
             )}
           </tbody>
@@ -218,58 +324,93 @@ export const PrintJobLogSection: React.FC<Props> = ({
       </div>
 
       {/* PAGINATION */}
-      {meta && meta.totalPages > 1 && !search.trim() && !startDate && !endDate && (
-        <div
-          style={{
-            padding: "12px 16px",
-            borderTop: "0.5px solid var(--color-border-tertiary)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontSize: 12,
-          }}
-        >
-          <span>
-            Showing {from}–{to} of {total} jobs
-          </span>
+      {meta &&
+        meta.totalPages > 1 &&
+        !search.trim() &&
+        !startDate &&
+        !endDate && (
+          <div
+            style={{
+              padding:
+                "12px 16px",
+              borderTop:
+                "0.5px solid var(--color-border-tertiary)",
+              display: "flex",
+              justifyContent:
+                "space-between",
+              alignItems: "center",
+              fontSize: 12,
+            }}
+          >
+            <span>
+              Showing {from}–{to} of{" "}
+              {total} jobs
+            </span>
 
-          <div style={{ display: "flex", gap: 6 }}>
-            <button
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+              }}
             >
-              ← Prev
-            </button>
-
-            {Array.from(
-              { length: Math.min(5, meta.totalPages) },
-              (_, i) => i + 1
-            ).map((n) => (
               <button
-                key={n}
-                onClick={() => onPageChange(n)}
-                style={
-                  n === currentPage
-                    ? {
-                        background: "var(--color-background-info)",
-                        color: "var(--color-text-info)",
-                      }
-                    : {}
+                onClick={() =>
+                  onPageChange(
+                    currentPage - 1
+                  )
+                }
+                disabled={
+                  currentPage === 1
                 }
               >
-                {n}
+                ← Prev
               </button>
-            ))}
 
-            <button
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === meta.totalPages}
-            >
-              Next →
-            </button>
+              {Array.from(
+                {
+                  length: Math.min(
+                    5,
+                    meta.totalPages
+                  ),
+                },
+                (_, i) => i + 1
+              ).map((n) => (
+                <button
+                  key={n}
+                  onClick={() =>
+                    onPageChange(n)
+                  }
+                  style={
+                    n === currentPage
+                      ? {
+                        background:
+                          "var(--color-background-info)",
+                        color:
+                          "var(--color-text-info)",
+                      }
+                      : {}
+                  }
+                >
+                  {n}
+                </button>
+              ))}
+
+              <button
+                onClick={() =>
+                  onPageChange(
+                    currentPage + 1
+                  )
+                }
+                disabled={
+                  currentPage ===
+                  meta.totalPages
+                }
+              >
+                Next →
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 };

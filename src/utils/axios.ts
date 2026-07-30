@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
+import { triggerSessionExpired } from './sessionExpired'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
@@ -57,10 +58,7 @@ api.interceptors.response.use(
     if (!rt) {
       isRefreshing = false
       processQueue(new Error('No refresh token'), null)
-      if (typeof window !== 'undefined') {
-        localStorage.clear()
-        window.location.href = '/login'
-      }
+      triggerSessionExpired()
       return Promise.reject(error)
     }
 
@@ -79,6 +77,8 @@ api.interceptors.response.use(
       localStorage.setItem('csp_access_token', access)
       if (refresh) localStorage.setItem('csp_refresh_token', refresh)
 
+      document.cookie = `token=${access}; path=/; max-age=${60 * 60 * 24 * 7}`
+
       api.defaults.headers.common.Authorization = `Bearer ${access}`
       processQueue(null, access)
 
@@ -88,10 +88,7 @@ api.interceptors.response.use(
 
     } catch (err) {
       processQueue(err, null)
-      if (typeof window !== 'undefined') {
-        localStorage.clear()
-        window.location.href = '/login'
-      }
+      triggerSessionExpired()
       return Promise.reject(err)
     } finally {
       isRefreshing = false

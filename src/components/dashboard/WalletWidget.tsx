@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import api from '../../utils/axios'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '@/redux/store'
+import { fetchLedger, fetchRechargeRequests } from '@/redux/slices/walletSlice'
+import { fetchPrintHistory } from '@/redux/slices/printHistorySlice'
 
 type WalletLedgerResponse = {
   balance?: number
@@ -22,29 +23,59 @@ type WalletLedgerResponse = {
 
 export default function WalletWidget() {
   const router = useRouter()
-  const [data, setData] = useState<WalletLedgerResponse | null>(null)
-  const [loading, setLoading] = useState(true)
+  const dispatch = useDispatch()
+  const authState = useSelector((state: RootState) => state.auth);
   const dashboardState = useSelector((state: RootState) => state.dashboard);
-  const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
-  useEffect(() => {
-    // Get wallet balance instead of ledger for the widget
-    api
-      .get('/csp/wallet/balance')
-      .then(res => {
-        // Transform balance API response to match expected structure
-        setData({
-          balance: res.data.balance,
-          lastRecharge: null, // Can be enhanced later
-          transactions: [] // Can be enhanced later
-        })
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+  const walletState = useSelector((state: RootState) => state.wallet);
+  const printHistoryState = useSelector((state: RootState) => state.printHistory);
 
-  const balance = data?.balance || 0
-  const lastRecharge = data?.lastRecharge
-  const transactions = data?.transactions || []
+  const dashboardWalletBalance = dashboardState.stats?.walletBalance || 0;
+  const isAdmin = authState.isAdminAuthenticated;
+
+  useEffect(() => {
+    // Fetch wallet data for both admin and CSP users
+    dispatch(fetchLedger({ limit: 5 }) as any);
+    dispatch(fetchRechargeRequests({ limit: 3 }) as any);
+    dispatch(fetchPrintHistory({ limit: 5 }) as any);
+  }, [dispatch]);
+
+  // Get balance from dashboard for admin, from wallet for CSP
+  const balance = isAdmin ? dashboardWalletBalance : (walletState.balance?.balance || 0);
+
+  // Get last recharge from wallet state
+  const lastRecharge = walletState.rechargeRequests.length > 0
+    ? {
+      amount: walletState.rechargeRequests[0].amount,
+      date: walletState.rechargeRequests[0].date
+    }
+    : null;
+
+  // Show recharge transactions from ledger
+  const rechargeTransactions = walletState.ledger
+    .filter((tx: any) => tx.type === 'Credit' && (tx.desc?.toLowerCase().includes('recharge') || tx.desc?.toLowerCase().includes('credit')))
+    .slice(0, 5)
+    .map((tx: any) => ({
+      amount: tx.amount_raw,
+      icon: '💰',
+      name: tx.desc,
+      time: tx.dateTime
+    }));
+
+  // Show recent print history
+  const printHistoryTransactions = printHistoryState.mappedList
+    .slice(0, 5)
+    .map((job: any) => ({
+      amount: -job.rawCharge,
+      icon: '🖨️',
+      name: `${job.type} - ${job.customer}`,
+      time: job.dateTime
+    }));
+
+  // Combine both recharge and print history transactions
+  const transactions = [...rechargeTransactions, ...printHistoryTransactions];
+
+  const loading = walletState.loading || printHistoryState.loading;
+  const error = walletState.error || printHistoryState.error;
 
   return (
     <div className="flex flex-col gap-4">
@@ -62,13 +93,13 @@ export default function WalletWidget() {
 
         <div className="font-mono text-[40px] font-medium leading-none mb-1.5 relative">
           <span className="text-[22px] opacity-60 mr-1">₹</span>
-          {loading ? '...' : dashboardWalletBalance.toFixed(2)}
+          {loading ? '...' : error ? 'Error' : dashboardWalletBalance.toFixed(2)}
         </div>
 
         <p className="text-[12px] opacity-55 mb-5 relative">
-          {lastRecharge
+          {error ? error : (lastRecharge
             ? `Last recharged: ₹${lastRecharge.amount} on ${lastRecharge.date}`
-            : 'No recharge yet'}
+            : 'No recharge yet')}
         </p>
 
         <div className="flex gap-[10px] relative">
@@ -99,19 +130,20 @@ export default function WalletWidget() {
         <div className="px-4 py-[14px]">
           {loading ? (
             <div className="text-center text-[#6b7280] text-[13px] py-4">Loading...</div>
+          ) : error ? (
+            <div className="text-center text-[#dc2626] text-[13px] py-4">{error}</div>
           ) : transactions.length === 0 ? (
             <div className="text-center text-[#6b7280] text-[13px] py-4">No transactions yet</div>
           ) : (
             <div>
-              {transactions.map((tx, i) => (
+              {transactions.map((tx: any, i: number) => (
                 <div
                   key={i}
                   className="flex items-center gap-3 py-3 border-b border-[#e5e7eb] last:border-0"
                 >
                   <div
-                    className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-[15px] flex-shrink-0 ${
-                      tx.amount > 0 ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]'
-                    }`}
+                    className={`w-9 h-9 rounded-[9px] flex items-center justify-center text-[15px] flex-shrink-0 ${tx.amount > 0 ? 'bg-[#f0fdf4]' : 'bg-[#fef2f2]'
+                      }`}
                   >
                     {tx.icon}
                   </div>
@@ -124,11 +156,10 @@ export default function WalletWidget() {
                   </div>
 
                   <span
-                    className={`font-mono text-[14px] font-medium flex-shrink-0 ${
-                      tx.amount > 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'
-                    }`}
+                    className={`font-mono text-[14px] font-medium flex-shrink-0 ${tx.amount > 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'
+                      }`}
                   >
-                    {tx.amount > 0 ? '+' : '-'}₹{Math.abs(tx.amount)}
+                    {tx.amount > 0 ? '+' : '-'}₹{Math.abs(tx.amount).toFixed(2)}
                   </span>
                 </div>
               ))}

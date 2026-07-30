@@ -20,6 +20,7 @@ export default function LoginForm() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [navigating, setNavigating] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -35,6 +36,7 @@ export default function LoginForm() {
     const res = await dispatch(loginCSP(form));
     if (loginCSP.fulfilled.match(res)) {
       toast.success('Welcome back!');
+      setNavigating(true);
       router.push('/dashboard');
     } else {
       toast.error((res.payload as string) || 'Login failed');
@@ -42,7 +44,16 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen flex relative overflow-y-auto" style={{ background: '#f8fafc' }}>
+      {/* Navigation Loader Overlay */}
+      {navigating && (
+        <div className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="animate-spin w-10 h-10 text-green-600 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-gray-700">Redirecting to dashboard...</p>
+          </div>
+        </div>
+      )}
       {/* Left Panel */}
       <div className="hidden lg:flex flex-col w-2/5 p-12 justify-between" style={{ background: '#0f1629' }}>
         <div className="flex items-center gap-3">
@@ -62,7 +73,7 @@ export default function LoginForm() {
             Manage customers, print A5 passbooks, and handle wallet top-ups.
           </p>
           <div className="grid grid-cols-2 gap-3">
-            {[['60+', 'API Endpoints'], ['A5', 'PDF Format'], ['₹10', 'Per Print'], ['Instant', 'PDF Delivery']].map(([value, label]) => (
+            {[['60+', 'API Endpoints'], ['A5', 'PDF Format'], ['₹0.20', 'Per Print'], ['Instant', 'PDF Delivery']].map(([value, label]) => (
               <div key={label} className="rounded-xl p-3" style={{ background: '#1a2544' }}>
                 <p className="text-green-400 font-bold text-xl" style={{ fontFamily: 'Syne, sans-serif' }}>{value}</p>
                 <p className="text-slate-400 text-xs mt-0.5">{label}</p>

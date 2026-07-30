@@ -9,14 +9,25 @@ import authSlice from './slices/authslice';
 import printHistoryReducer from "./slices/printHistorySlice";
 import profileReducer from './slices/profileSlice'
 import accountOpeningReducer from './slices/accountOpeningSlice';
+import adminReducer from './slices/adminSlice';
+import serviceRequestReducer from './slices/serviceRequestSlice';
+import debitCardReducer from './slices/debitCardSlice';
+import apyReducer from './slices/apySlice';
+import locationReducer from './slices/locationSlice';
 
+const isServer = typeof window === 'undefined';
 
-import storage from 'redux-persist/lib/storage'; // localStorage
+const storage = isServer
+  ? {
+      getItem: async () => null,
+      setItem: async () => {},
+      removeItem: async () => {},
+    }
+  : require('redux-persist/lib/storage').default;
 
 const persistConfig = {
   key: 'auth',
   storage,
-  // ✅ Persist specific fields only
   whitelist: ['user', 'admin', 'isAuthenticated', 'isAdminAuthenticated'],
 };
 
@@ -32,6 +43,11 @@ export const store = configureStore({
     printHistory: printHistoryReducer,
     profile: profileReducer,
      accountOpening: accountOpeningReducer,
+     admin: adminReducer,
+     serviceRequest: serviceRequestReducer,
+     debitCard: debitCardReducer,
+     apy: apyReducer,
+     location: locationReducer,
 
   },
   middleware: (getDefault) => getDefault({ serializableCheck: false }),

@@ -14,6 +14,8 @@ interface User {
   csp_code: string
   wallet_balance: number
   status: string
+  pin_code?: string
+  address?: string
 }
 
 interface AdminUser {
@@ -37,19 +39,32 @@ interface AuthState {
   resetStep: 'send' | 'verify' | 'done'
 }
 
-// CSP Login (existing)
+// CSP Login — accepts mobile OR email.
+export interface LoginCSPPayload {
+  mobile?: string
+  email?: string
+  password: string
+  remember_me?: boolean
+}
+
 export const loginCSP = createAsyncThunk(
   'auth/loginCSP',
-  async (data: { email: string; password: string; remember_me?: boolean }, { rejectWithValue }) => {
+  async (data: LoginCSPPayload, { rejectWithValue }) => {
     try {
       const res = await api.post('/auth/login', data)
       const { access_token, refresh_token, user } = res.data.data
       localStorage.setItem('csp_access_token', access_token)
       localStorage.setItem('csp_refresh_token', refresh_token)
-      console.log(access_token);
+      // Middleware gates /dashboard on this cookie, so set it on every login.
+      if (typeof document !== 'undefined') {
+        document.cookie = `token=${access_token}; path=/; max-age=${60 * 60 * 24 * 7}`
+      }
       return user as User
     } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'CSP Login failed')
+      const msg = e.response?.data?.message || 'CSP Login failed';
+      const errs = e.response?.data?.errors;
+      const fullMsg = errs?.length ? `${msg}: ${errs.join(', ')}` : msg;
+      return rejectWithValue(fullMsg);
     }
   }
 )
@@ -98,7 +113,7 @@ export const fetchAdminProfile = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('admin_token')
-      const res = await fetch(`${API_BASE_URL}/admin/profile`, {
+      const res = await fetch(`${API_BASE_URL}/admin/auth/me`, {
         headers: { 'Authorization': `Bearer ${token!}` }
       })
       if (!res.ok) throw new Error('Failed to fetch profile')
@@ -118,21 +133,17 @@ export const logoutCSP = createAsyncThunk('auth/logoutCSP', async () => {
   } catch {}
   localStorage.removeItem('csp_access_token')
   localStorage.removeItem('csp_refresh_token')
+  if (typeof document !== 'undefined') {
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  }
 })
 
 export const initializeAuth = createAsyncThunk(
   'auth/initializeAuth',
-  async (_, { dispatch, getState }) => {    
-    const state = getState() as { auth: RootState['auth'] };
+  async (_, { dispatch }) => {
     const adminToken = localStorage.getItem('admin_token');
     const cspToken = localStorage.getItem('csp_access_token');
-    console.log('Initializing auth with tokens:', { adminToken, cspToken });
-    
-    // Skip if already authenticated
-    if (state.auth.isAuthenticated || state.auth.isAdminAuthenticated) {
-      return;
-    }
-    
+
     if (adminToken) {
       await dispatch(fetchAdminProfile());
     } else if (cspToken) {
@@ -163,7 +174,10 @@ export const registerCSP = createAsyncThunk(
       const res = await api.post('/auth/register', data)
       return res.data
     } catch (e: any) {
-      return rejectWithValue(e.response?.data?.message || 'Registration failed')
+      const msg = e.response?.data?.message || 'Registration failed';
+      const errs = e.response?.data?.errors;
+      const fullMsg = errs?.length ? `${msg}: ${errs.join(', ')}` : msg;
+      return rejectWithValue(fullMsg);
     }
   }
 )

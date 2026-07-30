@@ -13,16 +13,26 @@ export interface Customer {
   branch_name: string | null;
 }
 
+
+
+// This file defines the MappedCustomer interface that should be in your customer.ts or types file
+
 export interface MappedCustomer {
-  account_number: any;
   id: number;
   name: string;
   mobile: string;
+  account_number: string;
   accountShort: string;
   bank: string;
   type: "Savings" | "Current" | "Jan Dhan";
   lastPrint: string;
-  fetchedAt: string; // ISO date saved during fetch
+  fetchedAt: string;
+  // NEW FIELDS
+  aadhar_number?: string;
+  address?: string;
+  pin_code?: string;
+  ifsc?: string;
+  opening_balance?: number;
 }
 
 export interface ApiMeta {

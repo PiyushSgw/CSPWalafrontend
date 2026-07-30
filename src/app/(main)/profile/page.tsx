@@ -103,6 +103,7 @@ export default function ProfilePage() {
         await profileHook.updatePersonalInfo({
           name: fullName,
           mobile: personalForm.mobile,
+          email: personalForm.email,
           location: personalForm.address,
         });
 
@@ -186,6 +187,7 @@ export default function ProfilePage() {
     <div className="profile-page">
       <PageHeaderSection
         onSave={handleSave}
+        onChangePassword={() => setActiveTab("pt-security")}
         saving={saving}
         loading={profileHook.loading}
       />

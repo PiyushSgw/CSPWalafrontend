@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { fetchCustomers } from "@/redux/slices/customersSlice";
+import { fetchAddressFromPincode } from "@/utils/pincode";
 import {
   updateFormField,
   setCustomerId,
@@ -115,6 +116,7 @@ type Customer = {
   pan?: string;
   occupation?: string;
   nominee_name?: string;
+  nominee_title?: string;
   nominee_relation?: string;
   nominee_dob?: string;
   nominee_mobile?: string;
@@ -144,20 +146,11 @@ export default function CustomerDetailsForm() {
 
   const [nominationOpen, setNominationOpen] = useState(true);
   const [optionalOpen, setOptionalOpen] = useState(false);
-  const [bankUseOpen, setBankUseOpen] = useState(false);
+  const [bankUseOpen, setBankUseOpen] = useState(true);
 
   useEffect(() => {
     if (!customers.length) dispatch(fetchCustomers({ page: 1, limit: 1000 }));
   }, [dispatch, customers.length]);
-
-  useEffect(() => {
-    return () => {
-      if (formData.photo_url?.startsWith("blob:"))
-        URL.revokeObjectURL(formData.photo_url);
-      if (formData.signature_url?.startsWith("blob:"))
-        URL.revokeObjectURL(formData.signature_url);
-    };
-  }, []);
 
   const set = <K extends keyof typeof formData>(
     field: K,
@@ -167,15 +160,32 @@ export default function CustomerDetailsForm() {
   const syncFullName = (first: string, middle: string, last: string) =>
     set("full_name", [first, middle, last].filter(Boolean).join(" "));
 
+  // Father's & nominee's names are entered in three columns but stored as a
+  // single combined string (the PDF splits it back into First/Middle/Last).
+  const syncFatherName = (first: string, middle: string, last: string) =>
+    set("father_name", [first, middle, last].filter(Boolean).join(" "));
+  const syncNomineeName = (first: string, middle: string, last: string) =>
+    set("nominee_name", [first, middle, last].filter(Boolean).join(" "));
+
   const fillCustomer = (c: Customer) => {
     dispatch(setCustomerId(c.id as number));
+    const splitName = (v?: string) => {
+      const parts = String(v ?? "").trim().split(/\s+/).filter(Boolean);
+      return { first: parts[0] ?? "", middle: parts.length > 2 ? parts[1] : "", last: parts.length > 1 ? parts.slice(parts.length > 2 ? 2 : 1).join(" ") : "" };
+    };
+    const fatherParts = splitName(c.father_name);
+    const nomineeParts = splitName(c.nominee_name);
     const fields: Partial<typeof formData> = {
       customer_id: c.id as number,
+      cif: "",
       full_name: c.full_name ?? "",
       first_name: c.first_name ?? "",
       middle_name: c.middle_name ?? "",
       last_name: c.last_name ?? "",
       father_name: c.father_name ?? "",
+      father_first_name: fatherParts.first,
+      father_middle_name: fatherParts.middle,
+      father_last_name: fatherParts.last,
       mother_name: c.mother_name ?? "",
       dob: c.dob ?? "",
       gender: c.gender ?? "",
@@ -196,6 +206,10 @@ export default function CustomerDetailsForm() {
       annual_income: c.annual_income ?? "",
       net_worth: c.net_worth ?? "",
       nominee_name: c.nominee_name ?? "",
+      nominee_title: c.nominee_title ?? "",
+      nominee_first_name: nomineeParts.first,
+      nominee_middle_name: nomineeParts.middle,
+      nominee_last_name: nomineeParts.last,
       nominee_relation: c.nominee_relation ?? "FATHER",
       nominee_dob: c.nominee_dob ?? "",
       nominee_mobile: c.nominee_mobile ?? "",
@@ -244,13 +258,93 @@ export default function CustomerDetailsForm() {
   ) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
-    const cur = formData[field];
-    if (cur?.startsWith("blob:")) URL.revokeObjectURL(cur);
-    set(field, URL.createObjectURL(file));
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      set(field, reader.result as string); // base64 data URI
+    };
+    reader.readAsDataURL(file);
+
     e.target.value = "";
   };
 
+  // Toggle: copy applicant address into nominee address, or clear sync flag
+  const handleNomineeAddressSameToggle = (checked: boolean) => {
+    set("nominee_address_same" as any, checked as any);
+    if (checked) {
+      set("nominee_address", formData.address);
+      set("nominee_house_no", formData.address_line1);
+      set("nominee_street", formData.address_line2);
+      set("nominee_landmark", (formData as any).landmark ?? "");
+      set("nominee_city", formData.city);
+      set("nominee_district", formData.district);
+      set("nominee_state", formData.state);
+      set("nominee_pin", formData.pin);
+    }
+  };
+
   const showPassportDates = PASSPORT_LIKE.includes(formData.proof_of_identity);
+
+  const handlePermanentPincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const pin = e.target.value.replace(/\D/g, "").slice(0, 6);
+
+    set("pin", pin);
+
+    if (pin.length !== 6) return;
+
+    const address = await fetchAddressFromPincode(pin);
+
+    if (!address) {
+      alert("Invalid Pincode");
+      return;
+    }
+
+    set("city", address.city);
+    set("district", address.district);
+    set("state", address.state);
+    set("country", address.country);
+  };
+
+  const handleCurrentPincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const pin = e.target.value.replace(/\D/g, "").slice(0, 6);
+
+    set("current_pin" as any, pin);
+
+    if (pin.length !== 6) return;
+
+    const address = await fetchAddressFromPincode(pin);
+
+    if (!address) {
+      alert("Invalid Pincode");
+      return;
+    }
+
+    set("current_city" as any, address.city);
+    set("current_district" as any, address.district);
+    set("current_state" as any, address.state);
+    set("current_country" as any, address.country);
+  };
+
+  const handleNomineePincodeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (formData.nominee_address_same) return;
+
+    const pin = e.target.value.replace(/\D/g, "").slice(0, 6);
+
+    set("nominee_pin", pin);
+
+    if (pin.length !== 6) return;
+
+    const address = await fetchAddressFromPincode(pin);
+
+    if (!address) {
+      alert("Invalid Pincode");
+      return;
+    }
+
+    set("nominee_city", address.city);
+    set("nominee_district", address.district);
+    set("nominee_state", address.state);
+  };
 
   return (
     <>
@@ -323,6 +417,7 @@ export default function CustomerDetailsForm() {
 
         /* ── Grids ── */
         .cdf-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+        .cdf-grid-5 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
         .cdf-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
         .cdf-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
         .cdf-grid-2-sm { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; max-width: 340px; }
@@ -411,6 +506,27 @@ export default function CustomerDetailsForm() {
           accent-color: var(--teal);
         }
 
+        /* ── Inline checkbox label (e.g. nominee address same) ── */
+        .cdf-inline-check-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #374151;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          cursor: pointer;
+          height: 100%;
+          padding-top: 18px;
+        }
+        .cdf-inline-checkbox {
+          width: 15px;
+          height: 15px;
+          accent-color: var(--teal);
+          cursor: pointer;
+        }
+
         /* ── Image preview ── */
         .cdf-img-preview {
           margin-top: 8px;
@@ -428,6 +544,20 @@ export default function CustomerDetailsForm() {
         <div className="cdf-section-banner">Personal Details</div>
 
         <div className="cdf-grid-4">
+          <div className="cdf-group">
+            <label className="cdf-label">Title</label>
+            <select
+              className="cdf-select"
+              value={formData.title}
+              onChange={(e) => set("title", e.target.value)}
+            >
+              <option value="">SELECT</option>
+              <option value="MR.">MR.</option>
+              <option value="MRS.">MRS.</option>
+              <option value="MS.">MS.</option>
+              <option value="DR.">DR.</option>
+            </select>
+          </div>
           <div className="cdf-group">
             <label className="cdf-label">
               First Name <span className="req">*</span>
@@ -477,6 +607,10 @@ export default function CustomerDetailsForm() {
               }}
             />
           </div>
+          
+        </div>
+
+        <div className="cdf-grid-4">
           <div className="cdf-group">
             <label className="cdf-label">Marital Status</label>
             <select
@@ -492,27 +626,50 @@ export default function CustomerDetailsForm() {
               ))}
             </select>
           </div>
-        </div>
-
-        <div className="cdf-grid-2">
           <div className="cdf-group">
             <label className="cdf-label">
-              Father Name <span className="req">*</span>
+              Father First Name <span className="req">*</span>
             </label>
             <input
               className="cdf-input"
-              value={formData.father_name}
-              onChange={(e) => set("father_name", e.target.value)}
+              value={formData.father_first_name}
+              onChange={(e) => {
+                set("father_first_name", e.target.value);
+                syncFatherName(e.target.value, formData.father_middle_name, formData.father_last_name);
+              }}
             />
           </div>
           <div className="cdf-group">
+            <label className="cdf-label">Father Middle Name</label>
+            <input
+              className="cdf-input"
+              value={formData.father_middle_name}
+              onChange={(e) => {
+                set("father_middle_name", e.target.value);
+                syncFatherName(formData.father_first_name, e.target.value, formData.father_last_name);
+              }}
+            />
+          </div>
+          <div className="cdf-group">
+            <label className="cdf-label">Father Last Name</label>
+            <input
+              className="cdf-input"
+              value={formData.father_last_name}
+              onChange={(e) => {
+                set("father_last_name", e.target.value);
+                syncFatherName(formData.father_first_name, formData.father_middle_name, e.target.value);
+              }}
+            />
+          </div>
+          
+          {/* <div className="cdf-group">
             <label className="cdf-label">Mother Name</label>
             <input
               className="cdf-input"
               value={formData.mother_name}
               onChange={(e) => set("mother_name", e.target.value)}
             />
-          </div>
+          </div> */}
         </div>
 
         <div className="cdf-grid-4">
@@ -625,9 +782,7 @@ export default function CustomerDetailsForm() {
 
         <div className="cdf-grid-2">
           <div className="cdf-group">
-            <label className="cdf-label">
-              Email Address <span className="req">*</span>
-            </label>
+            <label className="cdf-label">Email Address (Optional)</label>
             <input
               type="email"
               className="cdf-input"
@@ -642,14 +797,15 @@ export default function CustomerDetailsForm() {
             <input
               type="tel"
               maxLength={10}
-              className={`cdf-input${customerNotFound ? " error" : ""}`}
+              className="cdf-input"
               value={formData.mobile}
               onChange={(e) => handleMobileChange(e.target.value)}
               onBlur={handleMobileBlur}
             />
             {customerNotFound && (
-              <p className="cdf-error">
-                Customer not found. Please register first.
+              <p className="cdf-hint" style={{ color: "#b45309" }}>
+                New customer — they'll be registered automatically when you
+                submit this form.
               </p>
             )}
             {customersLoading && <p className="cdf-hint">Loading customers…</p>}
@@ -697,7 +853,7 @@ export default function CustomerDetailsForm() {
               ))}
             </select>
           </div>
-          <div className="cdf-group">
+          {/* <div className="cdf-group">
             <label className="cdf-label">
               Document No. <span className="req">*</span>
             </label>
@@ -706,7 +862,7 @@ export default function CustomerDetailsForm() {
               value={formData.document_no}
               onChange={(e) => set("document_no", e.target.value)}
             />
-          </div>
+          </div> */}
         </div>
 
         {showPassportDates && (
@@ -782,7 +938,7 @@ export default function CustomerDetailsForm() {
           <input
             type="checkbox"
             checked={formData.same_address}
-            onChange={() => {}}
+            onChange={() => { }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />
@@ -799,6 +955,7 @@ export default function CustomerDetailsForm() {
             <input
               className="cdf-input"
               value={formData.address_line1}
+              maxLength={20}
               onChange={(e) => {
                 set("address_line1", e.target.value);
                 set(
@@ -815,6 +972,7 @@ export default function CustomerDetailsForm() {
             <input
               className="cdf-input"
               value={formData.address_line2}
+              maxLength={20}
               onChange={(e) => {
                 set("address_line2", e.target.value);
                 set(
@@ -831,6 +989,7 @@ export default function CustomerDetailsForm() {
             <input
               className="cdf-input"
               value={formData.city}
+              maxLength={25}
               onChange={(e) => set("city", e.target.value)}
             />
           </div>
@@ -840,19 +999,27 @@ export default function CustomerDetailsForm() {
               className="cdf-input"
               value={formData.pin}
               maxLength={6}
-              onChange={(e) =>
-                set("pin", e.target.value.replace(/\D/g, "").slice(0, 6))
-              }
+              onChange={handlePermanentPincodeChange}
             />
           </div>
         </div>
 
-        <div className="cdf-grid-3">
+        <div className="cdf-grid-4">
+          <div className="cdf-group">
+            <label className="cdf-label">Landmark</label>
+            <input
+              className="cdf-input"
+              value={(formData as any).landmark ?? ""}
+              maxLength={30}
+              onChange={(e) => set("landmark" as any, e.target.value)}
+            />
+          </div>
           <div className="cdf-group">
             <label className="cdf-label">District</label>
             <input
               className="cdf-input"
               value={formData.district}
+              maxLength={25}
               onChange={(e) => set("district", e.target.value)}
             />
           </div>
@@ -861,6 +1028,7 @@ export default function CustomerDetailsForm() {
             <input
               className="cdf-input"
               value={formData.state}
+              maxLength={20}
               onChange={(e) => set("state", e.target.value)}
             />
           </div>
@@ -903,6 +1071,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={(formData as any).current_address_line1 ?? ""}
+                  maxLength={20}
                   onChange={(e) =>
                     set("current_address_line1" as any, e.target.value)
                   }
@@ -913,6 +1082,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={(formData as any).current_address_line2 ?? ""}
+                  maxLength={20}
                   onChange={(e) =>
                     set("current_address_line2" as any, e.target.value)
                   }
@@ -923,30 +1093,36 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={(formData as any).current_city ?? ""}
+                  maxLength={25}
                   onChange={(e) => set("current_city" as any, e.target.value)}
                 />
               </div>
             </div>
             <div className="cdf-grid-4">
               <div className="cdf-group">
-                <label className="cdf-label">Pincode</label>
+                <label className="cdf-label">Landmark</label>
                 <input
                   className="cdf-input"
-                  value={(formData as any).current_pin ?? ""}
-                  maxLength={6}
-                  onChange={(e) =>
-                    set(
-                      "current_pin" as any,
-                      e.target.value.replace(/\D/g, "").slice(0, 6),
-                    )
-                  }
+                  value={(formData as any).current_landmark ?? ""}
+                  maxLength={30}
+                  onChange={(e) => set("current_landmark" as any, e.target.value)}
                 />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Pincode</label>
+                 <input
+              className="cdf-input"
+              value={(formData as any).current_pin ?? ""}
+              maxLength={6}
+              onChange={handleCurrentPincodeChange}
+            />
               </div>
               <div className="cdf-group">
                 <label className="cdf-label">District</label>
                 <input
                   className="cdf-input"
                   value={(formData as any).current_district ?? ""}
+                  maxLength={25}
                   onChange={(e) =>
                     set("current_district" as any, e.target.value)
                   }
@@ -957,6 +1133,7 @@ export default function CustomerDetailsForm() {
                 <input
                   className="cdf-input"
                   value={(formData as any).current_state ?? ""}
+                  maxLength={20}
                   onChange={(e) => set("current_state" as any, e.target.value)}
                 />
               </div>
@@ -1028,7 +1205,7 @@ export default function CustomerDetailsForm() {
           <input
             type="checkbox"
             checked={nominationOpen}
-            onChange={() => {}}
+            onChange={() => { }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />
@@ -1039,13 +1216,56 @@ export default function CustomerDetailsForm() {
           <>
             <div className="cdf-grid-4">
               <div className="cdf-group">
-                <label className="cdf-label">Nominee Name</label>
+                <label className="cdf-label">Nominee Title</label>
+                <select
+                  className="cdf-select"
+                  value={formData.nominee_title}
+                  onChange={(e) => set("nominee_title", e.target.value)}
+                >
+                  <option value="">SELECT</option>
+                  <option value="MR.">MR.</option>
+                  <option value="MRS.">MRS.</option>
+                  <option value="MS.">MS.</option>
+                  <option value="MISS">MISS</option>
+                  <option value="DR.">DR.</option>
+                </select>
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Nominee First Name</label>
                 <input
                   className="cdf-input"
-                  value={formData.nominee_name}
-                  onChange={(e) => set("nominee_name", e.target.value)}
+                  value={formData.nominee_first_name}
+                  onChange={(e) => {
+                    set("nominee_first_name", e.target.value);
+                    syncNomineeName(e.target.value, formData.nominee_middle_name, formData.nominee_last_name);
+                  }}
                 />
               </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Nominee Middle Name</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_middle_name}
+                  onChange={(e) => {
+                    set("nominee_middle_name", e.target.value);
+                    syncNomineeName(formData.nominee_first_name, e.target.value, formData.nominee_last_name);
+                  }}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Nominee Last Name</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_last_name}
+                  onChange={(e) => {
+                    set("nominee_last_name", e.target.value);
+                    syncNomineeName(formData.nominee_first_name, formData.nominee_middle_name, e.target.value);
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-3">
               <div className="cdf-group">
                 <label className="cdf-label">Mobile Number</label>
                 <input
@@ -1075,14 +1295,117 @@ export default function CustomerDetailsForm() {
                 </select>
               </div>
               <div className="cdf-group">
-                <label className="cdf-label">Nominee Address</label>
+                <label className="cdf-label">Phone No.</label>
                 <input
                   className="cdf-input"
-                  value={formData.nominee_address}
-                  onChange={(e) => set("nominee_address", e.target.value)}
+                  value={formData.nominee_phone}
+                  maxLength={20}
+                  onChange={(e) => set("nominee_phone", e.target.value)}
                 />
               </div>
             </div>
+
+            {/* Same as Applicant Address checkbox */}
+            <div className="cdf-grid-1">
+              <label className="cdf-inline-check-label" style={{ paddingTop: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={!!formData.nominee_address_same}
+                  onChange={(e) =>
+                    handleNomineeAddressSameToggle(e.target.checked)
+                  }
+                  className="cdf-inline-checkbox"
+                />
+                Nominee address same as Applicant address
+              </label>
+            </div>
+
+            <p className="cdf-sub-heading" style={{ marginTop: 8 }}>
+              Nominee Address
+            </p>
+
+            <div className="cdf-grid-2">
+              <div className="cdf-group">
+                <label className="cdf-label">House No.</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_house_no}
+                  maxLength={20}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_house_no", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Street</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_street}
+                  maxLength={20}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_street", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-2">
+              <div className="cdf-group">
+                <label className="cdf-label">Landmark</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_landmark}
+                  maxLength={20}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_landmark", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">City / Village</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_city}
+                  maxLength={25}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_city", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-2">
+              <div className="cdf-group">
+                <label className="cdf-label">District</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_district}
+                  maxLength={25}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_district", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">State</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_state}
+                  maxLength={20}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={(e) => set("nominee_state", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-2-sm">
+              <div className="cdf-group">
+                <label className="cdf-label">Pin</label>
+                <input
+                  className="cdf-input"
+                  value={formData.nominee_pin}
+                  maxLength={6}
+                  readOnly={!!formData.nominee_address_same}
+                  onChange={handleNomineePincodeChange}
+                />
+              </div>
+            </div>
+
             <div className="cdf-grid-2-sm">
               <div className="cdf-group">
                 <label className="cdf-label">Nominee Age</label>
@@ -1122,7 +1445,7 @@ export default function CustomerDetailsForm() {
           <input
             type="checkbox"
             checked={optionalOpen}
-            onChange={() => {}}
+            onChange={() => { }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />
@@ -1231,7 +1554,7 @@ export default function CustomerDetailsForm() {
               </div>
             </div>
 
-            <div className="cdf-grid-2">
+            <div className="cdf-grid-3">
               <div className="cdf-group">
                 <label className="cdf-label">Printer Type</label>
                 <select
@@ -1252,6 +1575,22 @@ export default function CustomerDetailsForm() {
                   className="cdf-input"
                   value={formData.place_of_birth}
                   onChange={(e) => set("place_of_birth", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Witness Name</label>
+                <input
+                  className="cdf-input"
+                  value={formData.witness_name}
+                  onChange={(e) => set("witness_name", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Witness Address</label>
+                <input
+                  className="cdf-input"
+                  value={formData.witness_address}
+                  onChange={(e) => set("witness_address", e.target.value)}
                 />
               </div>
             </div>
@@ -1293,7 +1632,7 @@ export default function CustomerDetailsForm() {
           <input
             type="checkbox"
             checked={bankUseOpen}
-            onChange={() => {}}
+            onChange={() => { }}
             className="cdf-toggle-checkbox"
             onClick={(e) => e.stopPropagation()}
           />
@@ -1304,63 +1643,6 @@ export default function CustomerDetailsForm() {
           <>
             <div className="cdf-grid-4">
               <div className="cdf-group">
-                <label className="cdf-label">Branch Code</label>
-                <input
-                  className="cdf-input"
-                  value={formData.branch_code}
-                  onChange={(e) => set("branch_code", e.target.value)}
-                />
-              </div>
-              <div className="cdf-group">
-                <label className="cdf-label">Official Name</label>
-                <input
-                  className="cdf-input"
-                  value={formData.official_name}
-                  onChange={(e) => set("official_name", e.target.value)}
-                />
-              </div>
-              <div className="cdf-group">
-                <label className="cdf-label">PF Number</label>
-                <input
-                  className="cdf-input"
-                  value={formData.pf_number}
-                  onChange={(e) => set("pf_number", e.target.value)}
-                />
-              </div>
-              <div className="cdf-group">
-                <label className="cdf-label">Designation</label>
-                <select
-                  className="cdf-select"
-                  value={formData.designation}
-                  onChange={(e) => set("designation", e.target.value)}
-                >
-                  {designationOptions.map((d) => (
-                    <option key={d} value={d === "DESIGNATION" ? "" : d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="cdf-grid-4">
-              <div className="cdf-group">
-                <label className="cdf-label">Customer ID</label>
-                <input
-                  className="cdf-input"
-                  value={formData.customer_id ?? ""}
-                  readOnly
-                />
-              </div>
-              <div className="cdf-group">
-                <label className="cdf-label">Account Number</label>
-                <input
-                  className="cdf-input"
-                  value={formData.account_number}
-                  onChange={(e) => set("account_number", e.target.value)}
-                />
-              </div>
-              <div className="cdf-group">
                 <label className="cdf-label">Branch Name</label>
                 <input
                   className="cdf-input"
@@ -1369,11 +1651,80 @@ export default function CustomerDetailsForm() {
                 />
               </div>
               <div className="cdf-group">
-                <label className="cdf-label">Place</label>
+                <label className="cdf-label">BC Name</label>
+                <input
+                  className="cdf-input"
+                  placeholder="BC / BF name"
+                  value={formData.bc_name}
+                  onChange={(e) => set("bc_name", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">BC Code</label>
+                <input
+                  className="cdf-input"
+                  value={formData.bc_code}
+                  onChange={(e) => set("bc_code", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">BC Location</label>
                 <input
                   className="cdf-input"
                   value={formData.place}
                   onChange={(e) => set("place", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-3">
+              <div className="cdf-group">
+                <label className="cdf-label">Employee Name</label>
+                <input
+                  className="cdf-input"
+                  value={formData.official_name}
+                  onChange={(e) => set("official_name", e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Employee Code</label>
+                <input
+                  className="cdf-input"
+                  placeholder="Employee code"
+                  value={(formData as any).employee_code ?? ""}
+                  onChange={(e) => set("employee_code" as any, e.target.value)}
+                />
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">P.A./R.P. No.</label>
+                <input
+                  className="cdf-input"
+                  placeholder="PA / RP number"
+                  value={(formData as any).pa_rp_no ?? ""}
+                  onChange={(e) => set("pa_rp_no" as any, e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="cdf-grid-2">
+              <div className="cdf-group">
+                <label className="cdf-label">Customer ID / CIF</label>
+                <input
+                  className="cdf-input"
+                  placeholder="Bank customer / CIF number"
+                  value={formData.cif}
+                  onChange={(e) => set("cif", e.target.value)}
+                />
+                <p className="cdf-hint" style={{ color: "#6b7280", fontSize: "10px", lineHeight: 1.3 }}>
+                  Enter the bank customer / CIF number manually. Leave blank if not available.
+                </p>
+              </div>
+              <div className="cdf-group">
+                <label className="cdf-label">Account Number</label>
+                <input
+                  className="cdf-input"
+                  value={formData.account_number}
+                  onChange={(e) => set("account_number", e.target.value)}
                 />
               </div>
             </div>
