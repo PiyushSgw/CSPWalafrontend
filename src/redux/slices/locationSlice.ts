@@ -1,7 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../utils/axios'
-import { clear } from 'console'
-
 interface LocationItem {
   name: string
 }
@@ -43,6 +41,7 @@ export const fetchStates = createAsyncThunk(
     }
   }
 )
+export const fetchDistricts = createAsyncThunk(
   'location/fetchDistricts',
   async (state: string, { rejectWithValue }) => {
     try {
@@ -82,10 +81,10 @@ const locationSlice = createSlice({
   name: 'location',
   initialState,
   reducers: {
-    clearDistricts: (state) => { state.districts = []; state.talukas = []; state.villages = []; state.pincode = []; },
+    clearDistricts: (state) => { state.districts = []; state.talukas = []; state.villages = []; state.pinCode = []; },
     clearTalukas: (state) => { state.talukas = []; state.villages = [] },
     clearVillages: (state) => { state.villages = [] },
-    clearPinCode: () => { state.pincode = []},
+    clearPinCode: (state) => { state.pinCode = []},
   },
   extraReducers: (builder) => {
     builder
