@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
 import { useWallet } from '@/hooks/useWallet'
 import { RazorpayButton } from '@/components/wallet/RazorpayButton'
-
+import { PaymentFailureModal } from '@/components/wallet/PaymentFailureModal'
+import { PaymentSuccessModal } from '@/components/wallet/PaymentSuccessModal'
 export const RechargeTabSection: React.FC<{
   paymentDetails: any
   loading: boolean
@@ -17,6 +18,9 @@ export const RechargeTabSection: React.FC<{
   const [utr, setUtr] = useState<string>('')
   const [paymentMethod, setPaymentMethod] = useState<string>('UPI')
   const [copying, setCopying] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false)
+  const [walletBalance, setWalletBalance] = useState<number>(0)
 
   useEffect(() => {
     if (selectedAmount !== 'custom' && selectedAmount !== paymentDetails?.amount) {
@@ -326,14 +330,17 @@ export const RechargeTabSection: React.FC<{
               <RazorpayButton
                 amount={enteredAmount}
                 onSuccess={(data) => {
+                  // Save latest wallet balance
+                  setWalletBalance(data.balance)
+
+                  // Refresh wallet in background
                   wallet.loadWallet()
-                  alert(`Payment successful! Wallet balance: ₹${data.balance}`)
-                  onClose()
+
+                  // Show success modal
+                  setPaymentSuccess(true)
                 }}
                 onError={(msg) => {
-                  if (msg !== 'Payment cancelled') {
-                    alert(msg)
-                  }
+                  setPaymentError(msg || 'Transaction failed')
                 }}
               />
             </div>
@@ -409,6 +416,19 @@ export const RechargeTabSection: React.FC<{
           </div>
         </div>
       </div>
+
+      <PaymentFailureModal
+        isOpen={!!paymentError}
+        reason={paymentError}
+        onRetry={() => setPaymentError(null)}
+        onClose={() => setPaymentError(null)}
+      />
+      <PaymentSuccessModal
+        isOpen={paymentSuccess}
+        onClose={() => setPaymentSuccess(false)}
+        walletBalance={walletBalance}
+        rechargeAmount={enteredAmount}
+      />
     </div>
   )
 }
