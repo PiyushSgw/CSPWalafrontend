@@ -202,10 +202,15 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
   }, [reg.email, emailOtpCode]);
 
   // ── Check if email is already verified on blur ──
-  const handleEmailBlur = useCallback(async () => {
+  const handleEmailBlur = useCallback(async (e?: React.FocusEvent<HTMLInputElement>) => {
     const email = reg.email.trim();
     if (!email || !isValidEmail(email)) return;
     if (emailVerified || emailSent) return;
+
+    // Skip the auto-check when the user is clicking the "Verify Email Address"
+    // button — otherwise the button unmounts mid-click and swallows the first click.
+    const relatedTarget = e?.relatedTarget as HTMLElement | null;
+    if (relatedTarget?.closest?.('[data-verify-email-btn]')) return;
 
     setEmailChecking(true);
     try {
@@ -560,16 +565,18 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                       setEmailOtpCode('');
                     }
                   }}
-                  onBlur={handleEmailBlur}
+                  onBlur={(e) => handleEmailBlur(e)}
                 />
                 {/* Email Verification Button & Status */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                  {!emailVerified && !emailSent && !emailChecking && (
+                  {!emailVerified && !emailSent && (
                     <button
                       type="button"
+                      data-verify-email-btn
                       onClick={handleSendEmailVerification}
                       disabled={
                         emailSending ||
+                        emailChecking ||
                         !reg.email.trim() ||
                         !isValidEmail(reg.email.trim()) 
                       }
@@ -578,34 +585,29 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
                         borderRadius: 10,
                         border: '1.5px solid #7c3aed',
                         backgroundColor:
-                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) 
+                          emailSending || emailChecking || !reg.email.trim() || !isValidEmail(reg.email.trim()) 
                             ? '#e2e8f0'
                             : '#7c3aed',
                         color:
-                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) 
+                          emailSending || emailChecking || !reg.email.trim() || !isValidEmail(reg.email.trim()) 
                             ? '#94a3b8'
                             : '#fff',
                         fontWeight: 600,
                         fontSize: '0.8rem',
                         cursor:
-                          emailSending || !reg.email.trim() || !isValidEmail(reg.email.trim()) 
+                          emailSending || emailChecking || !reg.email.trim() || !isValidEmail(reg.email.trim()) 
                             ? 'not-allowed'
                             : 'pointer',
                         whiteSpace: 'nowrap',
                         transition: 'all 0.2s',
                       }}
                     >
-                      {emailSending ? '...' : 'Verify Email Address'}
+                      {emailSending ? '...' : emailChecking ? 'Checking...' : 'Verify Email Address'}
                     </button>
                   )}
                   {emailVerified && (
                     <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '.85rem' }}>
                       ✔ Verified
-                    </span>
-                  )}
-                  {emailChecking && !emailVerified && (
-                    <span style={{ color: '#64748b', fontSize: '.82rem' }}>
-                      Checking...
                     </span>
                   )}
                   {!emailVerified && !emailSent && !emailChecking && (

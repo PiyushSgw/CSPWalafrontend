@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
 import { useWallet } from '@/hooks/useWallet'
+import { useAppDispatch } from '@/redux/hooks'
+import { fetchDashboardStats } from '@/redux/slices/dashboardSlice'
 import { RazorpayButton } from '@/components/wallet/RazorpayButton'
 import { PaymentFailureModal } from '@/components/wallet/PaymentFailureModal'
 import { PaymentSuccessModal } from '@/components/wallet/PaymentSuccessModal'
@@ -12,6 +14,7 @@ export const RechargeTabSection: React.FC<{
   onClearError: () => void
 }> = ({ paymentDetails, loading, error, onClose, onSubmit, onClearError }) => {
   const wallet = useWallet()
+  const dispatch = useAppDispatch()
 
   const [selectedAmount, setSelectedAmount] = useState<number | 'custom'>(500)
   const [enteredAmount, setEnteredAmount] = useState<number>(500)
@@ -335,6 +338,10 @@ export const RechargeTabSection: React.FC<{
 
                   // Refresh wallet in background
                   wallet.loadWallet()
+
+                  // Refresh dashboard stats so sidebar/header/dashboard
+                  // show the new balance instantly everywhere
+                  dispatch(fetchDashboardStats())
 
                   // Show success modal
                   setPaymentSuccess(true)
