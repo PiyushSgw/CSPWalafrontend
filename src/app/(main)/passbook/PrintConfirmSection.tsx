@@ -1,8 +1,8 @@
 'use client'
 
-import { Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
+import { Loader2, ArrowLeft, CheckCircle, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { printPassbook, setWizardStep } from '@/redux/slices/passbookSlice'
 import { fetchDashboardStats } from '@/redux/slices/dashboardSlice'
@@ -22,8 +22,23 @@ const maskAccount = (value?: string) => {
 // TODO: TESTING ONLY – remove after wallet integration
 const BYPASS_WALLET_FOR_TESTING = false
 
+const normalizePdfUrl = (raw: string) => {
+  if (!raw) return ''
+  try {
+    const parsed = new URL(raw)
+    // Only decode for locally-served mock-S3 links; S3 presigned URLs must stay untouched.
+    if (parsed.pathname.includes('/mock-s3/')) {
+      parsed.pathname = decodeURIComponent(parsed.pathname)
+    }
+    return parsed.toString()
+  } catch {
+    return raw
+  }
+}
+
 export const PrintConfirmSection = () => {
   const dispatch = useAppDispatch()
+  const [pdfUrl, setPdfUrl] = useState('')
 
   const {
     selectedCustomer,
@@ -87,6 +102,8 @@ export const PrintConfirmSection = () => {
       })),
     }
 
+    setPdfUrl('')
+
     const result = await dispatch(printPassbook(payload))
 
     if (printPassbook.fulfilled.match(result)) {
@@ -113,12 +130,16 @@ export const PrintConfirmSection = () => {
         ''
 
       if (rawPdfUrl) {
-        try {
-          const parsed = new URL(rawPdfUrl)
-          parsed.pathname = decodeURIComponent(parsed.pathname)
-          window.open(parsed.toString(), '_blank')
-        } catch {
-          window.open(rawPdfUrl, '_blank')
+        const normalized = normalizePdfUrl(rawPdfUrl)
+        setPdfUrl(normalized)
+
+        // Try to auto-open. Browsers may block this after an await, so we also
+        // show a clickable link below as a reliable fallback.
+        const win = window.open(normalized, '_blank')
+        if (!win) {
+          toast('PDF ready — click "Open PDF" below if the new tab did not open.', {
+            icon: '📄',
+          })
         }
       } else {
         toast.error('PDF download link not available')
@@ -206,9 +227,22 @@ export const PrintConfirmSection = () => {
           )}
 
           {printResult && !printError && (
-            <div className="w-full rounded-[8px] border border-green-200 bg-green-50 px-4 py-3 text-[12px] text-green-700 flex items-center gap-2">
-              <CheckCircle size={13} className="flex-shrink-0" />
-              Print request completed successfully.
+            <div className="w-full rounded-[8px] border border-green-200 bg-green-50 px-4 py-3 text-[12px] text-green-700 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle size={13} className="flex-shrink-0" />
+                Print request completed successfully.
+              </div>
+              {pdfUrl && (
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-[8px] bg-[#0d8f72] hover:bg-[#0b7a62] text-white text-[12px] font-bold transition-colors"
+                >
+                  <ExternalLink size={13} />
+                  Open Printed PDF
+                </a>
+              )}
             </div>
           )}
         </div>
