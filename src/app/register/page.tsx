@@ -1,9 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 import api from '../../utils/axios';
+import LocationForm from '@/components/location/LocationForm';
+import type { LocationFormValue } from '@/components/location/LocationForm';
 
 const BANK_OPTIONS = [
   { id: 1, name: 'State Bank of India (SBI)' },
@@ -39,92 +41,17 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Location dropdown state
-  const [states, setStates] = useState<{ name: string }[]>([]);
-  const [districts, setDistricts] = useState<{ name: string }[]>([]);
-  const [talukas, setTalukas] = useState<{ name: string }[]>([]);
-  const [villages, setVillages] = useState<{ name: string }[]>([]);
-  const [selectedState, setSelectedState] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [selectedTaluka, setSelectedTaluka] = useState('');
-  const [selectedVillage, setSelectedVillage] = useState('');
-  const [statesLoading, setStatesLoading] = useState(false);
-  const [districtsLoading, setDistrictsLoading] = useState(false);
-  const [talukasLoading, setTalukasLoading] = useState(false);
-  const [villagesLoading, setVillagesLoading] = useState(false);
+  const [location, setLocation] = useState<LocationFormValue>({
+    state: '',
+    district: '',
+    subDistrict: '',
+    villageCity: '',
+    pinCode: '',
+    fullAddress: '',
+  });
 
   const router = useRouter();
   const isOtherBank = bankId === '99';
-
-  useEffect(() => {
-    loadStates();
-  }, []);
-
-  const loadStates = async () => {
-    setStatesLoading(true);
-    try {
-      const res = await api.get('/locations/states');
-      setStates(res.data.data);
-    } catch {
-      toast.error('Failed to load states');
-    } finally {
-      setStatesLoading(false);
-    }
-  };
-
-  const handleStateChange = async (state: string) => {
-    setSelectedState(state);
-    setSelectedDistrict('');
-    setSelectedTaluka('');
-    setSelectedVillage('');
-    setDistricts([]);
-    setTalukas([]);
-    setVillages([]);
-    if (!state) return;
-    setDistrictsLoading(true);
-    try {
-      const res = await api.get(`/locations/states/${encodeURIComponent(state)}/districts`);
-      setDistricts(res.data.data);
-    } catch {
-      toast.error('Failed to load districts');
-    } finally {
-      setDistrictsLoading(false);
-    }
-  };
-
-  const handleDistrictChange = async (district: string) => {
-    setSelectedDistrict(district);
-    setSelectedTaluka('');
-    setSelectedVillage('');
-    setTalukas([]);
-    setVillages([]);
-    if (!district || !selectedState) return;
-    setTalukasLoading(true);
-    try {
-      const res = await api.get(`/locations/states/${encodeURIComponent(selectedState)}/districts/${encodeURIComponent(district)}/talukas`);
-      setTalukas(res.data.data);
-    } catch {
-      toast.error('Failed to load talukas');
-    } finally {
-      setTalukasLoading(false);
-    }
-  };
-
-  const handleTalukaChange = async (taluka: string) => {
-    setSelectedTaluka(taluka);
-    setSelectedVillage('');
-    setVillages([]);
-    if (!taluka || !selectedState || !selectedDistrict) return;
-    setVillagesLoading(true);
-    try {
-      const res = await api.get(`/locations/states/${encodeURIComponent(selectedState)}/districts/${encodeURIComponent(selectedDistrict)}/talukas/${encodeURIComponent(taluka)}/villages`);
-      setVillages(res.data.data);
-    } catch {
-      toast.error('Failed to load villages');
-    } finally {
-      setVillagesLoading(false);
-    }
-  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,10 +64,12 @@ export default function RegisterPage() {
         password,
         bank_id: parseInt(bankId),
         branch_id: branchId ? parseInt(branchId) : undefined,
-        state: selectedState,
-        district: selectedDistrict,
-        taluka: selectedTaluka,
-        village_city: selectedVillage,
+        state: location.state,
+        district: location.district,
+        taluka: location.subDistrict,
+        village_city: location.villageCity,
+        pin_code: location.pinCode,
+        address: location.fullAddress,
       };
 
       if (isOtherBank && otherBankName.trim()) {
@@ -277,73 +206,7 @@ export default function RegisterPage() {
             {/* ---- Location Section ---- */}
             <div className="border-t pt-4 mt-2">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Location Details</h3>
-
-              {/* State */}
-              <div className="mb-3">
-                <label className="text-sm font-medium text-gray-600">State <span className="text-red-500">*</span></label>
-                <select
-                  value={selectedState}
-                  onChange={(e) => handleStateChange(e.target.value)}
-                  className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
-                  required
-                >
-                  <option value="">{statesLoading ? 'Loading...' : 'Select State'}</option>
-                  {states.map((s) => (
-                    <option key={s.name} value={s.name}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* District */}
-              <div className="mb-3">
-                <label className="text-sm font-medium text-gray-600">District <span className="text-red-500">*</span></label>
-                <select
-                  value={selectedDistrict}
-                  onChange={(e) => handleDistrictChange(e.target.value)}
-                  disabled={!selectedState}
-                  className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  required
-                >
-                  <option value="">{districtsLoading ? 'Loading...' : 'Select District'}</option>
-                  {districts.map((d) => (
-                    <option key={d.name} value={d.name}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Taluka */}
-              <div className="mb-3">
-                <label className="text-sm font-medium text-gray-600">Taluka <span className="text-red-500">*</span></label>
-                <select
-                  value={selectedTaluka}
-                  onChange={(e) => handleTalukaChange(e.target.value)}
-                  disabled={!selectedDistrict}
-                  className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  required
-                >
-                  <option value="">{talukasLoading ? 'Loading...' : 'Select Taluka'}</option>
-                  {talukas.map((t) => (
-                    <option key={t.name} value={t.name}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Village/City */}
-              <div className="mb-3">
-                <label className="text-sm font-medium text-gray-600">Village/City <span className="text-red-500">*</span></label>
-                <select
-                  value={selectedVillage}
-                  onChange={(e) => setSelectedVillage(e.target.value)}
-                  disabled={!selectedTaluka}
-                  className="w-full mt-1 p-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  required
-                >
-                  <option value="">{villagesLoading ? 'Loading...' : 'Select Village/City'}</option>
-                  {villages.map((v) => (
-                    <option key={v.name} value={v.name}>{v.name}</option>
-                  ))}
-                </select>
-              </div>
+              <LocationForm value={location} onChange={setLocation} showAddressField={true} />
             </div>
 
             {/* Password */}

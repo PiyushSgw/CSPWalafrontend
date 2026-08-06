@@ -14,6 +14,8 @@ interface User {
   csp_code: string
   wallet_balance: number
   status: string
+  pin_code?: string
+  address?: string
 }
 
 interface AdminUser {

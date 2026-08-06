@@ -493,7 +493,7 @@ html.bc-locked { overflow: hidden; }
 }
 .bc-landing .overlay.active { opacity:1; pointer-events:auto; }
 .bc-landing .login-panel {
-  position:fixed; top:0; right:0; height:100%; width:430px; max-width:93vw;
+  position:fixed; top:0; right:0; height:100%; width:440px; max-width:93vw;
   background:var(--paper); z-index:101;
   transform:translateX(110%); transition:transform .38s cubic-bezier(.2,.9,.3,1);
   box-shadow:-24px 0 60px rgba(0,0,0,.25); overflow-y:auto;
