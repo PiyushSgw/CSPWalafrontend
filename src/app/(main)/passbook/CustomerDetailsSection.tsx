@@ -122,15 +122,20 @@ export const CustomerDetailsSection = () => {
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleIFSCBlur = async () => {
-    if (!form.ifsc.trim()) return
+    const ifsc = form.ifsc.trim()
+    if (!ifsc) return
     try {
-      const res = await api.get(`/csp/customers/${form.ifsc}`)
+      const res = await api.get(`/public/ifsc/${ifsc}`)
       const data = res.data.data
-      setForm((prev) => ({
-        ...prev,
-        bank_id: String(data.bank_id || data.bankId || prev.bank_id),
-      }))
-      if (data.bank_name) toast.success(`Bank: ${data.bank_name}`)
+      if (data?.bank_id) {
+        setForm((prev) => ({
+          ...prev,
+          bank_id: String(data.bank_id),
+        }))
+        toast.success(`Bank: ${data.bank_name}${data.branch_name ? ` — ${data.branch_name}` : ''}`)
+      } else {
+        toast.error('IFSC not found')
+      }
     } catch {
       toast.error('IFSC not found')
     }

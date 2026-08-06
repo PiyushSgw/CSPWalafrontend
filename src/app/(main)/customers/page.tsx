@@ -70,6 +70,21 @@ export default function CustomersPage() {
 
       bank: cust.bank_code || cust.bank_name || "-",
 
+      bank_id: cust.bank_id,
+      branch_id: cust.branch_id ?? null,
+
+      aadhar_number: cust.aadhar_number || "",
+
+      address: cust.address || "",
+
+      pin_code: cust.pin_code || "",
+
+      ifsc: cust.ifsc || "",
+
+      opening_balance: cust.opening_balance
+        ? Number(cust.opening_balance)
+        : 0,
+
       type: (
         cust.account_type?.toLowerCase() === "savings"
           ? "Savings"
@@ -177,6 +192,29 @@ export default function CustomersPage() {
           updatedCustomer.type
             .toLowerCase()
             .replace(" ", "_"),
+
+        branch_id:
+          updatedCustomer.branch_id
+            ? Number(updatedCustomer.branch_id)
+            : undefined,
+
+        aadhar_number:
+          updatedCustomer.aadhar_number || undefined,
+
+        address:
+          updatedCustomer.address || undefined,
+
+        pin_code:
+          updatedCustomer.pin_code || undefined,
+
+        ifsc:
+          updatedCustomer.ifsc || undefined,
+
+        opening_balance:
+          typeof updatedCustomer.opening_balance ===
+          "number"
+            ? updatedCustomer.opening_balance
+            : undefined,
       })
     );
 

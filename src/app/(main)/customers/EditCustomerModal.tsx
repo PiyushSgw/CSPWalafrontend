@@ -37,7 +37,7 @@ const EditCustomerModal: React.FC<Props> = ({ isOpen, onClose, editData, onUpdat
     mobile: "",
     account_number: "",
     bank: "",
-    bank_id: 1,
+    bank_id: "",
     branch_id: "",
     type: "Savings" as AccountType,
     lastPrint: "",
@@ -56,16 +56,16 @@ const EditCustomerModal: React.FC<Props> = ({ isOpen, onClose, editData, onUpdat
         mobile: editData.mobile || "",
         account_number: editData.account_number || "",
         bank: editData.bank || "",
-        bank_id: 1,
-        branch_id: "",
+        bank_id: editData.bank_id ? String(editData.bank_id) : "",
+        branch_id: editData.branch_id ? String(editData.branch_id) : "",
         type: (editData.type as AccountType) || "Savings",
         lastPrint: editData.lastPrint || "",
         fetchedAt: editData.fetchedAt || "",
-        aadhar_number: "",
-        address: "",
-        pin_code: "",
-        ifsc: "",
-        opening_balance: 0,
+        aadhar_number: editData.aadhar_number || "",
+        address: editData.address || "",
+        pin_code: editData.pin_code || "",
+        ifsc: editData.ifsc || "",
+        opening_balance: editData.opening_balance ?? 0,
       });
     }
   }, [editData]);
@@ -79,7 +79,10 @@ const EditCustomerModal: React.FC<Props> = ({ isOpen, onClose, editData, onUpdat
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
+      const updated = {
+        ...prev,
+        [name]: name === "bank_id" ? value : value,
+      };
       // Reset branch_id when bank changes
       if (name === "bank_id") {
         updated.branch_id = "";
@@ -97,6 +100,14 @@ const EditCustomerModal: React.FC<Props> = ({ isOpen, onClose, editData, onUpdat
       account_number: formData.account_number,
       accountShort: formData.account_number ? `XXXX ${formData.account_number.slice(-4)}` : "XXXX",
       bank: formData.bank,
+      bank_id: formData.bank_id ? Number(formData.bank_id) : undefined,
+      branch_id: formData.branch_id ? Number(formData.branch_id) : null,
+      aadhar_number: formData.aadhar_number,
+      address: formData.address,
+      pin_code: formData.pin_code,
+      photo_url: editData.photo_url,
+      ifsc: formData.ifsc,
+      opening_balance: Number(formData.opening_balance) || 0,
       type: formData.type,
       lastPrint: formData.lastPrint,
       fetchedAt: formData.fetchedAt,

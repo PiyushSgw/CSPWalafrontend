@@ -22,6 +22,8 @@ export interface Customer {
   bank_name: string;
   bank_code: string;
   branch_name: string | null;
+  bank_id?: number;
+  branch_id?: number | null;
 }
 
 export interface MappedCustomer {
@@ -34,6 +36,14 @@ export interface MappedCustomer {
   type: "Savings" | "Current" | "Jan Dhan";
   lastPrint: string;
   fetchedAt: string;
+  bank_id?: number;
+  branch_id?: number | null;
+  aadhar_number?: string;
+  address?: string;
+  pin_code?: string;
+  photo_url?: string;
+  ifsc?: string;
+  opening_balance?: number;
 }
 
 export interface ApiMeta {

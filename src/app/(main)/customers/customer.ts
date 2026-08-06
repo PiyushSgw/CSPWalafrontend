@@ -11,6 +11,11 @@ export interface Customer {
   bank_name: string;
   bank_code: string;
   branch_name: string | null;
+  aadhar_number?: string;
+  address?: string;
+  pin_code?: string;
+  bank_id?: number;
+  branch_id?: number | null;
 }
 
 
@@ -28,9 +33,12 @@ export interface MappedCustomer {
   lastPrint: string;
   fetchedAt: string;
   // NEW FIELDS
+  bank_id?: number;
+  branch_id?: number | null;
   aadhar_number?: string;
   address?: string;
   pin_code?: string;
+  photo_url?: string;
   ifsc?: string;
   opening_balance?: number;
 }
