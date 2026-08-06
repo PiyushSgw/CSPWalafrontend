@@ -281,7 +281,7 @@ export const CustomerDetailsSection = () => {
         )}
 
         {/* Fields */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-[5px]">
             <label className={labelCls}>Full Name <span className="text-red-500">*</span></label>
             <input type="text" required value={form.name} onChange={(e) => updateField('name', e.target.value)} placeholder="As per bank records" className={inputCls} />

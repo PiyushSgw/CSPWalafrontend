@@ -182,38 +182,38 @@ export const PassbookPreviewSection = () => {
               </div>
 
               <div className="px-4 py-4">
-                <div className="grid grid-cols-[96px_1fr_70px_1fr] gap-y-2 text-[12px] text-[#4b5563]">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[12px] text-[#4b5563] sm:grid-cols-[96px_1fr_70px_1fr]">
                   <div>Account No</div>
-                  <div className="font-bold text-[#111827]">{maskAccount(selectedCustomer.account_number)}</div>
+                  <div className="font-bold text-[#111827] sm:text-right">{maskAccount(selectedCustomer.account_number)}</div>
                   <div>IFSC</div>
-                  <div className="font-bold text-[#111827] text-right">{ifsc}</div>
+                  <div className="font-bold text-[#111827] sm:text-right">{ifsc}</div>
 
                   <div>Name</div>
-                  <div className="font-bold uppercase text-[#111827]">
+                  <div className="font-bold uppercase text-[#111827] sm:text-right">
                     {selectedCustomer.name || '—'}
                   </div>
                   <div>Branch</div>
-                  <div className="font-bold uppercase text-right text-[#111827]">
+                  <div className="font-bold uppercase text-[#111827] sm:text-right">
                     {branch}
                   </div>
 
                   <div>Type</div>
-                  <div className="font-bold uppercase text-[#111827]">{accountType}</div>
+                  <div className="font-bold uppercase text-[#111827] sm:text-right">{accountType}</div>
                   <div>CSP</div>
-                  <div className="font-bold text-right uppercase text-[#111827]">
+                  <div className="font-bold uppercase text-[#111827] sm:text-right">
                     {selectedCustomer?.csp_code || 'CSP-UP-0421'}
                   </div>
 
                   <div>Mobile</div>
-                  <div className="font-bold text-[#111827]">{mobile}</div>
-                  <div></div>
-                  <div></div>
+                  <div className="font-bold text-[#111827] sm:text-right">{mobile}</div>
+                  <div className="hidden sm:block"></div>
+                  <div className="hidden sm:block"></div>
                 </div>
 
                 <div className="my-4 h-px bg-[#d7dbe2]" />
 
-                <div className="overflow-hidden">
-                  <table className="w-full border-collapse text-[12px] text-[#111827]">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[560px] border-collapse text-[12px] text-[#111827]">
                     <thead>
                       <tr className="bg-[#f1f3f6] text-[11px] uppercase tracking-wide text-[#374151]">
                         <th className="px-2 py-2 text-left font-bold">Date</th>

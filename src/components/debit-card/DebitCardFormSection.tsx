@@ -108,7 +108,7 @@ export function DebitCardFormSection({ formData, onChange, onContinue, onBack }:
       {isPersonalized && (
         <div>
           <label className="block text-sm font-medium text-[#374151] mb-2">Card Type</label>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {['Rupay Card', 'Visa Card', 'Master Card'].map((type) => (
               <label
                 key={type}

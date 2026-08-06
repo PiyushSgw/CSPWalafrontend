@@ -15,7 +15,8 @@ export const PrintHistoryFilterBar: React.FC<Props> = ({ value, onChange }) => {
   return (
     <div
       style={{
-        display: "inline-flex",
+        display: "flex",
+        flexWrap: "wrap",
         alignItems: "center",
         gap: 4,
         padding: 4,

@@ -54,9 +54,9 @@ export const CustomerListSection: React.FC<Props> = ({
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-[#e5e7eb] bg-[#fafafa]">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-4 border-b border-[#e5e7eb] bg-[#fafafa]">
         <div className="text-[14px] font-bold text-[#111827]">All Customers</div>
-        <div className="relative w-full max-w-[280px]">
+        <div className="relative w-full sm:w-auto sm:max-w-[280px]">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b7280] text-[14px]">🔍</span>
           <input
             type="text"
