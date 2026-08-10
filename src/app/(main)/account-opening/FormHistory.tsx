@@ -97,6 +97,80 @@ export default function FormHistory() {
     });
   }, [historyRaw]);
 
+  const handlePrintPdf = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Please allow pop-ups to print history as PDF.");
+      return;
+    }
+
+    const escHtml = (v?: string | null) =>
+      String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    const rowsHtml = history
+      .map((item, index) => {
+        const charge = getCharge(item);
+        const createdDate = item.created_at
+          ? new Date(item.created_at).toLocaleString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })
+          : "—";
+        return `
+          <tr>
+            <td>F-${String(index + 1).padStart(4, "0")}</td>
+            <td>${escHtml(createdDate)}</td>
+            <td>${escHtml(item.full_name) || "Unnamed User"}</td>
+            <td>${escHtml(getBankShort(item.bank_name || item.bank))}</td>
+            <td>${escHtml(getAccountTypeLabel(item.account_type))}</td>
+            <td>-₹${charge}</td>
+            <td>${escHtml(item.status) || "Pending"}</td>
+          </tr>`;
+      })
+      .join("");
+
+    printWindow.document.write(`
+      <html>
+      <head>
+        <title>Form Print History</title>
+        <style>
+          body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #111; }
+          h2 { margin: 0 0 4px; font-size: 18px; }
+          .sub { margin: 0 0 16px; font-size: 12px; color: #555; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th, td { border: 1px solid #ccc; padding: 7px 9px; text-align: left; }
+          th { background: #f3f4f6; font-weight: bold; }
+          tr:nth-child(even) td { background: #fafafa; }
+        </style>
+      </head>
+      <body>
+        <h2>Form Print History</h2>
+        <p class="sub">Total forms: ${history.length} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString("en-IN")}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Date &amp; Time</th><th>Customer</th><th>Bank</th><th>Form Type</th><th>Charge</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <script>
+          window.onload = function () { setTimeout(function () { window.print(); }, 250); };
+        <\/script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   if (historyLoading) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
@@ -143,6 +217,7 @@ export default function FormHistory() {
         </h3>
         <button
           type="button"
+          onClick={handlePrintPdf}
           className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700 hover:bg-gray-50"
         >
           Export CSV

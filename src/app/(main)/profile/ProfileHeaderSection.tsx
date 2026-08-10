@@ -12,6 +12,11 @@ export const ProfileHeaderSection: React.FC<ProfileHeaderSectionProps> = ({
   onEditPhoto,
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [imgFailed, setImgFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    setImgFailed(false);
+  }, [profile?.photo_signed_url]);
 
   if (loading && !profile) {
     return (
@@ -56,11 +61,12 @@ export const ProfileHeaderSection: React.FC<ProfileHeaderSectionProps> = ({
     <div className="profile-header">
       <div className="profile-avatar-container">
         <div className="profile-avatar">
-          {profile?.photo_signed_url ? (
+          {profile?.photo_signed_url && !imgFailed ? (
             <img
               src={profile.photo_signed_url}
               alt={`${fullName}'s profile`}
               className="profile-img"
+              onError={() => setImgFailed(true)}
             />
           ) : (
             <div className="avatar-letter">{firstLetter}</div>

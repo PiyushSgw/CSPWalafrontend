@@ -66,7 +66,7 @@ export default function WalletWidget() {
     .slice(0, 5)
     .map((job: any) => ({
       amount: -job.rawCharge,
-      icon: '🖨️',
+      icon: ['Form', 'Combo', 'Acct Form', 'Jan Dhan'].includes(job.type) ? '📋' : '🖨️',
       name: `${job.type} - ${job.customer}`,
       time: job.dateTime
     }));
