@@ -3,14 +3,17 @@ import React, { useState } from "react";
 type TabId = "wt-ledger" | "wt-recharge" | "wt-requests";
 
 interface Props {
+  activeTab?: TabId;
   onTabChange?: (tabId: TabId) => void;
 }
 
-export const WalletTabBarSection: React.FC<Props> = ({ onTabChange }) => {
-  const [active, setActive] = useState<TabId>("wt-ledger");
+export const WalletTabBarSection: React.FC<Props> = ({ activeTab, onTabChange }) => {
+  const [internalActive, setInternalActive] = useState<TabId>("wt-ledger");
+
+  const active = activeTab || internalActive;
 
   const setTab = (id: TabId) => {
-    setActive(id);
+    setInternalActive(id);
     if (onTabChange) onTabChange(id);
   };
 

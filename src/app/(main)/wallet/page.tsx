@@ -60,7 +60,7 @@ export default function WalletPage() {
   return (
     <div className="page active" id="page-wallet">
       <PageHeaderSection />
-      <WalletTabBarSection onTabChange={setActiveTab} />
+      <WalletTabBarSection activeTab={activeTab} onTabChange={setActiveTab} />
       {renderTab()}
     </div>
   )

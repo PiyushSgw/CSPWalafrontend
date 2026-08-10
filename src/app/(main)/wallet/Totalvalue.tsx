@@ -2,10 +2,10 @@ import React from 'react'
 import { WalletTransaction } from "@/redux/slices/walletSlice"
 
 export const Totalvalue = ({ 
-  passbooks = 118,
-  forms = 24,
-  spent = 830,
-  recharged = 1500,
+  passbooks = 0,
+  forms = 0,
+  spent = 0,
+  recharged = 0,
   onRechargeClick = () => {}
 }) => {
   const stats = [

@@ -8,6 +8,7 @@ export interface Profile {
   email: string;
   mobile: string;
   photo_url: string | null;
+  photo_signed_url?: string | null;
   bio: string;
   kyc_status: "pending" | "verified" | "rejected";
   created_at: string;
@@ -204,7 +205,7 @@ export const updateBankDetails = createAsyncThunk<
 });
 
 export const uploadPhoto = createAsyncThunk<
-  ApiResponse<{ photo_url: string }>,
+  ApiResponse<{ photo_url: string; signed_url?: string }>,
   FormData,
   { rejectValue: string }
 >("profile/uploadPhoto", async (formData, { rejectWithValue }) => {
@@ -220,7 +221,7 @@ export const uploadPhoto = createAsyncThunk<
       body: formData,
     });
 
-    const data: ApiResponse<{ photo_url: string }> = await response.json();
+    const data: ApiResponse<{ photo_url: string; signed_url?: string }> = await response.json();
 
     if (!response.ok || !data.success) {
       throw new Error(data.message || `HTTP ${response.status}`);
@@ -376,6 +377,9 @@ const profileSlice = createSlice({
       .addCase(uploadPhoto.fulfilled, (state, action) => {
         if (state.profile) {
           state.profile.photo_url = action.payload.data.photo_url;
+          if (action.payload.data.signed_url) {
+            state.profile.photo_signed_url = action.payload.data.signed_url;
+          }
         }
         state.error = null;
       })

@@ -16,7 +16,7 @@ export const PageHeaderSection: React.FC<PageHeaderSectionProps> = ({
   return (
     <div className="page-header">
       <div className="page-header-left">
-        <div className="page-title">👤 My Profile</div>
+        <div className="page-title">👤 </div>
         <div className="page-sub">
           Manage your CSP account details, bank setup, and documents
         </div>

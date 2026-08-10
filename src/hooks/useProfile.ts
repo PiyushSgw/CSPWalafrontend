@@ -57,6 +57,7 @@ export const useProfile = () => {
       formData.append("photo", file);
 
       const res = await dispatch(uploadPhoto(formData)).unwrap();
+      await dispatch(loadProfile());
       return res;
     },
 

@@ -80,9 +80,13 @@ export const LedgerTabSection: React.FC<Props> = ({
     return <div className="skeleton">Loading wallet...</div>
   }
 
-  const passbookPrints = 118 // TODO: Calculate from ledger
-  const totalDebit = 830
-  const totalRecharge = 1500
+  const debitTxs = transactions.filter(tx => tx.type === 'Debit')
+  const creditTxs = transactions.filter(tx => tx.type === 'Credit')
+
+  const passbooks = debitTxs.filter(tx => tx.desc.toLowerCase().includes('passbook')).length
+  const forms = debitTxs.filter(tx => tx.desc.toLowerCase().includes('form')).length
+  const spent = debitTxs.reduce((sum, tx) => sum + (tx.amount_raw || 0), 0)
+  const recharged = creditTxs.reduce((sum, tx) => sum + (tx.amount_raw || 0), 0)
 
   return (
     <div id="wt-ledger">
@@ -91,7 +95,13 @@ export const LedgerTabSection: React.FC<Props> = ({
         <WalletCardSection availableBalance={balance?.balance || 0} />
         {/* Your existing CardStat grid + button */}
         <div className="">
-         <Totalvalue />
+         <Totalvalue
+           passbooks={passbooks}
+           forms={forms}
+           spent={spent}
+           recharged={recharged}
+           onRechargeClick={onRequestRecharge}
+         />
         </div>
       </div>
       
