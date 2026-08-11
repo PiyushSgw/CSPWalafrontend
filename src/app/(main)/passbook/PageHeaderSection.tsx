@@ -16,7 +16,7 @@ export const PageHeaderSection: React.FC<Props> = ({ onLoadExisting, onNewPrintJ
          📖 Passbook Printing
         </h1>
         <p className="text-[12.5px] text-slate-500 mt-1 truncate">
-          Enter customer details and generate A5 passbook PDF — ₹10 per print
+          Enter customer details and generate A5 passbook PDF — ₹0.10 per print
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0 flex-wrap">
