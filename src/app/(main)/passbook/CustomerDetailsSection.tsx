@@ -54,7 +54,7 @@ const initialForm: FormState = {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const CustomerDetailsSection = () => {
+export const CustomerDetailsSection = ({ autoFocusSearch }: { autoFocusSearch?: boolean }) => {
   const dispatch = useAppDispatch()
   const { selectedCustomer, loading, error } = useAppSelector((s) => s.passbook)
 
@@ -66,6 +66,14 @@ export const CustomerDetailsSection = () => {
   const [form, setForm] = useState<FormState>(initialForm)
 
   const searchRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (autoFocusSearch) {
+      searchInputRef.current?.focus()
+      searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [autoFocusSearch])
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -215,6 +223,7 @@ export const CustomerDetailsSection = () => {
             <span className="search-icon text-[13px]">🔍</span>
 
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

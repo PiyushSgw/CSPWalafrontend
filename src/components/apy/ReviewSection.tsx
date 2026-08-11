@@ -27,6 +27,7 @@ export function ReviewSection({ customer, formData, isEdit, submitting, onSubmit
     labelValue('Mobile', formData.mobile),
     labelValue('Email', formData.email),
     labelValue('Aadhaar', formData.aadhaar),
+    labelValue('PRAN Number', formData.pranNumber),
     labelValue('Married', formData.isMarried),
     labelValue('Spouse Name', formData.spouseName),
     labelValue('Spouse Aadhaar', formData.spouseAadhaar),

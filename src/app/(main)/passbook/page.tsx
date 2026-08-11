@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import {
@@ -23,6 +23,9 @@ export default function PassbookPage() {
   const dispatch = useAppDispatch()
   const { wizardStep } = useAppSelector((s) => s.passbook)
   const searchParams = useSearchParams()
+
+  const [formKey, setFormKey] = useState(0)
+  const [autoFocusSearch, setAutoFocusSearch] = useState(false)
 
   // Load customer from URL params if provided
   useEffect(() => {
@@ -58,9 +61,25 @@ export default function PassbookPage() {
     }
   }
 
+  const handleNewPrintJob = () => {
+    dispatch(resetPassbookState())
+    setFormKey((k) => k + 1)
+    setAutoFocusSearch(false)
+  }
+
+  const handleLoadExisting = () => {
+    dispatch(resetPassbookState())
+    setFormKey((k) => k + 1)
+    setAutoFocusSearch(true)
+    toast.success('Search for an existing customer below')
+  }
+
   return (
     <div className="space-y-5">
-      <PageHeaderSection onReset={() => dispatch(resetPassbookState())} />
+      <PageHeaderSection
+        onLoadExisting={handleLoadExisting}
+        onNewPrintJob={handleNewPrintJob}
+      />
 
       <StepIndicatorsSection
         activeStep={wizardStep}
@@ -69,7 +88,12 @@ export default function PassbookPage() {
 
       <div className="flex flex-col xl:flex-row gap-5 items-start">
         <div className="flex-1 min-w-0 w-full">
-          {wizardStep === 1 && <CustomerDetailsSection />}
+          {wizardStep === 1 && (
+            <CustomerDetailsSection
+              key={formKey}
+              autoFocusSearch={autoFocusSearch}
+            />
+          )}
           {wizardStep === 2 && <TransactionTableSection />}
           {wizardStep === 3 && <PassbookPreviewSection />}
           {wizardStep === 4 && <PrintConfirmSection />}

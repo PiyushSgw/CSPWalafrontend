@@ -1,12 +1,11 @@
 'use client';
 
-import { RefreshCw, BookOpen } from 'lucide-react';
-
 interface Props {
-  onReset: () => void;
+  onLoadExisting: () => void;
+  onNewPrintJob: () => void;
 }
 
-export const PageHeaderSection: React.FC<Props> = ({ onReset }) => {
+export const PageHeaderSection: React.FC<Props> = ({ onLoadExisting, onNewPrintJob }) => {
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div className="min-w-0">
@@ -22,13 +21,15 @@ export const PageHeaderSection: React.FC<Props> = ({ onReset }) => {
       </div>
       <div className="flex items-center gap-2 shrink-0 flex-wrap">
         <button
-          onClick={onReset}
-          className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-lg  text-[12.5px] font-semibold text-[#374151] "
+          type="button"
+          onClick={onLoadExisting}
+          className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-lg  text-[12.5px] font-semibold text-[#374151] hover:bg-slate-50 transition-colors"
         >
           📋 Load Existing Customer
         </button>
         <button
-          onClick={onReset}
+          type="button"
+          onClick={onNewPrintJob}
           className="flex items-center gap-1.5 px-3.5 py-1 border border-slate-200 rounded-lg bg-[#0d8f72] text-[12.5px] font-semibold text-white hover:bg-[#16a34a] shadow-sm transition-colors"
         >
          + New Print Job

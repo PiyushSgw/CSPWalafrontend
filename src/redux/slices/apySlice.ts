@@ -297,6 +297,7 @@ const apySlice = createSlice({
         }
         if (c.nominee_dob) state.formData.nomineeDob = c.nominee_dob.split('T')[0]
         if (c.nominee_address) state.formData.nomineeAddress = c.nominee_address
+        if (c.pran_number) state.formData.pranNumber = c.pran_number
       }
     },
     clearCustomerSearch(state) {
@@ -426,6 +427,7 @@ const apySlice = createSlice({
           }
           if (app.nominee_dob && !state.formData.nomineeDob) state.formData.nomineeDob = app.nominee_dob.split('T')[0]
           if (app.nominee_address && !state.formData.nomineeAddress) state.formData.nomineeAddress = app.nominee_address
+          if (app.pran_number && !state.formData.pranNumber) state.formData.pranNumber = app.pran_number
         }
       })
   },

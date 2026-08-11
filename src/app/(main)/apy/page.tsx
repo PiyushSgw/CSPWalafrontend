@@ -68,6 +68,7 @@ function ApyPageInner() {
       contributionAmount: apy.formData.contributionAmount ? Number(apy.formData.contributionAmount) : undefined,
       declarationDate: apy.formData.declarationDate || undefined,
       declarationPlace: apy.formData.declarationPlace || undefined,
+      pranNumber: apy.formData.pranNumber || undefined,
     }
 
     try {

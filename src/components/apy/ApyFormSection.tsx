@@ -85,7 +85,7 @@ export function ApyFormSection({ formData, onChange, onContinue, onBack }: Props
             </select>
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-[#374151] mb-1.5">Full Name <span className="text-[#dc2626]">*</span></label>
+            <label className="block text-sm font-medium text-[#374151] mb-1.5">Name of the Subscriber <span className="text-[#dc2626]">*</span></label>
             <input
               type="text"
               value={formData.fullName}
@@ -128,7 +128,7 @@ export function ApyFormSection({ formData, onChange, onContinue, onBack }: Props
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-[#374151] mb-1.5">Email</label>
             <input
@@ -147,6 +147,18 @@ export function ApyFormSection({ formData, onChange, onContinue, onBack }: Props
               className="w-full px-3 py-2 text-sm border border-[#d1d5db] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(13,143,114,0.12)] focus:border-[#0d8f72]"
               maxLength={12}
               inputMode="numeric"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#374151] mb-1.5">PRAN Number</label>
+            <input
+              type="text"
+              value={formData.pranNumber}
+              onChange={(e) => onChange({ pranNumber: e.target.value.replace(/\D/g, '').slice(0, 22) })}
+              className="w-full px-3 py-2 text-sm border border-[#d1d5db] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgba(13,143,114,0.12)] focus:border-[#0d8f72]"
+              maxLength={22}
+              inputMode="numeric"
+              placeholder="Auto-filled if available"
             />
           </div>
         </div>
