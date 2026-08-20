@@ -686,7 +686,7 @@ export default function AuthPanel({ open, tab, onClose, onTab }: Props) {
               <div className="tc-row">
                 <input type="checkbox" id="tcChk" required style={{ width: 'auto', marginTop: 2 }} />
                 <label htmlFor="tcChk" style={{ fontSize: '.78rem', color: 'var(--soft)', lineHeight: 1.5 }}>
-                  मी <a href="#" style={{ color: 'var(--blue)' }}>Terms & Conditions</a> आणि <a href="#" style={{ color: 'var(--blue)' }}>Privacy Policy</a> वाचली असून मान्य आहे.
+                  मी <a href="/legal/terms-and-conditions" target="_blank" style={{ color: 'var(--blue)' }}>Terms & Conditions</a> आणि <a href="/legal/privacy-policy" target="_blank" style={{ color: 'var(--blue)' }}>Privacy Policy</a> वाचली असून मान्य आहे.
                 </label>
               </div>
               <button className="p-submit" type="submit" disabled={busy || !mobileVerified} style={{ marginTop: 14 }}>

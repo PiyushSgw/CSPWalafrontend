@@ -36,8 +36,14 @@ export default function LandingFooter({ openAuth }: { openAuth: OpenAuth }) {
           <h4>खाते</h4>
           <a href="javascript:void(0)" onClick={() => openAuth('login')}>लॉगिन</a>
           <a href="javascript:void(0)" onClick={() => openAuth('register')}>मोफत नोंदणी</a>
-          <a href="#">Terms & Conditions</a>
-          <a href="#">Privacy Policy</a>
+          <a href="/legal/about-us">About Us</a>
+          <a href="/legal/contact-us">Contact Us</a>
+        </div>
+        <div className="ft-col">
+          <h4>Legal</h4>
+          <a href="/legal/terms-and-conditions">Terms & Conditions</a>
+          <a href="/legal/privacy-policy">Privacy Policy</a>
+          <a href="/legal/refund-cancellation-policy">Refund Policy</a>
         </div>
       </div>
       <div className="ft-bottom">
