@@ -20,7 +20,7 @@ export default function RefundCancellationPolicyPage() {
           1. Wallet Recharge
         </h2>
         <p style={{ fontSize: "0.92rem", color: "#18202F", marginBottom: 8 }}>
-          All wallet recharges are final. Once a payment is successfully processed through our payment gateway (Cashfree), the amount is credited to your wallet balance and is <strong>non-refundable</strong>.
+          All wallet recharges are final. Once a payment is successfully processed through our payment gateway (Razorpay), the amount is credited to your wallet balance and is <strong>non-refundable</strong>.
         </p>
         <p style={{ fontSize: "0.92rem", color: "#18202F" }}>
           If a recharge fails due to a technical error and the amount is debited from your account but not credited to the wallet, please contact our support team within 48 hours with your transaction details.
@@ -46,7 +46,7 @@ export default function RefundCancellationPolicyPage() {
         <ul style={{ fontSize: "0.92rem", color: "#18202F", paddingLeft: 24, marginTop: 8 }}>
           <li>Amount is typically auto-reversed within 5-7 business days by your bank/payment gateway</li>
           <li>If not reversed, contact our support with transaction reference number</li>
-          <li>We will assist in raising a dispute with Cashfree Payment Gateway</li>
+          <li>We will assist in raising a dispute with Razorpay Payment Gateway</li>
         </ul>
       </section>
 

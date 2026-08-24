@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
           <li><strong>Business Information:</strong> Bank name, CSP code, agent ID, business category</li>
           <li><strong>Transaction Data:</strong> Wallet balance, recharge history, service usage records</li>
           <li><strong>Device Information:</strong> Browser type, device type, operating system (for security purposes)</li>
-          <li><strong>Payment Information:</strong> We do NOT store credit/debit card details. Payments are processed by Cashfree Payment Gateway.</li>
+          <li><strong>Payment Information:</strong> We do NOT store credit/debit card details. Payments are processed by Razorpay Payment Gateway.</li>
         </ul>
       </section>
 
@@ -56,7 +56,7 @@ export default function PrivacyPolicyPage() {
           We do NOT sell your personal information. We may share your data with:
         </p>
         <ul style={{ fontSize: "0.92rem", color: "#18202F", paddingLeft: 24, marginTop: 8 }}>
-          <li><strong>Payment Gateway:</strong> Cashfree Payment Gateway for processing payments</li>
+          <li><strong>Payment Gateway:</strong> Razorpay Payment Gateway for processing payments</li>
           <li><strong>Banking Partners:</strong> Banks and financial institutions for form processing</li>
           <li><strong>Cloud Services:</strong> Hosting providers (Render, AWS) for data storage</li>
           <li><strong>Legal Authorities:</strong> When required by law or regulatory authorities</li>

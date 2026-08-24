@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useWallet } from '@/hooks/useWallet'
 import { useAppDispatch } from '@/redux/hooks'
 import { fetchDashboardStats } from '@/redux/slices/dashboardSlice'
-import { CashfreeButton } from '@/components/wallet/CashfreeButton'
+import { RazorpayButton } from '@/components/wallet/RazorpayButton'
 import { PaymentFailureModal } from '@/components/wallet/PaymentFailureModal'
 import { PaymentSuccessModal } from '@/components/wallet/PaymentSuccessModal'
 export const RechargeTabSection: React.FC<{
@@ -330,7 +330,7 @@ export const RechargeTabSection: React.FC<{
                 OR Pay Online Instantly
               </div>
 
-              <CashfreeButton
+              <RazorpayButton
                 amount={enteredAmount}
                 onSuccess={(data) => {
                   // Save latest wallet balance

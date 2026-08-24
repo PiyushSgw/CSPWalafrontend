@@ -68,7 +68,7 @@ export default function TermsAndConditionsPage() {
           The wallet service allows you to add funds for using platform services. Please note:
         </p>
         <ul style={{ fontSize: "0.92rem", color: "#18202F", paddingLeft: 24, marginTop: 8 }}>
-          <li>All payments are processed through secure third-party payment gateways (Cashfree)</li>
+          <li>All payments are processed through secure third-party payment gateways (Razorpay)</li>
           <li>Wallet balance is non-transferable and non-refundable except as per our Refund Policy</li>
           <li>Minimum recharge amounts may apply</li>
           <li>We do not store any payment card details on our servers</li>
