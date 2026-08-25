@@ -25,13 +25,13 @@ export default function ContactUsPage() {
         <ContactCard
           icon="📞"
           title="Phone"
-          detail="+91 98XXXXXX00"
+          detail="+91 89990 23250"
           subtitle="Mon–Sat, 9:00 AM – 6:00 PM"
         />
         <ContactCard
           icon="💬"
           title="WhatsApp"
-          detail="+91 98XXXXXX00"
+          detail="+91 89990 23250"
           subtitle="Quick response during business hours"
         />
       </div>

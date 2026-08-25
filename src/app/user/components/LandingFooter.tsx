@@ -44,6 +44,7 @@ export default function LandingFooter({ openAuth }: { openAuth: OpenAuth }) {
           <a href="/legal/terms-and-conditions">Terms & Conditions</a>
           <a href="/legal/privacy-policy">Privacy Policy</a>
           <a href="/legal/refund-cancellation-policy">Refund Policy</a>
+          <a href="/legal/shipping-policy">Shipping Policy</a>
         </div>
       </div>
       <div className="ft-bottom">

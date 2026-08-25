@@ -121,6 +121,9 @@ export default function LegalLayout({
           <a href="/legal/refund-cancellation-policy" style={{ color: "#7090B0", textDecoration: "none" }}>
             Refund Policy
           </a>
+          <a href="/legal/shipping-policy" style={{ color: "#7090B0", textDecoration: "none" }}>
+            Shipping Policy
+          </a>
           <a href="/legal/about-us" style={{ color: "#7090B0", textDecoration: "none" }}>
             About Us
           </a>

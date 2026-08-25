@@ -45,8 +45,10 @@ export default function RefundCancellationPolicyPage() {
         </p>
         <ul style={{ fontSize: "0.92rem", color: "#18202F", paddingLeft: 24, marginTop: 8 }}>
           <li>Amount is typically auto-reversed within 5-7 business days by your bank/payment gateway</li>
-          <li>If not reversed, contact our support with transaction reference number</li>
+          <li>If not reversed, contact our support with transaction reference number within 48 hours</li>
           <li>We will assist in raising a dispute with Razorpay Payment Gateway</li>
+          <li>Razorpay dispute resolution typically takes 5-10 business days from the date of dispute filing</li>
+          <li>You will be updated on the dispute status via email and platform notifications</li>
         </ul>
       </section>
 

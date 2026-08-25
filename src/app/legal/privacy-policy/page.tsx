@@ -65,7 +65,16 @@ export default function PrivacyPolicyPage() {
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: "1.25rem", color: "#0D1B35", marginBottom: 12, fontFamily: "'Noto Serif Devanagari', serif" }}>
-          4. Data Security
+          4. Data Localization
+        </h2>
+        <p style={{ fontSize: "0.92rem", color: "#18202F" }}>
+          In compliance with the Reserve Bank of India (RBI) guidelines and the Payment and Settlement Systems Act, 2007, all your personal data and transaction data are stored exclusively within data centers located in India. We do not transfer or store any data outside Indian borders.
+        </p>
+      </section>
+
+      <section style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: "1.25rem", color: "#0D1B35", marginBottom: 12, fontFamily: "'Noto Serif Devanagari', serif" }}>
+          6. Data Security
         </h2>
         <p style={{ fontSize: "0.92rem", color: "#18202F" }}>
           We implement industry-standard security measures to protect your data including encrypted transmission (HTTPS/TLS), secure password hashing (bcrypt), JWT-based authentication, and regular security audits. However, no method of transmission over the Internet is 100% secure.
@@ -74,7 +83,7 @@ export default function PrivacyPolicyPage() {
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: "1.25rem", color: "#0D1B35", marginBottom: 12, fontFamily: "'Noto Serif Devanagari', serif" }}>
-          5. Data Retention
+          7. Data Retention
         </h2>
         <p style={{ fontSize: "0.92rem", color: "#18202F" }}>
           We retain your personal information for as long as your account is active or as needed to provide you services. If you delete your account, we will remove your personal data within 30 days, except where retention is required by law.
@@ -83,7 +92,7 @@ export default function PrivacyPolicyPage() {
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: "1.25rem", color: "#0D1B35", marginBottom: 12, fontFamily: "'Noto Serif Devanagari', serif" }}>
-          6. Your Rights (DPDPA 2023 Compliance)
+          8. Your Rights (DPDPA 2023 Compliance)
         </h2>
         <p style={{ fontSize: "0.92rem", color: "#18202F", marginBottom: 8 }}>
           Under the Digital Personal Data Protection Act, 2023 (DPDPA) and IT Act 2000, you have the right to:
@@ -99,16 +108,19 @@ export default function PrivacyPolicyPage() {
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: "1.25rem", color: "#0D1B35", marginBottom: 12, fontFamily: "'Noto Serif Devanagari', serif" }}>
-          7. Cookies
+          9. Cookies &amp; Client-Side Scripts
         </h2>
-        <p style={{ fontSize: "0.92rem", color: "#18202F" }}>
+        <p style={{ fontSize: "0.92rem", color: "#18202F", marginBottom: 8 }}>
           We use essential cookies and local storage to maintain your session and authentication state. We do not use third-party tracking cookies or advertising cookies.
+        </p>
+        <p style={{ fontSize: "0.92rem", color: "#18202F" }}>
+          In compliance with PCI DSS v4.0.1 requirements, all client-side scripts running on our payment pages are inventoried, authorized, and monitored to prevent digital skimming and unauthorized modifications.
         </p>
       </section>
 
       <section>
         <h2 style={{ fontSize: "1.25rem", color: "#0D1B35", marginBottom: 12, fontFamily: "'Noto Serif Devanagari', serif" }}>
-          8. Contact
+          10. Contact
         </h2>
         <p style={{ fontSize: "0.92rem", color: "#18202F" }}>
           For any privacy-related questions or to exercise your rights, please contact us at{" "}
